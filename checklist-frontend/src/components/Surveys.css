@@ -1,0 +1,168 @@
+.sjs-surveys-list {
+  font-size: 16px;
+  line-height: 40px;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.sjs-surveys-list__footer {
+  margin: 48px auto;
+  /* max-width: 500px; */
+}
+
+.sjs-button {
+  appearance: none;
+  -webkit-appearance: none;
+  text-decoration: none;
+  outline: none;
+  border-radius: 100px;
+  background: transparent;
+  padding: 8px 24px;
+  border: none;
+  color: #19b394;
+  cursor: pointer;
+  font-weight: 600;
+  text-align: center;
+}
+
+.sjs-button:hover {
+  /* background-color: var(--primary, #19b394); */
+  background-color: var(--primary-light, rgba(25, 179, 148, 0.1));
+}
+
+.sjs-add-btn {
+  display: inline-block;
+  padding: 16px 48px;
+  background: white;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  text-align: center;
+  border: 2px solid transparent;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sjs-add-btn:hover,
+.sjs-add-btn:focus {
+  border-color: #19b394;
+  background-color: white;
+}
+
+.sjs-remove-btn {
+  color: var(--danger, #e60a3e);
+}
+
+.sjs-remove-btn:hover,
+.sjs-remove-btn:focus {
+  /* background-color: var(--danger, #e60a3e); */
+  background-color: var(--danger-light, rgba(230, 10, 62, 0.1));
+}
+.modal-container {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid gray;
+}
+.modal-content {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 382px;
+  padding: 10px 25px;
+  border-radius: 10px;
+  height: 380px;
+  background-color: white;
+  margin: auto;
+}
+
+.modal-button {
+  margin-top: 20px;
+  width: 4.5rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+  background-color: #19b394;
+  padding: 6px 10px;
+  color: white;
+}
+.buttons {
+  display: flex;
+  justify-content: end;
+}
+.Add-checklist input {
+  padding: 10px 5px;
+  border: 1px solid #19b394;
+  width: 370px;
+}
+.modal-header p {
+  font-weight: bold;
+}
+.cancle-button {
+  background-color: red;
+  margin-right: 10px;
+}
+.input-remark {
+  color: red;
+  font-size: 14px;
+  margin: 0;
+  font-style: italic;
+}
+.edit-icon {
+  width: 13px;
+  margin-left: 5px;
+  color: gray;
+}
+.btn-hover {
+  color: white !important;
+}
+.confirm-modal {
+  padding: 1px 25px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 382px;
+  padding: 0px 25px;
+  border-radius: 5px;
+  height: 120px;
+  background-color: white;
+  margin: auto;
+}
+.confirmModal-header p {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.select-dropdown {
+  display: block;
+  width: 100%;
+  padding: 10px 4px;
+  text-transform: capitalize;
+  margin-top: 4px;
+}
+
+.print-options-modal {
+  padding: 1px 25px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 450px;
+  padding: 20px 25px;
+  border-radius: 5px;
+  height: 460px;
+  background-color: white;
+  margin: auto;
+}
+
+.w-20 {
+  width: 20%;
+  padding: 8px 4px;
+}

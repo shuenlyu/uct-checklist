@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>My Checklists</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+    />
+    <script
+      type="text/javascript"
+      src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"
+    ></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.1/knockout-debug.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/survey-knockout/survey.css"
+    />
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+
+  <body>
+    <div class="sv_main sv_frame sv_default_css">
+      <div class="sv_custom_header"></div>
+      <div class="sv_container">
+        <div class="sv_header">
+          <h3>My Checklists</h3>
+          <p>
+            List of your checklists you can edit, run and see the
+            results
+          </p>
+        </div>
+        <div class="sv_body">
+          <div id="surveys-list" class="surveys-list">
+            <section>
+              <img src="OneUCT_Logo.png" width="100" height="25" class="img-fluid float-right" alt="" />
+              <table style="height: 11px; width: 364px;">
+                <tbody>
+                <tr>
+                <td style="width: 207px;"><button style="display: block; margin-top: 20px;" data-bind="click: function() { createSurvey('NewSurvey' + Date.now(), loadSurveys); }">Add Checklist</button></td>
+                </tr>
+                </tbody>
+              </table>              
+            </section>
+
+            <table class="table table-striped">
+              <tbody>
+                <!-- ko foreach: availableSurveys -->
+                <tr>
+                  <td data-bind="text: name"></td>
+                  <td>
+                    <a
+                      class="sv_button_link"
+                      data-bind="attr: { href: 'survey.html?id=' + ko.unwrap(id) }"
+                      >Run</a
+                    >
+                    <a
+                      class="sv_button_link"
+                      data-bind="attr: { href: 'survey-creator.html?id=' + ko.unwrap(id)+'&name='+ko.unwrap(name) }"
+                      >Edit</a
+                    >
+                    <a
+                      class="sv_button_link"
+                      data-bind="attr: { href: 'results.html?id=' + ko.unwrap(id) }"
+                      >Results</a
+                    >
+                    <span
+                      class="sv_button_link sv_button_delete"
+                      data-bind="click: function() { $parent.deleteSurvey(ko.unwrap(id), $parent.loadSurveys); }"
+                      >Delete</span
+                    >
+                    
+                  </td>
+                </tr>
+                <!-- /ko -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script src="index.js"></script>
+</html>

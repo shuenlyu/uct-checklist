@@ -1,0 +1,96 @@
+.sjs-client-app {
+  color: #404040;
+  font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.sjs-client-app__logo {
+  vertical-align: middle;
+}
+
+.sjs-client-app__header {
+  background-color: #19b394;
+  padding: 5px;
+  /* padding-bottom: 0; */
+}
+
+.sjs-nav-button {
+  display: inline-block;
+  margin-left: 24px;
+  font-weight: bold;
+  font-size: 22px;
+  text-decoration: none;
+  line-height: 40px;
+  color: white;
+}
+
+.sjs-nav-button:hover,
+.sjs-nav-button.active {
+  text-decoration: underline;
+}
+
+.sjs-client-app__content {
+  position: fixed;
+  top: 64px;
+  width: 100%;
+  left: 0;
+  bottom: 0;
+  overflow: auto;
+  user-select: none;
+}
+
+h1 {
+  padding-left: 24px;
+}
+
+.sjs-client-app__content--about h1,
+.sjs-client-app__content--surveys-list h1 {
+  padding: 0;
+}
+
+.sjs-client-app__content--surveys-list,
+.sjs-client-app__content--about {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.sjs-client-app__footer {
+}
+
+.sjs-editor-container {
+  height: calc(100% - 2px);
+}
+
+.sjs-results-container {
+  height: calc(100% - 88px);
+}
+
+.sjs-results-content {
+  height: 100%;
+}
+
+.sjs-results-placeholder {
+  line-height: 200px;
+  text-align: center;
+  border: 1px dotted lightgray;
+}
+
+#save {
+  padding: 20px 25px 18px 25px !important;
+  color: white !important;
+  font-weight: bold !important;
+  border: none !important;
+  border-radius: 5px !important;
+  font-size: 16px !important;
+}
+.sd-page {
+  padding-top: 0 !important;
+}
+.sjs-client-app__content {
+  background-color: #f3f3f3 !important;
+}
+
+header {
+  height: 54px;
+  display: flex;
+  justify-content: space-between;
+}
