@@ -44,6 +44,8 @@ function getDBAdapter(req) {
 
 function sendJsonResult(res, obj) {
   res.setHeader("Content-Type", "application/json");
+
+  console.log(Object.keys(obj));
   res.send(JSON.stringify(obj));
 }
 

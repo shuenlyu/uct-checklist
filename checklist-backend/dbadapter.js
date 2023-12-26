@@ -9,6 +9,8 @@ const databaseConfig = {
   port: 5432,
 };
 
+// const databaseConfig = 'postgres://postgres:Uct123!@10.6.2.41:5432/retool_dev';
+
 function PostgresDBAdapter() {
   var db = pgp(databaseConfig);
 

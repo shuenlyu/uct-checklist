@@ -8,6 +8,7 @@ interface ApiHook {
 export const useApi = (): ApiHook => {
   // Get base URL from environment variable or provide it directly
   const baseURL = process.env.REACT_APP_API_BASE_URL;
+  console.log(`REACT_APP_API_BASE_URL is : ${baseURL}`)
 
   // Check if base URL is defined
   if (!baseURL) {
