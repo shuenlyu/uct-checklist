@@ -6,7 +6,7 @@ import {
   matrixDropdownColumnTypes,
 } from "survey-core";
 import { Survey } from "survey-react-ui";
-import { SurveyPDF } from "survey-pdf";
+import { SurveyPDF, SurveyHelper } from "survey-pdf";
 import "survey-core/defaultV2.css";
 import { useEffect, useRef, useState } from "react";
 import { useApi } from "../utils/api";
@@ -54,6 +54,10 @@ import {
 } from "survey-core/themes";
 
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
+//survey helper functions
+SurveyHelper.GAP_BETWEEN_COLUMNS = 1;
+SurveyHelper.MATRIX_COLUMN_WIDTH = 3;
+
 
 // for showing signature pad on matrix drop down
 matrixDropdownColumnTypes.signaturepad = {};
@@ -217,7 +221,10 @@ const Run = () => {
 
   function createSurveyPdfModel(surveyModel: any) {
     console.log(surveyModel);
+   
     const surveyPDF = new SurveyPDF(survey.json, { ...pdfOptions });
+    //Add this line
+    surveyPDF.mode = "display";
     if (surveyModel) {
       surveyPDF.data = surveyModel.data;
     }
@@ -348,6 +355,7 @@ const Run = () => {
                       <option value="a4">A4</option>
                       <option value="a0">A0</option>
                       <option value="a2">A2</option>
+                      <option value="a3">A3</option>
                       <option value="b0">B0</option>
                       <option value="c0">C0</option>
                       <option value="dl">DL</option>

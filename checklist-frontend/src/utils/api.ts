@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import axios, {AxiosInstance} from "axios";
 
 interface ApiHook {
   fetchData: (endpoint: string) => Promise<any>;
@@ -8,7 +8,6 @@ interface ApiHook {
 export const useApi = (): ApiHook => {
   // Get base URL from environment variable or provide it directly
   const baseURL = process.env.REACT_APP_API_BASE_URL;
-  console.log(`REACT_APP_API_BASE_URL is : ${baseURL}`)
 
   // Check if base URL is defined
   if (!baseURL) {
@@ -22,6 +21,7 @@ export const useApi = (): ApiHook => {
   // Create Axios instance with the base URL
   const api: AxiosInstance = axios.create({
     baseURL,
+    withCredentials: true
   });
 
   // Function to make a GET request

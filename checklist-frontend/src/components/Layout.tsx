@@ -1,8 +1,9 @@
 import navlogo from "../OneUCT_Logo.png";
-import { NavBar } from "../routes";
-import { ReactElement } from "react";
+import {NavBar} from "../routes";
+import {ReactElement} from "react";
+import {IoLogOutOutline} from "react-icons/io5";
 
-function Layout({ children }: { children: ReactElement }) {
+function Layout({children}: { children: ReactElement }) {
   return (
     <div className="sjs-client-app">
       <header className="sjs-client-app__header">
@@ -13,10 +14,10 @@ function Layout({ children }: { children: ReactElement }) {
             alt="logo"
             height={"25px"}
           />
-          <NavBar />
+          <NavBar/>
         </div>
         <div>
-          <div style={{ display: "flex", paddingRight: 20 }}>
+          <div style={{display: "flex", alignItems: 'center', paddingRight: 20}}>
             <label
               htmlFor="theme"
               style={{
@@ -81,6 +82,16 @@ function Layout({ children }: { children: ReactElement }) {
               <option value="37">Three Dimensional Light Panelless</option>
               <option value="38">Three Dimensional Light</option>
             </select>
+            <div className="sjs-client-app__logout">
+              <button
+                className="sjs-client-app__logout-button"
+                onClick={() => {
+                  window.location.href = `${process.env.REACT_APP_API_BASE_URL ?? ''}/logout`
+                }}
+              >
+                <IoLogOutOutline title="Logout" color="#f3f3f3" fontSize="32px"/>
+              </button>
+            </div>
           </div>
         </div>
       </header>
