@@ -3,13 +3,11 @@ require("dotenv").config();
 
 const databaseConfig = {
   host: "10.6.2.41",
-  database: "retool_dev",
+  database: "checklist_dev",
   user: "postgres",
   password: "Uct123!",
   port: 5432,
 };
-
-// const databaseConfig = 'postgres://postgres:Uct123!@10.6.2.41:5432/retool_dev';
 
 function PostgresDBAdapter() {
   var db = pgp(databaseConfig);
@@ -21,35 +19,35 @@ function PostgresDBAdapter() {
   //   );
 
   function getObjectFromStorage(tableName, callback) {
-    db.any("SELECT * FROM " + tableName).then(function (result) {
+    db.any(`SELECT * FROM ` + tableName).then(function (result) {
       callback(result);
     });
   }
 
-  function addSurvey(name, customer, product, id, callback) {
+  function addSurvey(name, customer, product, id, userId, callback) {
     db.one(
-      "INSERT INTO public.surveys (id, name, customer, prod_line, json) VALUES($1, $2, $3, $4, $5) RETURNING *",
-      [id, name, customer, product, "{}"]
+      "INSERT INTO public.surveys (id, name, customer, prod_line, json, user_id) VALUES($1, $2, $3, $4, $5, $6) RETURNING *",
+      [id, name, customer, product, "{}", userId]
     ).then(callback);
   }
 
-  function getSurvey(surveyId, callback) {
-    db.one("SELECT * FROM public.surveys WHERE id=$1", [surveyId]).then(
-      callback
-    );
+  function getSurvey(surveyId, user, callback) {
+    if (user.role === 'ADMIN') {
+      db.one("SELECT * FROM public.surveys WHERE id=$1", [surveyId]).then(
+        callback
+      );
+    } else {
+      db.one("SELECT * FROM public.surveys WHERE id=$1 AND user_id = $2", [surveyId, user.email]).then(
+        callback
+      );
+    }
   }
 
-  function duplicateSurvey(name, customer, product, json, id, callback) {
+  function duplicateSurvey(name, customer, product, json, id, userId, callback) {
     db.one(
-      "INSERT INTO public.surveys (id, name, customer, prod_line, json) VALUES($1, $2, $3, $4, $5) RETURNING *",
-      [id, name, customer, product, json]
+      "INSERT INTO public.surveys (id, name, customer, prod_line, json, userId) VALUES($1, $2, $3, $4, $5, $6) RETURNING *",
+      [id, name, customer, product, json, userId]
     ).then(callback);
-  }
-
-  function getSurvey(surveyId, callback) {
-    db.one("SELECT * FROM public.surveys WHERE id=$1", [surveyId]).then(
-      callback
-    );
   }
 
   function getResults(postId, callback) {
@@ -77,23 +75,22 @@ function PostgresDBAdapter() {
     ]).then(callback);
   }
 
-  function addImage(name, email, callback) {
-    db.one("INSERT INTO files (name, email) VALUES($1, $2) RETURNING *", [
-      name,
-      email,
-    ]).then(callback);
-  }
-
   function getImages(callback) {
     db.any("SELECT * FROM files ").then(function (data) {
       callback(data);
     });
   }
 
-  function deleteSurvey(surveyId, callback) {
-    db.one("DELETE FROM public.surveys WHERE id=$1 RETURNING *", [
-      surveyId,
-    ]).then(callback);
+  function deleteSurvey(surveyId, user, callback) {
+    if (user.role === 'ADMIN') {
+      db.one("DELETE FROM public.surveys WHERE id=$1 RETURNING *", [
+        surveyId,
+      ]).then(callback);
+    } else {
+      db.one("DELETE FROM public.surveys WHERE id=$1 AND user_id = $2 RETURNING *", [
+        surveyId, user.email
+      ]).then(callback);
+    }
   }
 
   function updateSurvey(id, callback) {
@@ -124,7 +121,7 @@ function PostgresDBAdapter() {
     ]).then(callback);
   }
 
-  function getSurveys(callback) {
+  function getSurveys(user, callback) {
     var surveys = {
       MySurvey1: {
         pages: [
@@ -155,13 +152,23 @@ function PostgresDBAdapter() {
         ],
       },
     };
-    getObjectFromStorage("surveys", function (objects) {
-      if (Object.keys(objects).length > 0) {
-        callback(objects);
-      } else {
-        callback(surveys);
-      }
-    });
+
+    if (user.role === 'ADMIN') {
+      db.any('SELECT * FROM surveys').then((data) => {
+        callback(data)
+      })
+    } else {
+      db.any('SELECT * FROM surveys WHERE user_id = $1', [user.email]).then((data) => {
+        callback(data)
+      })
+    }
+    // getObjectFromStorage("surveys", function (objects) {
+    //   if (Object.keys(objects).length > 0) {
+    //     callback(objects);
+    //   } else {
+    //     callback(surveys);
+    //   }
+    // });
     // if(count($result) == 0) {
     //     $id1 = $this->addSurvey('MySurvey1');
     //     $this->storeSurvey($id1, $surveys['MySurvey1']);
