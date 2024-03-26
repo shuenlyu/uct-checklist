@@ -2,7 +2,8 @@ var pgp = require("pg-promise")(/*options*/);
 require("dotenv").config();
 
 const databaseConfig = {
-  host: "10.6.2.41",
+  host: "10.6.2.254",
+  //host: "10.6.2.41",
   database: "checklist_dev",
   user: "postgres",
   password: "Uct123!",
