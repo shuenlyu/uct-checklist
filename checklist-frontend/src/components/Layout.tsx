@@ -16,7 +16,7 @@ function Layout({children}: { children: ReactElement }) {
           />
           <NavBar/>
         </div>
-        <div>
+{/*         <div>
           <div style={{display: "flex", alignItems: 'center', paddingRight: 20}}>
             <label
               htmlFor="theme"
@@ -93,7 +93,7 @@ function Layout({children}: { children: ReactElement }) {
               </button>
             </div>
           </div>
-        </div>
+        </div> */}
       </header>
       <main className="sjs-client-app__content">{children}</main>
       <footer className="sjs-client-app__footer"></footer>
