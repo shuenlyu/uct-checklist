@@ -8,12 +8,12 @@ const users = [];
 
 const samlStrategy = new Strategy({
     issuer: config.saml.issuer,
-    protocol: `${process.env.PROTOCOL}://`,
+    // protocol: `${process.env.PROTOCOL}://`,
     path: '/login/callback',
     entryPoint: config.saml.entryPoint,
     cert: fs.readFileSync(config.saml.cert, 'utf-8'),
-    privateKey: fs.readFileSync(config.saml.privateKey, 'utf-8'),
-    logoutUrl: config.saml.logoutUrl,
+    // privateKey: fs.readFileSync(config.saml.privateKey, 'utf-8'),
+    // logoutUrl: config.saml.logoutUrl,
   },
   (user, done) => {
     if (!users.includes(user)) {

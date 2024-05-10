@@ -27,24 +27,30 @@ const NoMatch = () => (
     <h1>404</h1>
   </>
 );
+const DEBUG=false;
 
 const ProtectedRoutes = () => {
   const {fetchData} = useApi();
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState<boolean>(true)
-  const [user, setUser] = useState<Record<string, string>>()
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<Record<string, string>>();
+
+  if(DEBUG)console.log("======ProtectedRoutes started!!");
 
   useEffect(() => {
     fetchData('/getMe')
       .then((res) => {
         if (res.data.user) {
+          if(DEBUG)console.log("===getMe fetchData: setUser===");
           setUser(res.data.user)
           setLoading(false)
         } else {
+          if(DEBUG)console.log("===getMe fetchData: navigate to login ===");
           navigate('/login')
         }
       })
       .catch((err) => {
+        if(DEBUG)console.log("===getMe err: ", err);
         navigate('/login')
       })
   }, [])
@@ -53,6 +59,7 @@ const ProtectedRoutes = () => {
     return <Loading/>
   }
 
+  if(DEBUG)console.log("==== ProtectedRoute: user: ", user);
   if (!user) {
     return <Navigate to="/login"/>
   }

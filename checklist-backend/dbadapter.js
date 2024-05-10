@@ -1,198 +1,137 @@
-var pgp = require("pg-promise")(/*options*/);
+const pgp = require("pg-promise")(/*options*/);
 require("dotenv").config();
 
 const databaseConfig = {
-  host: "10.6.2.254",
-  //host: "10.6.2.41",
-  database: "checklist_dev",
-  user: "postgres",
-  password: "Uct123!",
-  port: 5432,
+  host: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
 };
+const DEBUG = true;
 
-function PostgresDBAdapter() {
-  var db = pgp(databaseConfig);
-
-  //  function PostgresDBAdapter() {
-  //    var db = pgp(
-  //     process.env.DATABASE_URL ||
-  //       "jdbc:postgresql://34.142.138.229:5432/postgres"
-  //   );
-
-  function getObjectFromStorage(tableName, callback) {
-    db.any(`SELECT * FROM ` + tableName).then(function (result) {
-      callback(result);
-    });
+class PostgresDBAdapter{
+  constructor(){
+    if(!PostgresDBAdapter.instance){
+      this.db=pgp(databaseConfig);
+      PostgresDBAdapter.instance=this;
+    }
+    return PostgresDBAdapter.instance;
   }
 
-  function addSurvey(name, customer, product, id, userId, callback) {
-    db.one(
+  getObjectFromStorage(tableName){
+    if(DEBUG)console.log("------ getObjectFromStorage invoke!");
+    return this.db.any("SELECT * FROM ${tableName:name}", {tableName});
+  }
+
+  addSurvey(name, customer, product, id, userId){
+    if(DEBUG)console.log("------ addSurvey invoke!");
+    return this.db.one(
       "INSERT INTO public.surveys (id, name, customer, prod_line, json, user_id) VALUES($1, $2, $3, $4, $5, $6) RETURNING *",
       [id, name, customer, product, "{}", userId]
-    ).then(callback);
-  }
-
-  function getSurvey(surveyId, user, callback) {
-    if (user.role === 'ADMIN') {
-      db.one("SELECT * FROM public.surveys WHERE id=$1", [surveyId]).then(
-        callback
-      );
-    } else {
-      db.one("SELECT * FROM public.surveys WHERE id=$1 AND user_id = $2", [surveyId, user.email]).then(
-        callback
-      );
-    }
-  }
-
-  function duplicateSurvey(name, customer, product, json, id, userId, callback) {
-    db.one(
-      "INSERT INTO public.surveys (id, name, customer, prod_line, json, userId) VALUES($1, $2, $3, $4, $5, $6) RETURNING *",
-      [id, name, customer, product, json, userId]
-    ).then(callback);
-  }
-
-  function getResults(postId, callback) {
-    db.any("SELECT * FROM public.results WHERE postid=$1", [postId]).then(
-      function (data) {
-        var results = (data || []).map(function (item) {
-          return item["json"];
-        });
-        callback(results);
-      }
     );
   }
 
-  function postResults(postId, json, callback) {
-    db.one(
-      "INSERT INTO public.results (postid, json) VALUES($1, $2) RETURNING *",
-      [postId, json]
-    ).then(callback);
-  }
-
-  function addImage(name, email, callback) {
-    db.one("INSERT INTO files (name, email) VALUES($1, $2) RETURNING *", [
-      name,
-      email,
-    ]).then(callback);
-  }
-
-  function getImages(callback) {
-    db.any("SELECT * FROM files ").then(function (data) {
-      callback(data);
-    });
-  }
-
-  function deleteSurvey(surveyId, user, callback) {
-    if (user.role === 'ADMIN') {
-      db.one("DELETE FROM public.surveys WHERE id=$1 RETURNING *", [
-        surveyId,
-      ]).then(callback);
-    } else {
-      db.one("DELETE FROM public.surveys WHERE id=$1 AND user_id = $2 RETURNING *", [
-        surveyId, user.email
-      ]).then(callback);
+  getSurvey(surveyId, user){
+    if(DEBUG)console.log("------ getSurvey invoke!");
+    let query = "SELECT * FROM public.surveys WHERE id=$1";
+    let params = [surveyId];
+    if (user.role !== "ADMIN"){
+      query += " AND user_id = $2";
+      params.push(user.email);
     }
+    if(DEBUG){
+      console.log("getSurvey surveyId, user: ", surveyId, user);
+      console.log("getSurvey query and params: ", query, params);
+    }
+    return this.db.one(query, params);
   }
 
-  function updateSurvey(id, callback) {
-    console.log(id);
-    db.any("UPDATE public.surveys SET available = FALSE WHERE id <> $1", [
-      id,
-    ]).then((data) => {
-      db.one(
-        "UPDATE public.surveys SET available = TRUE WHERE id = $1 RETURNING *",
-        [id]
-      ).then(callback);
-      // callback();
-    });
+  getResults(postId){
+    if(DEBUG)console.log("------ getResults invoke!");
+    return this.db.any("SELECT * FROM public.results WHERE postid=$1", [postId])
+      .then(data=> data.map(item=>item.json));
   }
 
-  function changeName(id, name, customer, product, callback) {
-    console.log("THIS IS THE NAME: " + name + " ID: " + id);
-    db.one(
+  postResults(postId, json) {
+    if(DEBUG)console.log("------ postResults invoke!");
+    return this.db.one(
+      "INSERT INTO public.results (postid, json) VALUES($1, $2) RETURNING json",
+      [postId, json]
+    );
+  }
+
+  addImage(name, email) {
+    if(DEBUG)console.log("------ addImage invoke!");
+    return this.db.one("INSERT INTO files (name, email) VALUES($1, $2) RETURNING *", [name, email]);
+  }
+
+  getImages() {
+    if(DEBUG)console.log("------ getImages invoke!");
+    return this.db.any("SELECT * FROM files");
+  }
+
+  deleteSurvey(surveyId, user) {
+    if(DEBUG)console.log("------ deleteSurvey invoke! surveyId, user", surveyId, user);
+    let query;
+    let params;
+    if(user.role !== "ADMIN"){
+      query = "DELETE FROM public.surveys WHERE id=$1 AND user_id = $2 RETURNING *";
+      params = [surveyId, user.email]; 
+    }else{
+      query = "DELETE FROM public.surveys WHERE id=$1 RETURNING *";
+      params = [surveyId];
+    }
+    if (DEBUG) {
+      console.log("Running query:", query);
+      console.log("With parameters:", params);
+    }    
+    return this.db.oneOrNone(query, params);
+  }
+
+  updateSurvey(id) {
+    if(DEBUG)console.log("------ updateSurvey invoke!");
+    return this.db.tx(t => {
+      return t.batch([
+        t.none("UPDATE public.surveys SET available = FALSE WHERE id <> $1", [id]),
+        t.one("UPDATE public.surveys SET available = TRUE WHERE id = $1 RETURNING *", [id])
+      ]);
+    }).then(data => data[1]); // Return the result of the second query
+  }
+
+  changeName(id, name, customer, product) {
+    if(DEBUG)console.log("------ changeName invoke!");
+    return this.db.one(
       "UPDATE public.surveys SET name = $1, customer = $2, prod_line = $3 WHERE id = $4 RETURNING *",
       [name, customer, product, id]
-    ).then(callback);
+    );
   }
 
-  function storeSurvey(id, json, callback) {
-    db.one("UPDATE public.surveys SET json = $1 WHERE id = $2 RETURNING *", [
-      json,
-      id,
-    ]).then(callback);
+  storeSurvey(id, json) {
+    if(DEBUG)console.log("------ storeSurvey invoke!",id, json);
+    return this.db.one("UPDATE public.surveys SET json = $1 WHERE id = $2 RETURNING *", [json, id]);
   }
 
-  function getSurveys(user, callback) {
-    var surveys = {
-      MySurvey1: {
-        pages: [
-          {
-            name: "page1",
-            elements: [
-              {
-                type: "radiogroup",
-                choices: ["item1", "item2", "item3"],
-                name: "question from survey1",
-              },
-            ],
-          },
-        ],
-      },
-      MySurvey2: {
-        pages: [
-          {
-            name: "page1",
-            elements: [
-              {
-                type: "checkbox",
-                choices: ["item1", "item2", "item3"],
-                name: "question from survey2",
-              },
-            ],
-          },
-        ],
-      },
-    };
+  duplicateSurvey(name, customer, product, json, id, userId) {
+    if(DEBUG)console.log("------ DB:duplicateSurvey invoke!");
+    return this.db.one(
+      "INSERT INTO public.surveys (id, name, customer, prod_line, json, user_id) VALUES($1, $2, $3, $4, $5, $6) RETURNING *",
+      [id, name, customer, product, json, userId]
+    );
+  }
 
-    if (user.role === 'ADMIN') {
-      db.any('SELECT * FROM surveys').then((data) => {
-        callback(data)
-      })
-    } else {
-      db.any('SELECT * FROM surveys WHERE user_id = $1', [user.email]).then((data) => {
-        callback(data)
-      })
+  getSurveys(user) {
+    if(DEBUG)console.log("------ getSurveys invoke!", user);
+    // return this.db.any(query);
+    let query = 'SELECT * FROM public.surveys';
+    let params = [];
+    if (user.role !== 'ADMIN') {
+      query += ' WHERE user_id = $1';
+      params.push(user.email);
     }
-    // getObjectFromStorage("surveys", function (objects) {
-    //   if (Object.keys(objects).length > 0) {
-    //     callback(objects);
-    //   } else {
-    //     callback(surveys);
-    //   }
-    // });
-    // if(count($result) == 0) {
-    //     $id1 = $this->addSurvey('MySurvey1');
-    //     $this->storeSurvey($id1, $surveys['MySurvey1']);
-    //     $id2 = $this->addSurvey('MySurvey2');
-    //     $this->storeSurvey($id2, $surveys['MySurvey2']);
-    //     $result = surveys;
-    // }
+    return this.db.any(query, params);
   }
-
-  return {
-    addSurvey: addSurvey,
-    getSurvey: getSurvey,
-    storeSurvey: storeSurvey,
-    addImage: addImage,
-    getImages: getImages,
-    getSurveys: getSurveys,
-    deleteSurvey: deleteSurvey,
-    postResults: postResults,
-    getResults: getResults,
-    changeName: changeName,
-    updateSurvey: updateSurvey,
-    duplicateSurvey: duplicateSurvey,
-  };
+  
 }
-
-module.exports = PostgresDBAdapter;
+const instance = new PostgresDBAdapter();
+module.exports = instance;

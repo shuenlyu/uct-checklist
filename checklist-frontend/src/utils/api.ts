@@ -27,9 +27,12 @@ export const useApi = (): ApiHook => {
   // Function to make a GET request
   const fetchData = async (endpoint: string): Promise<any> => {
     try {
+      console.log("-----fetchData api, endpoint: ", endpoint);
       const response = await api.get(endpoint);
+      console.log("-----fetchData api, response", response);
       return response;
     } catch (error) {
+      console.log("-----fetchData api, endpoint err:", endpoint, error);
       throw error;
     }
   };
@@ -37,9 +40,12 @@ export const useApi = (): ApiHook => {
   // Function to make a POST request
   const postData = async (endpoint: string, payload: any): Promise<any> => {
     try {
+      console.log("-----postData api, endpoint: ", endpoint);
       const response = await api.post(endpoint, payload);
+      console.log("-----postData api, response: ", response);
       return response;
     } catch (error) {
+      console.log("-----postData api, endpoint err:", endpoint, error);
       throw error;
     }
   };
