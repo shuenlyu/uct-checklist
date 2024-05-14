@@ -2,33 +2,31 @@ version: '3.8'
 services:
   nginx:
     build: ./nginx
+    restart: always
     depends_on:
       - backend
       - frontend
     ports:
       - "443:443"
       - "8443:8443"
-    
-  postgres:
-    build: ./postgres
-    volumes: 
-      - postgres-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+  # use the existing postgresql docker container 
+  # postgres:
+  #   build: ./postgres
+  #   volumes: 
+  #     - postgres-data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
 
   backend: 
     build: ./checklist-backend
     ports:
       - "3002:3002"
-    depends_on: 
-      - postgres
+    restart: always
 
   frontend:
     build: ./checklist-frontend
     ports:
       - "3000:3000"
+    restart: always
     depends_on:
       - backend
-volumes:
-  postgres-data:
-    driver: local
