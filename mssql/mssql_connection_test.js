@@ -1,10 +1,11 @@
 const sql = require('mssql');
+require("dotenv").config();
 
 const config = {
-    user:"svc_MESSAP",
-    password: "jNob7DBQRMImVjL",
-    server: "io-sql-mes01",
-    database: "DocGen",
+    user:process.env.MSSQL_USER,
+    password: process.env.MSSQL_PASSWORD,
+    server: process.env.MSSQL_SERVER,
+    database: process.env.MSSQL_DATABASE,
     options:{
         encrypt: false,
         trustServerCertificate: false
