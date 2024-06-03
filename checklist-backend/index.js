@@ -15,8 +15,9 @@ function envToBool(variable){
 }
 
 let dbAdpater;
+const useMSSQL = envToBool(process.env.USE_MSSQL);
 
-if(envToBool(process.env.USE_MSSQL)){
+if(useMSSQL){
   //USE MSSQL db as backend db
   dbAdapter = require("./dbadapter-mssql");
 } else {
@@ -109,7 +110,7 @@ app.post("/create", async (req, res)=>{
     const userId = req.user.email;
     const result = await dbAdapter.addSurvey(name, customer, product, id, userId);
     if(DEBUG){console.log("---- api call: /create,id, name, customer, product, userId, result, result: ", id, name, customer,product, userId, result)};
-    res.json({name: result.name, id: id});
+    useMSSQL? res.json({name: result[0].name, id: id}): res.json({name: result.name, id: id});
   } catch(error){
     res.status(500).json({error: error.message});
   }
@@ -126,7 +127,7 @@ app.post("/duplicate", async (req, res) => {
     const userId = req.user.email;
     const result = await dbAdapter.duplicateSurvey(name, customer, product, json,id, userId);
     if(DEBUG){console.log("---- api call: /duplicate, name, customer, product, json, userId, result: ",name, customer, product, json, userId, result)};
-    res.json({name: result.name, id: id});
+    useMSSQL? res.json({name: result[0].name, id: id}): res.json({name: result.name, id: id});
   } catch(error){
     if(DEBUG)console.log("===== ERROR:", error.message);
     res.status(500).json({error: error.message});
@@ -153,7 +154,7 @@ app.get("/getSurvey", async (req, res)=>{
     const surveyId = req.query["surveyId"];
     const result = await dbAdapter.getSurvey(surveyId,user);
     if(DEBUG){console.log("---- api call: /getSurvey, user, result: ", user, result)};
-    res.json(result);
+    useMSSQL? res.json(result[0]): res.json(result);
   }catch(error){
     if(DEBUG)console.log("===== ERROR:", error.message);
     res.status(500).json({error:error.message});
@@ -169,7 +170,7 @@ app.get("/changeName", async (req, res)=>{
     const product = req.query["product"];
     const result = await dbAdapter.changeName(id, name, customer, product);
     if(DEBUG){console.log("---- api call: /changeName, name, customer, product, result, result: ", name, customer, product, result)};
-    res.json(result);
+    useMSSQL? res.json(result[0]): res.json(result);
   } catch(error){
     if(DEBUG)console.log("===== ERROR:", error.message);
     res.status(500).json({error:error.message});
@@ -183,7 +184,7 @@ app.post("/changeJson", async (req, res)=>{
     const json = req.body.json;
     const result = await dbAdapter.storeSurvey(id, json);
     if(DEBUG){console.log("---- api call: /changeJson, id, json, result: ", id, json, result)};
-    res.json(result.json);
+    useMSSQL ? res.json(result[0]) : res.json(result.json);
   } catch(error){
     if(DEBUG)console.log("===== ERROR:", error.message);
     res.status(500).json({error:error.message});
@@ -197,7 +198,7 @@ app.post("/uploadFile", async (req, res)=>{
     fileNames.map((item)=>{req.files[item].mv(path.join(__dirname, `./public/${req.files[item].name}`))});
     const result = await dbAdapter.addImage(req.files[item].name, req.body.email);
     if(DEBUG){console.log("---- api call: /uploadFile, result: ", result)};
-    res.json(result);
+    useMSSQL? res.json(result[0]) : res.json(result);
   } catch(error){
     if(DEBUG)console.log("===== ERROR:", error.message);
     res.status(500).json({error:error.message});
@@ -224,7 +225,7 @@ app.post("/post", async (req, res) => {
     const surveyResult = req.body.surveyResult;
     const result = await dbAdapter.postResults(postId, surveyResult);
     if(DEBUG){console.log("---- api call: /post, result: ", result)};
-    res.json(result.json);
+    useMSSQL ? res.json(result[0]) : res.json(result.json);
   }catch(error){
     if(DEBUG)console.log("===== ERROR:", error.message);
     res.status(500).json({error: error.message});
