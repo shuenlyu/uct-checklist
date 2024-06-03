@@ -1,6 +1,10 @@
 const pgp = require("pg-promise")(/*options*/);
 require("dotenv").config();
 
+function envToBool(variable){
+  return variable === 'true'
+}
+
 const databaseConfig = {
   host: process.env.DB_HOST,
   database: process.env.DB_DATABASE,
@@ -8,7 +12,7 @@ const databaseConfig = {
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
 };
-const DEBUG = true;
+const DEBUG = envToBool(process.env.DEBUG);
 
 class PostgresDBAdapter{
   constructor(){

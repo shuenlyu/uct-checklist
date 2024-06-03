@@ -1,11 +1,6 @@
 require('dotenv').config();
 const express = require("express");
 const session = require("express-session");
-//USE postgresql db as backend db
-// const dbAdapter = require("./dbadapter-pgp");
-
-//USE MSSQL db as backend db
-const dbAdapter = require("./dbadapter-mssql");
 const fileUpload = require("express-fileupload");
 const bodyParser = require("body-parser");
 const passport = require("passport")
@@ -15,22 +10,23 @@ const uuid = require("uuid");
 const config = require('./config/config');
 const samlStrategy = require('./config/passport');
 
-const DEBUG=false;
+function envToBool(variable){
+  return variable === 'true'
+}
+
+let dbAdpater;
+
+if(envToBool(process.env.USE_MSSQL)){
+  //USE MSSQL db as backend db
+  dbAdapter = require("./dbadapter-mssql");
+} else {
+  //USE postgresql db as backend db
+  dbAdapter = require("./dbadapter-pgp");
+}
+
+const DEBUG=envToBool(process.env.DEBUG);
 
 const app = express();
-
-// const corsOptions = {
-//   origin: function (origin, callback) {
-//       const allowedOrigins = [process.env.APP_URL];
-//       if(DEBUG)console.log("----cors options origin: ", origin);
-//       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-//           callback(null, true);
-//       } else {
-//           callback(new Error('Not allowed by CORS'));
-//       }
-//   },
-//   credentials: true
-// };
 
 app.use(cors({origin: process.env.APP_URL, credentials:true}));
 

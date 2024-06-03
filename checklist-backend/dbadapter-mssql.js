@@ -1,7 +1,9 @@
-const { pool } = require("mssql");
-
-const sql = require("mssql")(/*options*/);
+const sql = require("mssql");
 require("dotenv").config();
+
+function envToBool(variable){
+  return variable === 'true'
+}
 
 const databaseConfig = {
     user:process.env.MSSQL_USER,
@@ -14,7 +16,7 @@ const databaseConfig = {
     }	
 };
 
-const DEBUG = true;
+const DEBUG = envToBool(process.env.DEBUG);
 
 class MSSQLDBAdapter{
   constructor(){
@@ -26,13 +28,13 @@ class MSSQLDBAdapter{
   }
 
   async getObjectFromStorage(tableName){
-    if(DEBUG)console.log("------ getObjectFromStorage invoke!");
+    if(DEBUG)console.log("------ mssql: getObjectFromStorage invoke!");
     const pool = await this.poolPromise;
     return pool.request().query(`SELECT * FROM ${tableName}`);
   }
 
   async addSurvey(name, customer, product, id, userId){
-    if(DEBUG)console.log("------ addSurvey invoke!");
+    if(DEBUG)console.log("------ mssql: addSurvey invoke!");
     const pool = await this.poolPromise;
     return pool.request()
       .input('id', sql.UniqueIdentifier, id)
@@ -44,7 +46,7 @@ class MSSQLDBAdapter{
   }    
 
   async getSurvey(surveyId, user){
-    if(DEBUG)console.log("------ getSurvey invoke!");
+    if(DEBUG)console.log("------ mssql: getSurvey invoke!");
     const pool = await this.poolPromise;
     let query = "SELECT * FROM surveys WHERE id = @surveyId";
     const request = pool.request().input("surveyId", sql.UniqueIdentifier, surveyId);
@@ -61,7 +63,7 @@ class MSSQLDBAdapter{
   }
 
   async getResults(postId){
-    if(DEBUG)console.log("------ getResults invoke!");
+    if(DEBUG)console.log("------ mssql: getResults invoke!");
     const pool = await this.poolPromise;
     return pool.request()
     .input('postId', sql.NVarChar, postId)
@@ -70,7 +72,7 @@ class MSSQLDBAdapter{
   }
 
   async postResults(postId, json) {
-    if(DEBUG)console.log("------ postResults invoke!");
+    if(DEBUG)console.log("------ mssql: postResults invoke!");
     const pool = await this.poolPromise;
     return pool.request()
     .input('postId', sql.NVarChar, postId)
@@ -79,7 +81,7 @@ class MSSQLDBAdapter{
   }
 
   async addImage(name, email) {
-    if(DEBUG)console.log("------ addImage invoke!");
+    if(DEBUG)console.log("------ mssql: addImage invoke!");
     const pool = await this.poolPromise;
     return pool.request()
     .input('name', sql.NVarChar, name)
@@ -88,13 +90,13 @@ class MSSQLDBAdapter{
   }
 
   async getImages() {
-    if(DEBUG)console.log("------ getImages invoke!");
+    if(DEBUG)console.log("------ mssql: getImages invoke!");
     const pool = await this.poolPromise;
     return pool.request().query("SELECT * FROM files");
   }
 
   async deleteSurvey(surveyId, user) {
-    if(DEBUG)console.log("------ deleteSurvey invoke! surveyId, user", surveyId, user);
+    if(DEBUG)console.log("------ mssql: deleteSurvey invoke! surveyId, user", surveyId, user);
     const pool = await this.poolPromise;
     let query = "DELETE FROM surveys WHERE id = @surveyId";
     const request = pool.request().input('surveyId', sql.UniqueIdentifier, surveyId);
@@ -107,7 +109,7 @@ class MSSQLDBAdapter{
   }
 
   async updateSurvey(id) {
-    if(DEBUG)console.log("------ updateSurvey invoke!");
+    if(DEBUG)console.log("------ mssql: updateSurvey invoke!");
     const pool = await this.poolPromise;
     return pool.transaction(async trx => {
       await trx.request().input('id', sql.UniqueIdentifier, id).query("UPDATE surveys SET available = 0 WHERE id <> @id");
@@ -116,7 +118,7 @@ class MSSQLDBAdapter{
   }
 
   async changeName(id, name, customer, product) {
-    if(DEBUG)console.log("------ changeName invoke!");
+    if(DEBUG)console.log("------ mssql: changeName invoke!");
     const pool = await this.poolPromise;
     return pool.request()
     .input('id', sql.UniqueIdentifier, id)
@@ -127,7 +129,7 @@ class MSSQLDBAdapter{
   }
 
   async storeSurvey(id, json) {
-    if(DEBUG)console.log("------ storeSurvey invoke!",id, json);
+    if(DEBUG)console.log("------ mssql: storeSurvey invoke!",id, json);
     const pool = await this.poolPromise;
     return pool.request()
     .input("id", sql.UniqueIdentifier, id)
@@ -136,7 +138,7 @@ class MSSQLDBAdapter{
   }
 
   async duplicateSurvey(name, customer, product, json, id, userId) {
-    if(DEBUG)console.log("------ DB:duplicateSurvey invoke!");
+    if(DEBUG)console.log("------ mssql: DB:duplicateSurvey invoke!");
     const pool = this.poolPromise;
     return pool.request()
     .input('id', sql.UniqueIdentifier, id)
@@ -149,9 +151,9 @@ class MSSQLDBAdapter{
   }
 
   async getSurveys(user) {
-    if(DEBUG)console.log("------ getSurveys invoke!", user);
+    if(DEBUG)console.log("------ mssql: getSurveys invoke!", user);
     const pool = await this.poolPromise;
-    let query = 'SELECT * FROM public.surveys';
+    let query = 'SELECT * FROM surveys';
     const request = pool.request();
 
     if (user.role !== 'ADMIN') {
