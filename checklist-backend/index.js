@@ -1,7 +1,11 @@
 require('dotenv').config();
 const express = require("express");
 const session = require("express-session");
-const dbAdapter = require("./dbadapter");
+//USE postgresql db as backend db
+// const dbAdapter = require("./dbadapter-pgp");
+
+//USE MSSQL db as backend db
+const dbAdapter = require("./dbadapter-mssql");
 const fileUpload = require("express-fileupload");
 const bodyParser = require("body-parser");
 const passport = require("passport")
