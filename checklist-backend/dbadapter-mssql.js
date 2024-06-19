@@ -1,5 +1,8 @@
 const sql = require("mssql");
-require("dotenv").config();
+// select which env file, either .env.development and .env.production
+require('dotenv').config({
+  path: `.env.${process.env.NODE_ENV || 'development'}`,
+});
 
 function envToBool(variable){
   return variable === 'true'

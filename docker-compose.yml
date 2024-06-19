@@ -18,9 +18,14 @@ services:
   #     - "5432:5432"
 
   backend: 
-    build: ./checklist-backend
+    build: 
+      context: ./checklist-backend
+      args:
+        NODE_ENV: ${NODE_ENV}
     ports:
       - "3002:3002"
+    # env_file:
+    #   - .env.${NODE_ENV}
     restart: always
 
   frontend:

@@ -1,5 +1,5 @@
 const sql = require('mssql');
-require("dotenv").config();
+require("dotenv").config({path: `.env.${process.env.NODE_ENV || 'development'}`,});
 
 const config = {
     user:process.env.MSSQL_USER,
@@ -16,7 +16,7 @@ async function connectToDatabase(){
     try {
         await sql.connect(config);
         console.log(" Connected successfully to the database.");
-        const result = await sql.query("SELECT * FROM dbo.test_table");
+        const result = await sql.query("SELECT * FROM dbo.surveys");
         console.log(result.recordset);
     }catch(err){
         console.error("Error connecting to the database:", err);

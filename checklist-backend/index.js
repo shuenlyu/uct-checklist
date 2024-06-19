@@ -1,4 +1,7 @@
-require('dotenv').config();
+// decide which env file should be used, either .env.development or .env.production
+require('dotenv').config({
+  path: `.env.${process.env.NODE_ENV || 'development'}`,
+});
 const express = require("express");
 const session = require("express-session");
 const fileUpload = require("express-fileupload");
