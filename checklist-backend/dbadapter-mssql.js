@@ -70,10 +70,10 @@ class MSSQLDBAdapter{
     let query = "SELECT * FROM surveys WHERE id = @surveyId";
     const params = [{name:"surveyId", type:sql.UniqueIdentifier, value:surveyId}];
 
-    if (user.role !== "ADMIN"){
-      query += " AND user_id = @userId";
-      params.push({name:'userId', type:sql.NVarChar, value:user.email});
-    }
+    // if (user.role !== "ADMIN"){
+    //   query += " AND user_id = @userId";
+    //   params.push({name:'userId', type:sql.NVarChar, value:user.email});
+    // }
     if(DEBUG){
       console.log("getSurvey surveyId, user: ", surveyId, user);
       console.log("getSurvey query and params: ", query);
@@ -125,10 +125,10 @@ class MSSQLDBAdapter{
       { name: 'surveyId', type: sql.UniqueIdentifier, value: surveyId }
     ];
 
-    if (user.role !== "ADMIN") {
-      query += " AND user_id = @userId";
-      params.push({ name: 'userId', type: sql.NVarChar, value: user.email });
-    }
+    // if (user.role !== "ADMIN") {
+    //   query += " AND user_id = @userId";
+    //   params.push({ name: 'userId', type: sql.NVarChar, value: user.email });
+    // }
 
     query += "; SELECT * FROM surveys WHERE id = @surveyId;";
     return this.query(query, params);
@@ -186,8 +186,10 @@ class MSSQLDBAdapter{
 
   async getSurveys(user) {
     if(DEBUG)console.log("------ mssql: getSurveys invoke!", user);
-    const query = user.role !== 'ADMIN' ? "SELECT * FROM surveys WHERE user_id = @userId" : "SELECT * FROM surveys";
-    const params = user.role !== 'ADMIN' ? [{ name: 'userId', type: sql.NVarChar, value: user.email }] : [];
+    // const query = user.role !== 'ADMIN' ? "SELECT * FROM surveys WHERE user_id = @userId" : "SELECT * FROM surveys";
+    // const params = user.role !== 'ADMIN' ? [{ name: 'userId', type: sql.NVarChar, value: user.email }] : [];
+    const query = "SELECT * FROM surveys";
+    const params = [];
     return this.query(query, params);
   }    
 }

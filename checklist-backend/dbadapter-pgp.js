@@ -40,10 +40,10 @@ class PostgresDBAdapter{
     if(DEBUG)console.log("------ getSurvey invoke!");
     let query = "SELECT * FROM public.surveys WHERE id=$1";
     let params = [surveyId];
-    if (user.role !== "ADMIN"){
-      query += " AND user_id = $2";
-      params.push(user.email);
-    }
+    // if (user.role !== "ADMIN"){
+    //   query += " AND user_id = $2";
+    //   params.push(user.email);
+    // }
     if(DEBUG){
       console.log("getSurvey surveyId, user: ", surveyId, user);
       console.log("getSurvey query and params: ", query, params);
@@ -77,15 +77,19 @@ class PostgresDBAdapter{
 
   deleteSurvey(surveyId, user) {
     if(DEBUG)console.log("------ deleteSurvey invoke! surveyId, user", surveyId, user);
-    let query;
-    let params;
-    if(user.role !== "ADMIN"){
-      query = "DELETE FROM public.surveys WHERE id=$1 AND user_id = $2 RETURNING *";
-      params = [surveyId, user.email]; 
-    }else{
-      query = "DELETE FROM public.surveys WHERE id=$1 RETURNING *";
-      params = [surveyId];
-    }
+  // Define the base query and common parameters
+  let query = "DELETE FROM public.surveys WHERE id=$1";
+  let params = [surveyId];
+
+  // Conditionally add constraints based on user role
+  // if (user.role !== "ADMIN") {
+  //     // Make sure this matches the expected column data type
+  //     query += " AND user_id = $2";
+  //     params.push(user.id); // Assuming user.id is the correct identifier for user_id column
+  // }
+
+  // Always return the deleted record
+  query += " RETURNING *";
     if (DEBUG) {
       console.log("Running query:", query);
       console.log("With parameters:", params);
@@ -129,10 +133,10 @@ class PostgresDBAdapter{
     // return this.db.any(query);
     let query = 'SELECT * FROM public.surveys';
     let params = [];
-    if (user.role !== 'ADMIN') {
-      query += ' WHERE user_id = $1';
-      params.push(user.email);
-    }
+    // if (user.role !== 'ADMIN') {
+    //   query += ' WHERE user_id = $1';
+    //   params.push(user.email);
+    // }
     return this.db.any(query, params);
   }
   
