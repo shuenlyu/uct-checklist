@@ -89,8 +89,9 @@ interface PdfOptions {
 
 const Run = () => {
   const queryParams = new URLSearchParams(window.location.search);
-  const term = queryParams.get("work_order");
-  const tool = queryParams.get("tool");
+  const term = queryParams.get("wo");
+  const oms_value = queryParams.get("oms");
+  const step_value = queryParams.get("step");
   const { id } = useParams();
   const { fetchData, postData } = useApi();
   const modelRef = useRef<any>(null);
@@ -169,7 +170,7 @@ const Run = () => {
     let parsedQuestion = null;
     for (const result of resultsAction.data) {
       let parsed = JSON.parse(result);
-      if (parsed.question1 === term) {
+      if (parsed.wo === term) {
         parsedQuestion = parsed;
         break;
       }
@@ -204,10 +205,12 @@ const Run = () => {
             }
           }
         } else {
-          const subscribedQuestion = model.getQuestionByName("question1");
+          const subscribedQuestion = model.getQuestionByName("wo");
           subscribedQuestion.value = term;
-          const toolQuestion = model.getQuestionByName("question2");
-          toolQuestion.value = tool;
+          const omsQuestion = model.getQuestionByName("oms");
+          omsQuestion.value = oms_value;
+          const stepQuestion = model.getQuestionByName("step");
+          stepQuestion.value = step_value;
         }
       });
     }
