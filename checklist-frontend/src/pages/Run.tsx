@@ -5,6 +5,7 @@ import {
   StylesManager,
   matrixDropdownColumnTypes,
 } from "survey-core";
+
 import { Survey } from "survey-react-ui";
 import { SurveyPDF, SurveyHelper } from "survey-pdf";
 import "survey-core/defaultV2.css";
@@ -58,7 +59,6 @@ import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 SurveyHelper.GAP_BETWEEN_COLUMNS = 1;
 SurveyHelper.MATRIX_COLUMN_WIDTH = 3;
 
-
 // for showing signature pad on matrix drop down
 matrixDropdownColumnTypes.signaturepad = {};
 SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@signaturepad"] =
@@ -87,11 +87,15 @@ interface PdfOptions {
   format: string;
 }
 
+const DEBUG=true;
+
 const Run = () => {
+  // parse the query parameters from URL 
   const queryParams = new URLSearchParams(window.location.search);
   const term = queryParams.get("wo");
   const oms_value = queryParams.get("oms");
   const step_value = queryParams.get("step");
+
   const { id } = useParams();
   const { fetchData, postData } = useApi();
   const modelRef = useRef<any>(null);
@@ -165,22 +169,40 @@ const Run = () => {
   }
 
   model.applyTheme(theme);
+
+
   const getSurveyResults = async () => {
     const resultsAction = await fetchData("/results?postId=" + id);
+    if(DEBUG) console.log('getSurveyResults: id from useParams, ', id);
+
     let parsedQuestion = null;
     for (const result of resultsAction.data) {
-      let parsed = JSON.parse(result);
+      if(DEBUG)console.log("getSurveyResults: Results are attampting to parse, ", result);
+      let parsed;
+      if (typeof result === 'string') {
+        try {
+          parsed = JSON.parse(result);
+        } catch (e) {
+          console.error("Error parsing JSON:", e);
+        }
+      } else {
+        // If it's already an object, no need to parse
+        parsed = result;
+      }      
       if (parsed.wo === term) {
         parsedQuestion = parsed;
         break;
       }
     }
+    if(DEBUG)console.log("parsedQuestions from getSurveyResults: ", parsedQuestion);
     return parsedQuestion;
   };
+
   const getSurvey = async () => {
     const response = await fetchData("/getSurvey?surveyId=" + id);
     setSurvey(response.data);
   };
+
   const fetchValues = async () => {
     if (term && survey.json.length > 0) {
       let isGotFilled = false;
@@ -259,18 +281,6 @@ const Run = () => {
     setPrintOptions(false);
   };
 
-  // const savePdf = function () {
-  //   saveSurveyToPdf("surveyResult.pdf", model);
-  //   console.log(model);
-  // };
-  // const savePdf = function () {
-  //   if (term && tool) {
-  //     saveSurveyToPdf("surveyResult.pdf", model);
-  //     console.log(model);
-  //   } else {
-  //     alert("Please fill both term and tool.");
-  //   }
-  // };
   model.onComplete.add(async (sender: Model) => {
     await postData("/post", {
       postId: id as string,
