@@ -200,7 +200,7 @@ const Run = () => {
   };
 
   const getSurvey = async () => {
-    const response = await fetchData("/getSurvey?surveyId=" + id);
+    const response = await fetchData("/getSurvey?surveyId=" + id, false);
     setSurvey(response.data);
   };
 
@@ -287,7 +287,7 @@ const Run = () => {
       postId: id as string,
       surveyResult: sender.data,
       surveyResultText: JSON.stringify(sender.data),
-    });
+    }, false);
   });
   return (
     <>

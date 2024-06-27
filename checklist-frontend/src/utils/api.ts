@@ -8,8 +8,8 @@ function envToBool(variable: string | undefined) {
 const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
 
 interface ApiHook {
-  fetchData: (endpoint: string) => Promise<any>;
-  postData: (endpoint: string, payload: any) => Promise<any>;
+  fetchData: (endpoint: string, requireAuthn?: boolean) => Promise<any>;
+  postData: (endpoint: string, payload: any, requireAuth?: boolean) => Promise<any>;
 }
 
 export const useApi = (): ApiHook => {
@@ -26,14 +26,22 @@ export const useApi = (): ApiHook => {
   }
 
   // Create Axios instance with the base URL
-  const api: AxiosInstance = axios.create({
+  const apiWithAuth: AxiosInstance = axios.create({
     baseURL,
     withCredentials: true
   });
 
+  //Create Axios instance with the base URL and without credentials
+  const apiWithoutAuth: AxiosInstance = axios.create({
+    baseURL,
+    withCredentials: false
+  });
+
   // Function to make a GET request
-  const fetchData = async (endpoint: string): Promise<any> => {
+  const fetchData = async (endpoint: string, requireAuth = true): Promise<any> => {
     try {
+      const api = requireAuth ? apiWithAuth : apiWithoutAuth;
+
       Logger.debug("-----fetchData api, endpoint: ", endpoint);
       const response = await api.get(endpoint);
       Logger.debug("-----fetchData api, response", response);
@@ -45,8 +53,9 @@ export const useApi = (): ApiHook => {
   };
 
   // Function to make a POST request
-  const postData = async (endpoint: string, payload: any): Promise<any> => {
+  const postData = async (endpoint: string, payload: any, requireAuth = true): Promise<any> => {
     try {
+      const api = requireAuth ? apiWithAuth : apiWithoutAuth;
       Logger.debug("-----postData api, endpoint: ", endpoint);
       const response = await api.post(endpoint, payload);
       Logger.debug("-----postData api, response: ", response);

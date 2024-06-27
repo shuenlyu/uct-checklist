@@ -71,11 +71,11 @@ const ProtectedRoutes = () => {
 const Content = (): React.ReactElement => (
   <Routes>
     <Route path="/login" element={<Login />} />
-    {/* <Route path="/run/:id" element={<Run />} /> */}
+    <Route path="/run/:id" element={<Run />} />
     <Route element={<ProtectedRoutes />}>
       <Route path="/" element={<Home />} />
       <Route path="/about" element={<About />} />
-      <Route path="/run/:id" element={<Run />} />
+      {/* <Route path="/run/:id" element={<Run />} /> */}
       <Route path="/edit/:id" element={<Edit />} />
       <Route path="/results/:id" element={<Results />} />
     </Route>

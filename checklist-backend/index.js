@@ -153,8 +153,8 @@ app.get("/getActive", async (req, res) => {
 app.get("/getSurvey", async (req, res) => {
   try {
     Logger.debug("---- api call: /getSurvey Started!, req: ", req);
-    const user = { email: req.user.email, role: req.user.role };
     const surveyId = req.query["surveyId"];
+    const user = req.isAuthenticated() ? { email: req.user.email, role: req.user.role } : null;
     const result = await dbAdapter.getSurvey(surveyId, user);
     Logger.debug("---- api call: /getSurvey, user, result: ", user, result);
     useMSSQL ? res.json(result[0]) : res.json(result);
