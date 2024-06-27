@@ -21,15 +21,17 @@ services:
     build: 
       context: ./checklist-backend
     env_file:
-      - .env.development
+      - .env.production
     ports:
       - "3002:3002"
+    # env_file:
+    #   - .env.${NODE_ENV}
     restart: always
 
   frontend:
     build: ./checklist-frontend
     env_file:
-      - .env.development
+      - .env.production
     ports:
       - "3000:3000"
     restart: always

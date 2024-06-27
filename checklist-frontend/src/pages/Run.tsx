@@ -1,3 +1,4 @@
+// require('dotenv').config();
 import { useParams } from "react-router";
 import {
   ITheme,
@@ -86,8 +87,10 @@ interface PdfOptions {
   orientation: "p" | "l" | undefined;
   format: string;
 }
-
-const DEBUG=true;
+function envToBool(variable: string | undefined) {
+  return variable === 'true'
+}
+const DEBUG = envToBool(process.env.DEBUG);
 
 const Run = () => {
   // parse the query parameters from URL 
@@ -127,37 +130,37 @@ const Run = () => {
     7: BorderlessLight,
     8: ContrastDarkPanelless,
     9: ContrastLightPanelless,
-   10: DefaultLightPanelless,
-   11: DoubleBorderDarkPanelless,
-   12: DoubleBorderDark,
-   13: DoubleBorderLightPanelless,
-   14: DoubleBorderLight,
-   15: FlatDarkPanelless,
-   16: FlatDark,
-   17: FlatLightPanelless,
-   18: FlatLight,
-   19: LayeredDarkPanelless,
-   20: LayeredDark,
-   21: LayeredLightPanelless,
-   22: LayeredLight,
-   23: PlainDarkPanelless,
-   24: PlainDark,
-   25: PlainLightPanelless,
-   26: PlainLight,
-   27: SharpDarkPanelless,
-   28: SharpDark,
-   29: SharpLightPanelless,
-   30: SharpLight,
-   31: SolidDarkPanelless,
-   32: SolidDark,
-   33: SolidLightPanelless,
-   34: SolidLight,
-   35: ThreeDimensionalDarkPanelless,
-   36: ThreeDimensionalDark,
-   37: ThreeDimensionalLightPanelless,
-   38: ThreeDimensionalLight
+    10: DefaultLightPanelless,
+    11: DoubleBorderDarkPanelless,
+    12: DoubleBorderDark,
+    13: DoubleBorderLightPanelless,
+    14: DoubleBorderLight,
+    15: FlatDarkPanelless,
+    16: FlatDark,
+    17: FlatLightPanelless,
+    18: FlatLight,
+    19: LayeredDarkPanelless,
+    20: LayeredDark,
+    21: LayeredLightPanelless,
+    22: LayeredLight,
+    23: PlainDarkPanelless,
+    24: PlainDark,
+    25: PlainLightPanelless,
+    26: PlainLight,
+    27: SharpDarkPanelless,
+    28: SharpDark,
+    29: SharpLightPanelless,
+    30: SharpLight,
+    31: SolidDarkPanelless,
+    32: SolidDark,
+    33: SolidLightPanelless,
+    34: SolidLight,
+    35: ThreeDimensionalDarkPanelless,
+    36: ThreeDimensionalDark,
+    37: ThreeDimensionalLightPanelless,
+    38: ThreeDimensionalLight
   };
-  
+
   const storedTheme: string | null = localStorage.getItem("theme");
   let theme: ITheme;
 
@@ -173,11 +176,11 @@ const Run = () => {
 
   const getSurveyResults = async () => {
     const resultsAction = await fetchData("/results?postId=" + id);
-    if(DEBUG) console.log('getSurveyResults: id from useParams, ', id);
+    if (DEBUG) console.log('getSurveyResults: id from useParams, ', id);
 
     let parsedQuestion = null;
     for (const result of resultsAction.data) {
-      if(DEBUG)console.log("getSurveyResults: Results are attampting to parse, ", result);
+      if (DEBUG) console.log("getSurveyResults: Results are attampting to parse, ", result);
       let parsed;
       if (typeof result === 'string') {
         try {
@@ -188,13 +191,13 @@ const Run = () => {
       } else {
         // If it's already an object, no need to parse
         parsed = result;
-      }      
+      }
       if (parsed.wo === term) {
         parsedQuestion = parsed;
         break;
       }
     }
-    if(DEBUG)console.log("parsedQuestions from getSurveyResults: ", parsedQuestion);
+    if (DEBUG) console.log("parsedQuestions from getSurveyResults: ", parsedQuestion);
     return parsedQuestion;
   };
 
@@ -246,7 +249,7 @@ const Run = () => {
 
   function createSurveyPdfModel(surveyModel: any) {
     console.log(surveyModel);
-   
+
     const surveyPDF = new SurveyPDF(survey.json, { ...pdfOptions });
     //Add this line
     surveyPDF.mode = "display";
