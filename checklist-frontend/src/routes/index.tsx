@@ -11,13 +11,7 @@ import Login from '../pages/Login';
 
 import { useApi } from "../utils/api";
 import Loading from "../components/Loading";
-
-function envToBool(variable: string | undefined) {
-  return variable === 'true'
-}
-const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
-console.log("DEBUGing: ", DEBUG, process.env);
-if (DEBUG) console.log("process.env variables: ", process.env);
+import Logger from "../utils/logger";
 
 export const NavBar = () => (
   <>
@@ -42,22 +36,22 @@ const ProtectedRoutes = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [user, setUser] = useState<Record<string, string>>();
 
-  if (DEBUG) console.log("======ProtectedRoutes started!!");
+  Logger.info("======ProtectedRoutes started!!");
 
   useEffect(() => {
     fetchData('/getMe')
       .then((res) => {
         if (res.data.user) {
-          if (DEBUG) console.log("===getMe fetchData: setUser===");
+          Logger.info("===getMe fetchData: setUser===");
           setUser(res.data.user)
           setLoading(false)
         } else {
-          if (DEBUG) console.log("===getMe fetchData: navigate to login ===");
+          Logger.info("===getMe fetchData: navigate to login ===");
           navigate('/login')
         }
       })
       .catch((err) => {
-        if (DEBUG) console.log("===getMe err: ", err);
+        Logger.error("===getMe err: ", err);
         navigate('/login')
       })
   }, [])
@@ -66,7 +60,7 @@ const ProtectedRoutes = () => {
     return <Loading />
   }
 
-  if (DEBUG) console.log("==== ProtectedRoute: user: ", user);
+  Logger.debug("==== ProtectedRoute: user: ", user);
   if (!user) {
     return <Navigate to="/login" />
   }

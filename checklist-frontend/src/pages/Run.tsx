@@ -54,6 +54,7 @@ import {
   ThreeDimensionalLight
 
 } from "survey-core/themes";
+import Logger from "../utils/logger";
 
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 //survey helper functions
@@ -87,12 +88,8 @@ interface PdfOptions {
   orientation: "p" | "l" | undefined;
   format: string;
 }
-function envToBool(variable: string | undefined) {
-  return variable === 'true'
-}
-const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
-if (DEBUG) console.log("RUN routes process.env variables: ", process.env);
 
+Logger.info("Process.env: ", process.env);
 const Run = () => {
   // parse the query parameters from URL 
   const queryParams = new URLSearchParams(window.location.search);
@@ -177,11 +174,11 @@ const Run = () => {
 
   const getSurveyResults = async () => {
     const resultsAction = await fetchData("/results?postId=" + id);
-    if (DEBUG) console.log('getSurveyResults: id from useParams, ', id);
+    Logger.debug('getSurveyResults: id from useParams, ', id);
 
     let parsedQuestion = null;
     for (const result of resultsAction.data) {
-      if (DEBUG) console.log("getSurveyResults: Results are attampting to parse, ", result);
+      Logger.debug("getSurveyResults: Results are attampting to parse, ", result);
       let parsed;
       if (typeof result === 'string') {
         try {
@@ -198,7 +195,7 @@ const Run = () => {
         break;
       }
     }
-    if (DEBUG) console.log("parsedQuestions from getSurveyResults: ", parsedQuestion);
+    Logger.debug("parsedQuestions from getSurveyResults: ", parsedQuestion);
     return parsedQuestion;
   };
 

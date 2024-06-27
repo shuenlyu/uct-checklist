@@ -7,12 +7,8 @@ import { useApi } from "../utils/api";
 import icon from "../icon.svg";
 import { customers } from "../models/customer";
 import { products } from "../models/product";
-
+import Logger from "../utils/logger";
 // read debug config from .env file 
-function envToBool(variable: string | undefined) {
-  return variable === 'true'
-}
-const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
 
 const Surveys = (): React.ReactElement => {
   const [openModal, setOpenModal] = useState(false);
@@ -34,7 +30,7 @@ const Surveys = (): React.ReactElement => {
     customer: string,
     product: string
   ) => {
-    if (DEBUG) console.log(customer, product);
+    Logger.info(customer, product);
     setEditModal(true);
     setInputValue(name);
     setCustomer(customers.filter((cust) => cust.name === customer)[0]?.id);
@@ -43,7 +39,7 @@ const Surveys = (): React.ReactElement => {
   };
   const modal = () => {
     setOpenModal(true);
-    if (DEBUG) console.log(openModal);
+    Logger.debug(openModal);
   };
   const closeModal = () => {
     setOpenModal(false);
@@ -70,7 +66,7 @@ const Surveys = (): React.ReactElement => {
       json: json,
     });
     if (response.status === 200) {
-      if (DEBUG) console.log(response.data);
+      Logger.info(response.data);
       setSurveys([
         ...surveys,
         { ...response.data, customer: customerName, prod_line: productName },

@@ -3,11 +3,7 @@ import { useReduxDispatch } from "../redux";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import "survey-creator-core/survey-creator-core.css";
 import { useApi } from "../utils/api";
-
-function envToBool(variable: string | undefined) {
-  return variable === 'true'
-}
-const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
+import Logger from "../utils/logger";
 
 const Editor = (params: { id: string }): React.ReactElement => {
   const { fetchData, postData } = useApi();
@@ -35,7 +31,7 @@ const Editor = (params: { id: string }): React.ReactElement => {
   useEffect(() => {
     (async () => {
       const response = await fetchData("/getSurvey?surveyId=" + params.id);
-      if (DEBUG) console.log("surveyAction => ", response);
+      Logger.debug("surveyAction => ", response);
       if (typeof response.data.json === "object") {
         creator.JSON = response.data.json;
       } else {
