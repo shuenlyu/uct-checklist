@@ -15,9 +15,5 @@ RUN npm install
 # Bundle app source
 COPY . .
 
-#Set environment variable
-ARG NODE_ENV
-ENV NODE_ENV $NODE_ENV
-
 EXPOSE 3002
 CMD [ "npm", "start" ]

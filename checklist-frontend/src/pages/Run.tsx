@@ -90,7 +90,8 @@ interface PdfOptions {
 function envToBool(variable: string | undefined) {
   return variable === 'true'
 }
-const DEBUG = envToBool(process.env.DEBUG);
+const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
+if (DEBUG) console.log("RUN routes process.env variables: ", process.env);
 
 const Run = () => {
   // parse the query parameters from URL 

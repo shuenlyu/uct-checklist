@@ -1,12 +1,18 @@
-import React, {useEffect, useState} from "react";
-import {load} from "../redux/surveys";
-import {useReduxDispatch, useReduxSelector} from "../redux";
-import {Link} from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { load } from "../redux/surveys";
+import { useReduxDispatch, useReduxSelector } from "../redux";
+import { Link } from "react-router-dom";
 import "./Surveys.css";
-import {useApi} from "../utils/api";
+import { useApi } from "../utils/api";
 import icon from "../icon.svg";
-import {customers} from "../models/customer";
-import {products} from "../models/product";
+import { customers } from "../models/customer";
+import { products } from "../models/product";
+
+// read debug config from .env file 
+function envToBool(variable: string | undefined) {
+  return variable === 'true'
+}
+const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
 
 const Surveys = (): React.ReactElement => {
   const [openModal, setOpenModal] = useState(false);
@@ -19,7 +25,7 @@ const Surveys = (): React.ReactElement => {
   const [customer, setCustomer] = useState<number>(0);
   const [selectedProduct, setSelectedProduct] = useState<number>(0);
   const [customerProducts, setCustomerProducts] = useState([
-    {id: 0, name: ""},
+    { id: 0, name: "" },
   ]);
 
   const handleEdit = (
@@ -28,7 +34,7 @@ const Surveys = (): React.ReactElement => {
     customer: string,
     product: string
   ) => {
-    console.log(customer, product);
+    if (DEBUG) console.log(customer, product);
     setEditModal(true);
     setInputValue(name);
     setCustomer(customers.filter((cust) => cust.name === customer)[0]?.id);
@@ -37,7 +43,7 @@ const Surveys = (): React.ReactElement => {
   };
   const modal = () => {
     setOpenModal(true);
-    console.log(openModal);
+    if (DEBUG) console.log(openModal);
   };
   const closeModal = () => {
     setOpenModal(false);
@@ -45,7 +51,7 @@ const Surveys = (): React.ReactElement => {
   };
 
   const [surveys, setSurveys] = useState<any[]>([]);
-  const {fetchData, postData} = useApi();
+  const { fetchData, postData } = useApi();
   const getSurveys = async () => {
     const response = await fetchData("/getActive");
     setSurveys(response.data);
@@ -64,10 +70,10 @@ const Surveys = (): React.ReactElement => {
       json: json,
     });
     if (response.status === 200) {
-      console.log(response.data);
+      if (DEBUG) console.log(response.data);
       setSurveys([
         ...surveys,
-        {...response.data, customer: customerName, prod_line: productName},
+        { ...response.data, customer: customerName, prod_line: productName },
       ]);
       setOpenModal(false);
       setInputValue("");
@@ -229,7 +235,7 @@ const Surveys = (): React.ReactElement => {
                 </div>
                 <div className="Add-checklist">
                   <div>
-                    <label htmlFor="customer" style={{fontWeight: "600"}}>
+                    <label htmlFor="customer" style={{ fontWeight: "600" }}>
                       Select Customer
                     </label>
                     <select
@@ -250,7 +256,7 @@ const Surveys = (): React.ReactElement => {
                       {customers.map((customer) => (
                         <option
                           key={customer.id}
-                          style={{textTransform: "capitalize"}}
+                          style={{ textTransform: "capitalize" }}
                           value={customer.id}
                         >
                           {customer.name}
@@ -258,8 +264,8 @@ const Surveys = (): React.ReactElement => {
                       ))}
                     </select>
                   </div>
-                  <div style={{marginTop: 20}}>
-                    <label htmlFor="product" style={{fontWeight: "600"}}>
+                  <div style={{ marginTop: 20 }}>
+                    <label htmlFor="product" style={{ fontWeight: "600" }}>
                       Select Product Line
                     </label>
                     <select
@@ -274,7 +280,7 @@ const Surveys = (): React.ReactElement => {
                       {customerProducts.map((product) => (
                         <option
                           key={product.id}
-                          style={{textTransform: "capitalize"}}
+                          style={{ textTransform: "capitalize" }}
                           value={product.id}
                         >
                           {product.name}
@@ -282,15 +288,15 @@ const Surveys = (): React.ReactElement => {
                       ))}
                     </select>
                   </div>
-                  <div style={{marginTop: 20}}>
-                    <label htmlFor="name" style={{fontWeight: "600"}}>
+                  <div style={{ marginTop: 20 }}>
+                    <label htmlFor="name" style={{ fontWeight: "600" }}>
                       Checklist Name
                     </label>
                     <input
                       type="text"
                       placeholder="Add Checklist Name"
                       value={inputValue}
-                      style={{marginTop: 4}}
+                      style={{ marginTop: 4 }}
                       onChange={(e) => {
                         setInputValue(e.target.value);
                         setIsValidChecklist(true);
@@ -331,7 +337,7 @@ const Surveys = (): React.ReactElement => {
                 </div>
                 <div className="Add-checklist">
                   <div>
-                    <label htmlFor="customer" style={{fontWeight: "600"}}>
+                    <label htmlFor="customer" style={{ fontWeight: "600" }}>
                       Select Customer
                     </label>
                     <select
@@ -354,7 +360,7 @@ const Surveys = (): React.ReactElement => {
                       {customers.map((customer) => (
                         <option
                           key={customer.id}
-                          style={{textTransform: "capitalize"}}
+                          style={{ textTransform: "capitalize" }}
                           value={customer.id}
                         >
                           {customer.name}
@@ -362,8 +368,8 @@ const Surveys = (): React.ReactElement => {
                       ))}
                     </select>
                   </div>
-                  <div style={{marginTop: 20}}>
-                    <label htmlFor="product" style={{fontWeight: "600"}}>
+                  <div style={{ marginTop: 20 }}>
+                    <label htmlFor="product" style={{ fontWeight: "600" }}>
                       Select Product Line
                     </label>
                     <select
@@ -391,7 +397,7 @@ const Surveys = (): React.ReactElement => {
                       {customerProducts.map((product) => (
                         <option
                           key={product.id}
-                          style={{textTransform: "capitalize"}}
+                          style={{ textTransform: "capitalize" }}
                           value={product.id}
                         >
                           {product.name}
@@ -399,8 +405,8 @@ const Surveys = (): React.ReactElement => {
                       ))}
                     </select>
                   </div>
-                  <div style={{marginTop: 20}}>
-                    <label htmlFor="name" style={{fontWeight: "600"}}>
+                  <div style={{ marginTop: 20 }}>
+                    <label htmlFor="name" style={{ fontWeight: "600" }}>
                       Checklist Name
                     </label>
                     <input

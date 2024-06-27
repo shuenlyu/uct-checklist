@@ -1,5 +1,5 @@
 // decide which env file should be used, either .env.development or .env.production
-require('dotenv').config();
+// require('dotenv').config();
 const express = require("express");
 const session = require("express-session");
 const fileUpload = require("express-fileupload");
@@ -27,7 +27,7 @@ if (useMSSQL) {
 }
 
 const DEBUG = envToBool(process.env.DEBUG);
-
+console.log("Backend environment variables----: ", process.env);
 const app = express();
 
 app.use(cors({ origin: process.env.APP_URL, credentials: true }));

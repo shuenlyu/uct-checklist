@@ -12,7 +12,13 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 #Build the app
-RUN npm run build
+ARG NODE_ENV=development
+ENV NODE_ENV=${NODE_ENV}
+RUN echo $NODE_ENV
+RUN if [ "$NODE_ENV" = "production" ]; \
+    then npm run build:prod; \
+    else npm run build:dev; \
+    fi
 
 RUN npm install -g serve
 # start app

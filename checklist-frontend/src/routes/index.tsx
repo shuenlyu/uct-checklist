@@ -15,8 +15,9 @@ import Loading from "../components/Loading";
 function envToBool(variable: string | undefined) {
   return variable === 'true'
 }
-const DEBUG = envToBool(process.env.DEBUG);
-if (DEBUG) console.log(process.env);
+const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
+console.log("DEBUGing: ", DEBUG, process.env);
+if (DEBUG) console.log("process.env variables: ", process.env);
 
 export const NavBar = () => (
   <>

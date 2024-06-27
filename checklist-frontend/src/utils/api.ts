@@ -4,7 +4,7 @@ import axios, { AxiosInstance } from "axios";
 function envToBool(variable: string | undefined) {
   return variable === 'true'
 }
-const DEBUG = envToBool(process.env.DEBUG);
+const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
 
 interface ApiHook {
   fetchData: (endpoint: string) => Promise<any>;
