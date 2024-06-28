@@ -96,6 +96,7 @@ const Run = () => {
   const term = queryParams.get("wo");
   const oms_value = queryParams.get("oms");
   const step_value = queryParams.get("step");
+  const station_value = queryParams.get("station");
 
   const { id } = useParams();
   const { fetchData, postData } = useApi();
@@ -234,6 +235,8 @@ const Run = () => {
           omsQuestion.value = oms_value;
           const stepQuestion = model.getQuestionByName("step");
           stepQuestion.value = step_value;
+          const stationQuestion = model.getQuestionByName("station");
+          stationQuestion.value = station_value;
         }
       });
     }
