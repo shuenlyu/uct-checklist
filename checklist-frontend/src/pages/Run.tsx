@@ -97,6 +97,7 @@ const Run = () => {
   const oms_value = queryParams.get("oms");
   const step_value = queryParams.get("step");
   const station_value = queryParams.get("station");
+  const userid_value = queryParams.get("userid");
 
   const { id } = useParams();
   const { fetchData, postData } = useApi();
@@ -237,6 +238,8 @@ const Run = () => {
           stepQuestion.value = step_value;
           const stationQuestion = model.getQuestionByName("station");
           stationQuestion.value = station_value;
+          const useridQuestion = model.getQuestionByName("userid");
+          useridQuestion.value = userid_value;
         }
       });
     }
@@ -266,13 +269,7 @@ const Run = () => {
   }
 
   const savePdf = function () {
-    // const subscribedQuestion = model.getQuestionByName("question1");
-    // const toolQuestion = model.getQuestionByName("question2");
-
-    //if (subscribedQuestion.value && toolQuestion.value) {
     saveSurveyToPdf(fileName + ".pdf", modelRef.current);
-    //} else {
-    //}
   };
 
   const openPrintModal = () => {
