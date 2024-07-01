@@ -30,16 +30,24 @@ interface QuestionData {
   [key: string]: string | undefined;
 }
 
+function initializeModelFromURL(search: any, modelData: any) {
+  const queryParams = new URLSearchParams(search);
+  const model = new Model(modelData);
+
+  //Iterate over all query parameters
+  queryParams.forEach((value, key) => {
+    const question = model.getQuestionByName(key);
+    if (question) {
+      question.value = value;
+    }
+  });
+  return model
+}
+
+
 Logger.info("Process.env: ", process.env);
 const Run = () => {
   // parse the query parameters from URL 
-  const queryParams = new URLSearchParams(window.location.search);
-  const term = queryParams.get("wo");
-  const oms_value = queryParams.get("oms");
-  const step_value = queryParams.get("step");
-  const station_value = queryParams.get("station");
-  const userid_value = queryParams.get("userid");
-
   const { id } = useParams();
   const { fetchData, postData } = useApi();
   const modelRef = useRef<any>(null);
@@ -59,7 +67,8 @@ const Run = () => {
     format: "a4",
   });
 
-  let model = new Model(survey.json);
+  //use initializeModelFromURL to initialize question values from queryParameters URL
+  let model = initializeModelFromURL(window.location.search, survey.json);
 
   //model applyTheme
   const storedTheme: string | null = localStorage.getItem("theme");
@@ -114,16 +123,6 @@ const Run = () => {
     setPrintOptions(false);
   };
 
-  const subscribedQuestion = model.getQuestionByName("wo");
-  if (subscribedQuestion && term) subscribedQuestion.value = term;
-  const omsQuestion = model.getQuestionByName("oms");
-  if (omsQuestion && oms_value) omsQuestion.value = oms_value;
-  const stepQuestion = model.getQuestionByName("step");
-  if (omsQuestion && oms_value) stepQuestion.value = step_value;
-  const stationQuestion = model.getQuestionByName("station");
-  if (stationQuestion && station_value) stationQuestion.value = station_value;
-  const useridQuestion = model.getQuestionByName("userid");
-  if (useridQuestion && userid_value) useridQuestion.value = userid_value;
 
   model.onComplete.add(async (sender: Model) => {
     await postData("/post", {
