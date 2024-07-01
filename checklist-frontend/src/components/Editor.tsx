@@ -11,6 +11,7 @@ const Editor = (params: { id: string }): React.ReactElement => {
   const creator = useMemo(() => {
     const options = {
       showLogicTab: true,
+      // showThemeTab: true,
       showTranslationTab: true,
     };
     return new SurveyCreator(options);
