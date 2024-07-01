@@ -1,6 +1,6 @@
 // require('dotenv').config();
 import { useParams } from "react-router";
-import { ITheme, Model, StylesManager, matrixDropdownColumnTypes } from "survey-core";
+import { ITheme, Model, StylesManager, matrixDropdownColumnTypes, Serializer } from "survey-core";
 
 import { Survey } from "survey-react-ui";
 import { SurveyPDF, SurveyHelper } from "survey-pdf";
@@ -69,7 +69,7 @@ const Run = () => {
 
   //use initializeModelFromURL to initialize question values from queryParameters URL
   let model = initializeModelFromURL(window.location.search, survey.json);
-
+  Serializer.getProperty('survey', 'clearInvisibleValues').defaultValue = 'none';
   //model applyTheme
   const storedTheme: string | null = localStorage.getItem("theme");
   let theme: ITheme;
