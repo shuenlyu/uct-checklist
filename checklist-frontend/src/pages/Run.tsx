@@ -34,13 +34,22 @@ function initializeModelFromURL(search: any, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
 
+  const question = model.getQuestionByName("predefinedfields");
+  Logger.info("initializeModelFromURL: ", question);
+  if (question) {
+    queryParams.forEach((value, key) => {
+      Logger.info("query parameters, key, value:", key, value);
+      const subquestion = question.contentPanel.getQuestionByName(key);
+      subquestion.value = value;
+    });
+  }
   //Iterate over all query parameters
-  queryParams.forEach((value, key) => {
-    const question = model.getQuestionByName(key);
-    if (question) {
-      question.value = value;
-    }
-  });
+  // queryParams.forEach((value, key) => {
+  //   const question = model.getQuestionByName(key);
+  //   if (question) {
+  //     question.value = value;
+  //   }
+  // });
   return model
 }
 
