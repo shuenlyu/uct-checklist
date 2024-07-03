@@ -45,7 +45,7 @@ ComponentCollection.Instance.add({
 
 //define the properties to be shown for predefinedFields question type
 const propertiesToShowInPredefined = [
-  "name",
+  // "name",
   "title"
 ];
 
