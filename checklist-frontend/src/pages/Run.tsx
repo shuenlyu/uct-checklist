@@ -1,14 +1,23 @@
 // require('dotenv').config();
 import { useParams } from "react-router";
-import { ITheme, Model, StylesManager, matrixDropdownColumnTypes, Serializer } from "survey-core";
+import {
+  ITheme,
+  matrixDropdownColumnTypes,
+  Model,
+  Serializer,
+  StylesManager,
+} from "survey-core";
 
-import { Survey } from "survey-react-ui";
-import { SurveyPDF, SurveyHelper } from "survey-pdf";
-import "survey-core/defaultV2.css";
 import { useEffect, useRef, useState } from "react";
+import "survey-core/defaultV2.css";
+import { SurveyHelper, SurveyPDF } from "survey-pdf";
+import { Survey } from "survey-react-ui";
+import PrintOptionsModal, {
+  PdfOptions,
+  PrintOptionsModalProps,
+} from "../components/PrintOptionsModal";
 import { useApi } from "../utils/api";
 import { themes } from "../utils/themeOptions";
-import PrintOptionsModal, { PrintOptionsModalProps, PdfOptions } from "../components/PrintOptionsModal";
 
 import Logger from "../utils/logger";
 
@@ -26,37 +35,34 @@ SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@image"] = {};
 
 StylesManager.applyTheme("defaultV2");
 
-interface QuestionData {
-  [key: string]: string | undefined;
-}
-
-function initializeModelFromURL(search: any, modelData: any) {
+function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
+  const questionsToInitialize = ["predefinedfields", "checklist_header"];
 
-  const question = model.getQuestionByName("predefinedfields");
-  Logger.info("initializeModelFromURL: ", question);
-  if (question) {
-    queryParams.forEach((value, key) => {
-      Logger.info("query parameters, key, value:", key, value);
-      const subquestion = question.contentPanel.getQuestionByName(key);
-      subquestion.value = value;
-    });
-  }
-  //Iterate over all query parameters
-  // queryParams.forEach((value, key) => {
-  //   const question = model.getQuestionByName(key);
-  //   if (question) {
-  //     question.value = value;
-  //   }
-  // });
-  return model
+  questionsToInitialize.forEach((questionName) => {
+    const question = model.getQuestionByName(questionName);
+    Logger.info("initializeModelFromURL: ", question);
+    if (question) {
+      queryParams.forEach((value, key) => {
+        Logger.info("query parameters, key, value:", key, value);
+        const subquestion = question.contentPanel.getQuestionByName(key);
+        if (subquestion) {
+          // Check if subquestion exists before assigning value
+          subquestion.value = value;
+        } else {
+          Logger.warn(`Subquestion named ${key} not found in ${questionName}`);
+        }
+      });
+    }
+  });
+
+  return model;
 }
-
 
 Logger.info("Process.env: ", process.env);
 const Run = () => {
-  // parse the query parameters from URL 
+  // parse the query parameters from URL
   const { id } = useParams();
   const { fetchData, postData } = useApi();
   const modelRef = useRef<any>(null);
@@ -78,7 +84,8 @@ const Run = () => {
 
   //use initializeModelFromURL to initialize question values from queryParameters URL
   let model = initializeModelFromURL(window.location.search, survey.json);
-  Serializer.getProperty('survey', 'clearInvisibleValues').defaultValue = 'none';
+  Serializer.getProperty("survey", "clearInvisibleValues").defaultValue =
+    "none";
   //model applyTheme
   const storedTheme: string | null = localStorage.getItem("theme");
   let theme: ITheme;
@@ -132,13 +139,16 @@ const Run = () => {
     setPrintOptions(false);
   };
 
-
   model.onComplete.add(async (sender: Model) => {
-    await postData("/post", {
-      postId: id as string,
-      surveyResult: sender.data,
-      surveyResultText: JSON.stringify(sender.data),
-    }, false);
+    await postData(
+      "/post",
+      {
+        postId: id as string,
+        surveyResult: sender.data,
+        surveyResultText: JSON.stringify(sender.data),
+      },
+      false
+    );
   });
   return (
     <>
