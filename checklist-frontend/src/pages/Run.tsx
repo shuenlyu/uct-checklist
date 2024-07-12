@@ -38,7 +38,11 @@ StylesManager.applyTheme("defaultV2");
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
-  const questionsToInitialize = ["predefinedfields", "checklist_header"];
+  const questionsToInitialize = [
+    "predefinedfields",
+    "checklist_header_FI",
+    "checklist_header_shipkit",
+  ];
 
   questionsToInitialize.forEach((questionName) => {
     const question = model.getQuestionByName(questionName);
@@ -111,7 +115,10 @@ const Run = () => {
   function createSurveyPdfModel(surveyModel: any) {
     Logger.info(surveyModel);
 
-    const surveyPDF = new SurveyPDF(survey.json, { ...pdfOptions });
+    const surveyPDF = new SurveyPDF(survey.json, {
+      ...pdfOptions,
+      // applyImageFit: true,
+    });
     //Add this line
     surveyPDF.mode = "display";
     if (surveyModel) {

@@ -67,7 +67,6 @@ const PrintOptionsModal: React.FC<PrintOptionsModalProps> = ({
               }
             >
               {/* Add other options as needed */}
-              <option value="a4">A4</option>
               <option value="a0">A0</option>
               <option value="a2">A2</option>
               <option value="a3">A3</option>
