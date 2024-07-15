@@ -57,7 +57,7 @@ const Editor = (params: { id: string }): React.ReactElement => {
   //modify the added question type into text input question category
   creator.toolbox.forceCompact = false;
   creator.toolbox.changeCategory("predefinedfields", "Text Input Questions");
-  creator.toolbox.changeCategory("checklist_header_FI", "Text Input Questions");
+  creator.toolbox.changeCategory("checklist_header_fi", "Text Input Questions");
   creator.toolbox.changeCategory(
     "checklist_header_shipkit",
     "Text Input Questions"
@@ -72,7 +72,7 @@ const Editor = (params: { id: string }): React.ReactElement => {
   creator.onShowingProperty.add((sender, options) => {
     if (
       options.obj.getType() === "predefinedfields" ||
-      options.obj.getType() === "checklist_header_FI" ||
+      options.obj.getType() === "checklist_header_fi" ||
       options.obj.getType() === "checklist_header_shipkit"
     ) {
       options.canShow = false;
@@ -87,8 +87,8 @@ const Editor = (params: { id: string }): React.ReactElement => {
       opt.name = "predefinedfields";
       opt.title = "Predefined Fields";
       opt.titleLocation = "hidden";
-    } else if (opt.getType() === "checklist_header_FI") {
-      opt.name = "checklist_header_FI";
+    } else if (opt.getType() === "checklist_header_fi") {
+      opt.name = "checklist_header_fi";
       opt.title = "Checklist-FI Header";
       opt.titleLocation = "hidden";
     } else if (opt.getType() === "checklist_header_shipkit") {

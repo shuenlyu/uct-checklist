@@ -40,7 +40,7 @@ function initializeModelFromURL(search: string, modelData: any) {
   const model = new Model(modelData);
   const questionsToInitialize = [
     "predefinedfields",
-    "checklist_header_FI",
+    "checklist_header_fi",
     "checklist_header_shipkit",
   ];
 
@@ -82,8 +82,8 @@ const Run = () => {
       top: 10,
       bot: 10,
     },
-    orientation: "p",
-    format: "a4",
+    orientation: "l",
+    format: "a2",
   });
 
   //use initializeModelFromURL to initialize question values from queryParameters URL

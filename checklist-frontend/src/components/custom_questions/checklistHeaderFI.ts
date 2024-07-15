@@ -1,5 +1,5 @@
 export const checklistHeaderFI_json = {
-  name: "checklist_header_FI",
+  name: "checklist_header_fi",
   title: "Checklist FI Header",
   titleLocation: "hidden",
   hideNumber: true,
