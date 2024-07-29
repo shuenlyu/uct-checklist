@@ -42,7 +42,7 @@ class MSSQLDBAdapter {
       );
     try {
       const result = await request.query(sqlQuery);
-      if (DEBUG) console.log("------mssql query result: ", result);
+      // if (DEBUG) console.log("------mssql query result: ", result);
       return result.recordset;
     } catch (error) {
       throw new Error(error.message);

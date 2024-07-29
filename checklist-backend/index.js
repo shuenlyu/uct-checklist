@@ -35,8 +35,7 @@ app.use(
   session({
     secret: "mysecret",
     resave: true,
-    saveUninitialized: true,
-    // cookie: { secure: true }
+    saveUninitialized: true
   })
 );
 app.use(passport.initialize());
@@ -179,7 +178,7 @@ app.get("/getActive", async (req, res) => {
     Logger.debug("---- api call: /getActive Started!");
     const user = { email: req.user.email, role: req.user.role };
     const result = await dbAdapter.getSurveys(user);
-    Logger.debug("---- api call: /getActive, user, result: ", user, result);
+    // Logger.debug("---- api call: /getActive, user, result: ", user, result);
     res.json(result);
   } catch (error) {
     Logger.error("===== path: /getActive ERROR:", error.message);

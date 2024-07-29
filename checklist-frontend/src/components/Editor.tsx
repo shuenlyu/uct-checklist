@@ -42,6 +42,18 @@ const Editor = (params: { id: string }): React.ReactElement => {
     callback(saveNo, true);
   };
 
+  // // create savetheme function
+  // creator.saveThemeFunc = async (
+  //   saveNo: number,
+  //   callback: (no: number, success: boolean) => void
+  // ) => {
+  //   await postData("/changeTheme", {
+  //     id: params.id,
+  //     theme: creator.theme,
+  //   });
+  //   callback(saveNo, true);
+  // };
+
   useEffect(() => {
     (async () => {
       const response = await fetchData("/getSurvey?surveyId=" + params.id);
@@ -53,6 +65,16 @@ const Editor = (params: { id: string }): React.ReactElement => {
       }
     })();
   }, [dispatch, creator, params.id]);
+
+  // useEffect(() => {
+  //   (async () => {
+  //     const response = await fetchData("/getTheme?surveyId=" + params.id);
+  //     Logger.debug("themeAction => ", response);
+  //     if (typeof response.data.theme === "object") {
+  //       creator.theme = response.data.theme;
+  //     }
+  //   })();
+  // }, [dispatch, creator, params.id]);
 
   //modify the added question type into text input question category
   creator.toolbox.forceCompact = false;
