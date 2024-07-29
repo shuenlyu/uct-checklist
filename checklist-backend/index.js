@@ -4,16 +4,16 @@ const express = require("express");
 const session = require("express-session");
 const fileUpload = require("express-fileupload");
 const bodyParser = require("body-parser");
-const passport = require("passport")
+const passport = require("passport");
 const path = require("path");
 const cors = require("cors");
 const uuid = require("uuid");
-const config = require('./config/config');
-const samlStrategy = require('./config/passport');
-const Logger = require('./logger');
+const config = require("./config/config");
+const samlStrategy = require("./config/passport");
+const Logger = require("./logger");
 
 function envToBool(variable) {
-  return variable === 'true'
+  return variable === "true";
 }
 
 let dbAdpater;
@@ -27,7 +27,6 @@ if (useMSSQL) {
   dbAdapter = require("./dbadapter-pgp");
 }
 
-
 const app = express();
 
 app.use(cors({ origin: process.env.APP_URL, credentials: true }));
@@ -36,19 +35,26 @@ app.use(
   session({
     secret: "mysecret",
     resave: true,
-    saveUninitialized: true
+    saveUninitialized: true,
     // cookie: { secure: true }
   })
 );
 app.use(passport.initialize());
-app.use(passport.session())
+app.use(passport.session());
 
 app.use(fileUpload({ useTempFiles: true, tempFileDir: "/tmp/" }));
 app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ parameterLimit: 100000, extended: false, limit: "50mb" }));
+app.use(
+  bodyParser.urlencoded({
+    parameterLimit: 100000,
+    extended: false,
+    limit: "50mb",
+  })
+);
 
-app.get('/login',
-  passport.authenticate('saml', config.saml.options),
+app.get(
+  "/login",
+  passport.authenticate("saml", config.saml.options),
   (req, res, _next) => {
     if (DEBUG) {
       console.log("===== req.session: ", req.session);
@@ -56,30 +62,31 @@ app.get('/login',
     }
     res.redirect(process.env.APP_URL);
   }
-)
+);
 
-app.post('/login/callback',
-  passport.authenticate('saml', config.saml.options),
+app.post(
+  "/login/callback",
+  passport.authenticate("saml", config.saml.options),
   (req, res, _next) => {
-    Logger.debug('====== /api/login/callback Authenticated user', req.user);
+    Logger.debug("====== /api/login/callback Authenticated user", req.user);
     res.redirect(process.env.APP_URL);
   }
-)
+);
 
-app.get('/getMe', (req, res, _next) => {
+app.get("/getMe", (req, res, _next) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({
-      message: 'Unauthorized'
+      message: "Unauthorized",
     });
   } else {
     const { user } = req;
     Logger.debug("==== auth: /getMe: req", user);
-    return res.status(200).json({ user })
+    return res.status(200).json({ user });
   }
-})
+});
 
-app.get('/logout', (req, res, _next) => {
-  res.clearCookie('connect.sid');
+app.get("/logout", (req, res, _next) => {
+  res.clearCookie("connect.sid");
   samlStrategy.logout(req, (err, request) => {
     if (!err) {
       res.redirect(request);
@@ -87,20 +94,17 @@ app.get('/logout', (req, res, _next) => {
       Logger.error(err);
       res.redirect(process.env.APP_URL);
     }
-  })
-})
+  });
+});
 
-app.post('/logout/callback',
-  (req, res, _next) => {
-    req.logout((err) => {
-      if (!err) {
-        return res.redirect(process.env.APP_URL);
-      }
-      Logger.error(err);
-    });
-  }
-)
-
+app.post("/logout/callback", (req, res, _next) => {
+  req.logout((err) => {
+    if (!err) {
+      return res.redirect(process.env.APP_URL);
+    }
+    Logger.error(err);
+  });
+});
 
 app.post("/create", async (req, res) => {
   try {
@@ -110,9 +114,25 @@ app.post("/create", async (req, res) => {
     const customer = req.body.customer;
     const product = req.body.product;
     const userId = req.user.email;
-    const result = await dbAdapter.addSurvey(name, customer, product, id, userId);
-    Logger.debug("---- api call: /create,id, name, customer, product, userId, result, result: ", id, name, customer, product, userId, result);
-    useMSSQL ? res.json({ name: result[0].name, id: id }) : res.json({ name: result.name, id: id });
+    const result = await dbAdapter.addSurvey(
+      name,
+      customer,
+      product,
+      id,
+      userId
+    );
+    Logger.debug(
+      "---- api call: /create,id, name, customer, product, userId, result, result: ",
+      id,
+      name,
+      customer,
+      product,
+      userId,
+      result
+    );
+    useMSSQL
+      ? res.json({ name: result[0].name, id: id })
+      : res.json({ name: result.name, id: id });
   } catch (error) {
     Logger.error("/create", error.message);
     res.status(500).json({ error: error.message });
@@ -128,9 +148,26 @@ app.post("/duplicate", async (req, res) => {
     const product = req.body.product;
     const json = req.body.json;
     const userId = req.user.email;
-    const result = await dbAdapter.duplicateSurvey(name, customer, product, json, id, userId);
-    Logger.debug("---- api call: /duplicate, name, customer, product, json, userId, result: ", name, customer, product, json, userId, result);
-    useMSSQL ? res.json({ name: result[0].name, id: id }) : res.json({ name: result.name, id: id });
+    const result = await dbAdapter.duplicateSurvey(
+      name,
+      customer,
+      product,
+      json,
+      id,
+      userId
+    );
+    Logger.debug(
+      "---- api call: /duplicate, name, customer, product, json, userId, result: ",
+      name,
+      customer,
+      product,
+      json,
+      userId,
+      result
+    );
+    useMSSQL
+      ? res.json({ name: result[0].name, id: id })
+      : res.json({ name: result.name, id: id });
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
     res.status(500).json({ error: error.message });
@@ -154,9 +191,27 @@ app.get("/getSurvey", async (req, res) => {
   try {
     Logger.debug("---- api call: /getSurvey Started!, req: ", req);
     const surveyId = req.query["surveyId"];
-    const user = req.isAuthenticated() ? { email: req.user.email, role: req.user.role } : null;
+    const user = req.isAuthenticated()
+      ? { email: req.user.email, role: req.user.role }
+      : null;
     const result = await dbAdapter.getSurvey(surveyId, user);
     Logger.debug("---- api call: /getSurvey, user, result: ", user, result);
+    useMSSQL ? res.json(result[0]) : res.json(result);
+  } catch (error) {
+    Logger.error("===== ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/getTheme", async (req, res) => {
+  try {
+    Logger.debug("---- api call: /getTheme Started! req: ", req);
+    const surveyId = req.query["surveyId"];
+    const user = req.isAuthenticated()
+      ? { email: req.user.email, role: req.user.role }
+      : null;
+    const result = await dbAdapter.getTheme(surveyId, user);
+    Logger.debug("---- api call: /getTheme, user, result: ", user, result);
     useMSSQL ? res.json(result[0]) : res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -172,7 +227,13 @@ app.get("/changeName", async (req, res) => {
     const customer = req.query["customer"];
     const product = req.query["product"];
     const result = await dbAdapter.changeName(id, name, customer, product);
-    Logger.debug("---- api call: /changeName, name, customer, product, result, result: ", name, customer, product, result);
+    Logger.debug(
+      "---- api call: /changeName, name, customer, product, result, result: ",
+      name,
+      customer,
+      product,
+      result
+    );
     useMSSQL ? res.json(result[0]) : res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -186,8 +247,32 @@ app.post("/changeJson", async (req, res) => {
     const id = req.body.id;
     const json = req.body.json;
     const result = await dbAdapter.storeSurvey(id, json);
-    Logger.debug("---- api call: /changeJson, id, json, result: ", id, json, result);
+    Logger.debug(
+      "---- api call: /changeJson, id, json, result: ",
+      id,
+      json,
+      result
+    );
     useMSSQL ? res.json(result[0]) : res.json(result.json);
+  } catch (error) {
+    Logger.error("===== ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/changeTheme", async (req, res) => {
+  try {
+    Logger.debug("---- api call: /changeTheme Started!");
+    const id = req.body.id;
+    const theme = req.body.theme;
+    const result = await dbAdapter.changeTheme(id, theme);
+    Logger.debug(
+      "---- api call: /changeTheme, id, theme, result: ",
+      id,
+      theme,
+      result
+    );
+    useMSSQL ? res.json(result[0]) : res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
     res.status(500).json({ error: error.message });
@@ -198,15 +283,21 @@ app.post("/uploadFile", async (req, res) => {
   try {
     Logger.debug("---- api call: /uploadFile Started!");
     const fileNames = Object.keys(req.files);
-    fileNames.map((item) => { req.files[item].mv(path.join(__dirname, `./public/${req.files[item].name}`)) });
-    const result = await dbAdapter.addImage(req.files[item].name, req.body.email);
+    fileNames.map((item) => {
+      req.files[item].mv(
+        path.join(__dirname, `./public/${req.files[item].name}`)
+      );
+    });
+    const result = await dbAdapter.addImage(
+      req.files[item].name,
+      req.body.email
+    );
     Logger.debug("---- api call: /uploadFile, result: ", result);
     useMSSQL ? res.json(result[0]) : res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
     res.status(500).json({ error: error.message });
   }
-
 });
 
 app.get("/getImages", async (req, res) => {
@@ -283,4 +374,4 @@ app.get("/results", async (req, res) => {
 app.use(express.static(__dirname + "/public"));
 app.listen(process.env.PORT || 3002, () => {
   console.log("Server is listening on port", process.env.PORT || 3002);
-})
+});
