@@ -43,38 +43,44 @@ const Editor = (params: { id: string }): React.ReactElement => {
   };
 
   // // create savetheme function
-  // creator.saveThemeFunc = async (
-  //   saveNo: number,
-  //   callback: (no: number, success: boolean) => void
-  // ) => {
-  //   await postData("/changeTheme", {
-  //     id: params.id,
-  //     theme: creator.theme,
-  //   });
-  //   callback(saveNo, true);
-  // };
+  creator.saveThemeFunc = async (
+    saveNo: number,
+    callback: (no: number, success: boolean) => void
+  ) => {
+    await postData("/changeTheme", {
+      id: params.id,
+      name: creator.theme.themeName,
+      theme: creator.theme,
+    });
+
+    Logger.debug("creator theme => ", creator.theme);
+    callback(saveNo, true);
+  };
 
   useEffect(() => {
     (async () => {
       const response = await fetchData("/getSurvey?surveyId=" + params.id);
       Logger.debug("surveyAction => ", response);
       if (typeof response.data.json === "object") {
+        Logger.debug("surveyAction response is json object!!");
         creator.JSON = response.data.json;
       } else {
+        Logger.debug("surveyAction response is text!!");
         creator.text = response.data.json;
       }
     })();
   }, [dispatch, creator, params.id]);
 
-  // useEffect(() => {
-  //   (async () => {
-  //     const response = await fetchData("/getTheme?surveyId=" + params.id);
-  //     Logger.debug("themeAction => ", response);
-  //     if (typeof response.data.theme === "object") {
-  //       creator.theme = response.data.theme;
-  //     }
-  //   })();
-  // }, [dispatch, creator, params.id]);
+  useEffect(() => {
+    (async () => {
+      const response = await fetchData("/getTheme?surveyId=" + params.id);
+      Logger.debug("themeAction => ", response);
+      Logger.debug("themeAction response is :", typeof response.data.theme);
+      if (response.data.theme) {
+        creator.theme = JSON.parse(response.data.theme);
+      }
+    })();
+  }, [dispatch, creator, params.id]);
 
   //modify the added question type into text input question category
   creator.toolbox.forceCompact = false;
@@ -119,7 +125,6 @@ const Editor = (params: { id: string }): React.ReactElement => {
       opt.titleLocation = "hidden";
     }
   });
-  Logger.debug("creator theme => ", creator.theme);
   return (
     <>
       <SurveyCreatorComponent creator={creator} />

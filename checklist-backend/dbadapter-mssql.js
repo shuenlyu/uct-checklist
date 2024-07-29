@@ -194,14 +194,27 @@ class MSSQLDBAdapter {
     );
   }
 
-  async storeTheme(id, json) {
-    if (DEBUG) console.log("------- mssql: storeTheme invoke!", id, json);
+  async storeTheme(id, name, json) {
+    if (DEBUG) console.log("------- mssql: storeTheme invoke!", id, name, json);
     const json_str = JSON.stringify(json);
     return this.query(
-      "UPDATE theme SET theme = @json WHERE id = @id; SELECT * FROM theme WHERE id = @id;",
+      `
+    MERGE INTO theme AS target
+    USING (SELECT @id AS id, @name AS name, @theme AS theme) AS source
+    ON target.id = source.id
+    WHEN MATCHED THEN
+        UPDATE SET 
+          theme = source.theme,
+          name = source.name
+    WHEN NOT MATCHED THEN
+        INSERT (id, name, theme)
+        VALUES (source.id, source.name, source.theme);
+    SELECT * FROM theme WHERE id = @id;
+  `,
       [
         { name: "id", type: sql.UniqueIdentifier, value: id },
-        { name: "theme", type: sql.NVarChar, value, json_str },
+        { name: "name", type: sql.NVarChar, value: name },
+        { name: "theme", type: sql.NVarChar, value: json_str },
       ]
     );
   }

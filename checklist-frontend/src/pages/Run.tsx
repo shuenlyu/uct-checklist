@@ -21,6 +21,7 @@ import { themes } from "../utils/themeOptions";
 
 import Logger from "../utils/logger";
 
+import { stoneThemeColors } from "survey-core/typings/stylesmanager";
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 //survey helper functions
 SurveyHelper.GAP_BETWEEN_COLUMNS = 1;
@@ -71,6 +72,8 @@ const Run = () => {
   const { fetchData, postData } = useApi();
   const modelRef = useRef<any>(null);
   const [survey, setSurvey] = useState({ json: "", name: " " });
+  const [theme, setTheme] = useState<ITheme>(themes[0]);
+
   const [printOptions, setPrintOptions] = useState(false);
   const [fileName, setFileName] = useState("downloadChecklist");
   const [pdfOptions, setPdfOptions] = useState<PdfOptions>({
@@ -91,16 +94,12 @@ const Run = () => {
   Serializer.getProperty("survey", "clearInvisibleValues").defaultValue =
     "none";
   //model applyTheme
-  const storedTheme: string | null = localStorage.getItem("theme");
-  let theme: ITheme;
-  if (storedTheme !== null && themes.hasOwnProperty(storedTheme)) {
-    const themeIndex: number = parseInt(storedTheme, 10);
-    theme = themes[themeIndex as keyof typeof themes];
-  } else {
-    theme = themes[0];
-  }
-  model.applyTheme(theme);
+  const getTheme = async () => {
+    const response = await fetchData("/getTheme?surveyId=" + id, false);
+    setTheme(JSON.parse(response.data.theme));
+  };
 
+  model.applyTheme(theme);
   Logger.debug("Run: theme applied, ", theme);
 
   const getSurvey = async () => {
@@ -110,6 +109,7 @@ const Run = () => {
 
   useEffect(() => {
     getSurvey();
+    getTheme();
   }, []);
 
   function createSurveyPdfModel(surveyModel: any) {

@@ -1,6 +1,10 @@
 // require('dotenv').config();
 import axios, { AxiosInstance } from "axios";
+import axiosRetry from 'axios-retry';
 import Logger from "./logger";
+
+// Configure axios to retry failed requests
+axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
 function envToBool(variable: string | undefined) {
   return variable === 'true'
@@ -28,13 +32,15 @@ export const useApi = (): ApiHook => {
   // Create Axios instance with the base URL
   const apiWithAuth: AxiosInstance = axios.create({
     baseURL,
-    withCredentials: true
+    withCredentials: true,
+    timeout: 600000,
   });
 
   //Create Axios instance with the base URL and without credentials
   const apiWithoutAuth: AxiosInstance = axios.create({
     baseURL,
-    withCredentials: false
+    withCredentials: false,
+    timeout: 600000,
   });
 
   // Function to make a GET request

@@ -35,7 +35,7 @@ app.use(
   session({
     secret: "mysecret",
     resave: true,
-    saveUninitialized: true
+    saveUninitialized: true,
   })
 );
 app.use(passport.initialize());
@@ -261,10 +261,11 @@ app.post("/changeJson", async (req, res) => {
 
 app.post("/changeTheme", async (req, res) => {
   try {
-    Logger.debug("---- api call: /changeTheme Started!");
+    Logger.debug("---- api call: /changeTheme Started!", req);
     const id = req.body.id;
+    const name = req.body.name;
     const theme = req.body.theme;
-    const result = await dbAdapter.changeTheme(id, theme);
+    const result = await dbAdapter.storeTheme(id, name, theme);
     Logger.debug(
       "---- api call: /changeTheme, id, theme, result: ",
       id,
