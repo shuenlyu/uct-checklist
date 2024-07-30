@@ -12,16 +12,12 @@ import { useEffect, useRef, useState } from "react";
 import "survey-core/defaultV2.css";
 import { SurveyHelper, SurveyPDF } from "survey-pdf";
 import { Survey } from "survey-react-ui";
-import PrintOptionsModal, {
-  PdfOptions,
-  PrintOptionsModalProps,
-} from "../components/PrintOptionsModal";
+import PrintOptionsModal, { PdfOptions } from "../components/PrintOptionsModal";
 import { useApi } from "../utils/api";
 import { themes } from "../utils/themeOptions";
 
 import Logger from "../utils/logger";
 
-import { stoneThemeColors } from "survey-core/typings/stylesmanager";
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 //survey helper functions
 SurveyHelper.GAP_BETWEEN_COLUMNS = 1;
@@ -34,7 +30,7 @@ SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@signaturepad"] =
 matrixDropdownColumnTypes.image = {};
 SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@image"] = {};
 
-StylesManager.applyTheme("defaultV2");
+// StylesManager.applyTheme("defaultV2");
 
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
