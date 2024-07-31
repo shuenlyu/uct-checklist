@@ -77,7 +77,16 @@ const Editor = (params: { id: string }): React.ReactElement => {
       Logger.debug("themeAction => ", response);
       Logger.debug("themeAction response is :", typeof response.data.theme);
       if (response.data.theme) {
-        creator.theme = JSON.parse(response.data.theme);
+        const theme = JSON.parse(response.data.theme);
+        if (
+          creator.themeEditor.availableThemes.indexOf(theme.themeName) === -1
+        ) {
+          creator.themeEditor.addTheme(theme);
+          Logger.debug("theme added to creator.ThemeEditor => ", theme);
+          creator.theme = theme;
+        } else {
+          creator.theme = theme;
+        }
       }
     })();
   }, [dispatch, creator, params.id]);

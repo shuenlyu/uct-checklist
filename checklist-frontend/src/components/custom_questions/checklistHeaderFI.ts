@@ -9,6 +9,7 @@ export const checklistHeaderFI_json = {
       name: "station",
       title: "Station",
       titleLocation: "left",
+      width: "45%",
       isRequired: true,
     },
     {
@@ -17,6 +18,7 @@ export const checklistHeaderFI_json = {
       title: "Work Order",
       titleLocation: "left",
       startWithNewLine: false,
+      width: "45%",
       isRequired: true,
     },
     {
@@ -24,6 +26,7 @@ export const checklistHeaderFI_json = {
       name: "toolid",
       title: "Tool ID",
       titleLocation: "left",
+      width: "45%",
       isRequired: true,
     },
     {
@@ -33,6 +36,7 @@ export const checklistHeaderFI_json = {
       title: "Date",
       titleLocation: "left",
       startWithNewLine: false,
+      width: "45%",
       isRequired: true,
     },
   ],
