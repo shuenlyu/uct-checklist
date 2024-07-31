@@ -171,8 +171,8 @@ const Run = () => {
           setFileName={setFileName}
           pdfOptions={pdfOptions}
           setPdfOptions={setPdfOptions}
-          savePdf={savePdf}
-          // savePdf={saveHtml2Pdf}
+          // savePdf={savePdf}
+          savePdf={saveHtml2Pdf}
           closeModal={closePrintModal}
         />
       )}
