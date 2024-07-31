@@ -152,41 +152,17 @@ const Run = () => {
       false
     );
   });
+
+  model.addNavigationItem({
+    id: "survey_save_as_file",
+    title: "Save as PDF",
+    action: () => {
+      openPrintModal();
+    },
+  });
+
   return (
     <>
-      <h1
-        style={{
-          backgroundColor: "#fff",
-          padding: "12px 15px 18px 20px",
-          margin: 0,
-          marginBottom: 25,
-        }}
-      >
-        {survey.name}
-      </h1>
-      <div
-        style={{
-          width: 640,
-          margin: " 0 auto ",
-          display: "flex",
-          justifyContent: "flex-end",
-        }}
-      >
-        <div>
-          <button
-            id="save"
-            style={{
-              marginTop: 20,
-              backgroundColor: "#19b394",
-              margin: "0 auto ",
-            }}
-            onClick={() => openPrintModal()}
-          >
-            Export to PDF{" "}
-          </button>
-        </div>
-      </div>
-
       <Survey model={model} />
       {printOptions && (
         <PrintOptionsModal
