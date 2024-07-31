@@ -13,6 +13,7 @@ import { SurveyHelper, SurveyPDF } from "survey-pdf";
 import { Survey } from "survey-react-ui";
 import PrintOptionsModal, { PdfOptions } from "../components/PrintOptionsModal";
 import { useApi } from "../utils/api";
+import { saveHtml2Pdf } from "../utils/saveToPdf";
 import { themes } from "../utils/themeOptions";
 
 import Logger from "../utils/logger";
@@ -86,6 +87,14 @@ const Run = () => {
 
   //use initializeModelFromURL to initialize question values from queryParameters URL
   let model = initializeModelFromURL(window.location.search, survey.json);
+  model.addNavigationItem({
+    id: "survey_save_as_file",
+    title: "Save as PDF",
+    action: () => {
+      openPrintModal();
+    },
+  });
+
   Serializer.getProperty("survey", "clearInvisibleValues").defaultValue =
     "none";
   //model applyTheme
@@ -153,14 +162,6 @@ const Run = () => {
     );
   });
 
-  model.addNavigationItem({
-    id: "survey_save_as_file",
-    title: "Save as PDF",
-    action: () => {
-      openPrintModal();
-    },
-  });
-
   return (
     <>
       <Survey model={model} />
@@ -171,6 +172,7 @@ const Run = () => {
           pdfOptions={pdfOptions}
           setPdfOptions={setPdfOptions}
           savePdf={savePdf}
+          // savePdf={saveHtml2Pdf}
           closeModal={closePrintModal}
         />
       )}

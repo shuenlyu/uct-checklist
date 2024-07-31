@@ -31,8 +31,8 @@ const PrintOptionsModal: React.FC<PrintOptionsModalProps> = ({
   closeModal,
 }) => {
   const handleSaveAndClose = () => {
-    savePdf();
     closeModal();
+    setTimeout(savePdf, 1000);
   };
   return (
     <>
