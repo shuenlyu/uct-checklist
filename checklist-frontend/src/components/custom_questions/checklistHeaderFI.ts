@@ -32,6 +32,7 @@ export const checklistHeaderFI_json = {
     {
       type: "text",
       inputType: "datetime-local",
+      defaultValueExpression: "currentDate()",
       name: "date",
       title: "Date",
       titleLocation: "left",

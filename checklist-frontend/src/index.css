@@ -12,6 +12,18 @@ code {
     monospace;
 }
 
-.sd-html {
-  text-align: center;
+.sd-row--multiple > div {
+  justify-content: center; /* Add justify-content property */
+}
+
+.sd-question--html {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sd-row__question--small {
+  display: flex;
+  /* justify-content: center; */
+  align-items: center;
 }
