@@ -27,3 +27,10 @@ code {
   /* justify-content: center; */
   align-items: center;
 }
+
+@media print {
+  #sv-nav-complete,
+  #survey_save_as_file {
+    display: none !important;
+  }
+}

@@ -40,5 +40,12 @@ export const checklistHeaderFI_json = {
       width: "45%",
       isRequired: true,
     },
+    // {
+    //   type: "text",
+    //   name: "success-criteria",
+    //   title: "Success Criteria",
+    //   titleLocation: "left",
+    //   width: "100%",
+    // },
   ],
 };
