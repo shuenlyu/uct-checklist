@@ -95,6 +95,7 @@ const Run = () => {
   }, []);
 
   model.onComplete.add(async (sender: Model) => {
+    Logger.debug("onComplete Survey data:", sender.data);
     await postData(
       "/post",
       {

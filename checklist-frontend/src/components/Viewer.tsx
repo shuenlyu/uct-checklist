@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from "react";
+import "survey-analytics/survey.analytics.tabulator.css";
 import { Model } from "survey-core";
 import "tabulator-tables/dist/css/tabulator.css";
-import "survey-analytics/survey.analytics.tabulator.css";
 import { useApi } from "../utils/api";
+import Logger from "../utils/logger";
 const SurveyAnalyticsTabulator = require("survey-analytics/survey.analytics.tabulator");
 
 const Viewer = (params: { id: string }): React.ReactElement => {
@@ -15,6 +16,7 @@ const Viewer = (params: { id: string }): React.ReactElement => {
       const survey = surveyAction.data;
       const resultsAction = await fetchData("/results?postId=" + params.id);
       const data = resultsAction.data;
+      Logger.debug("results viewer data: ", data);
       if (data.length > 0 && visContainerRef.current) {
         var model = new Model(survey.json);
         visContainerRef.current.innerHTML = "";
