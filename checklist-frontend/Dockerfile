@@ -5,7 +5,7 @@ FROM node:latest
 WORKDIR /checklist-frontend
 
 # install app dependencies
-COPY package*.json ./
+COPY package.json ./
 RUN npm install --legacy-peer-deps
 #RUN npm install
 RUN npm list
