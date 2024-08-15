@@ -23,7 +23,7 @@ const Viewer = (params: { id: string }): React.ReactElement => {
         var surveyAnalyticsTabulator = new SurveyAnalyticsTabulator.Tabulator(
           model,
           data.map((item: any) =>
-            typeof item === "string" ? JSON.parse(item) : item
+            typeof item.json === "string" ? JSON.parse(item.json) : item.json
           )
         );
         surveyAnalyticsTabulator.render(visContainerRef.current);
