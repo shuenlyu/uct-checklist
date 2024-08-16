@@ -93,14 +93,17 @@ const Editor = (params: { id: string }): React.ReactElement => {
 
   //modify the added question type into text input question category
   creator.toolbox.forceCompact = false;
-  creator.toolbox.changeCategory("predefinedfields", "Text Input Questions");
+  creator.toolbox.changeCategory(
+    "datacollection_header",
+    "Text Input Questions"
+  );
   creator.toolbox.changeCategory("checklist_header_fi", "Text Input Questions");
   creator.toolbox.changeCategory(
     "checklist_header_shipkit",
     "Text Input Questions"
   );
 
-  //define the properties to be shown for predefinedFields question type
+  //define the properties to be shown for datacollection_header question type
   // const propertiesToShowInPredefined = [
   //   // "name",
   //   "title",
@@ -108,7 +111,7 @@ const Editor = (params: { id: string }): React.ReactElement => {
   //hide properties for custom component
   creator.onShowingProperty.add((sender, options) => {
     if (
-      options.obj.getType() === "predefinedfields" ||
+      options.obj.getType() === "datacollection_header" ||
       options.obj.getType() === "checklist_header_fi" ||
       options.obj.getType() === "checklist_header_shipkit"
     ) {
@@ -117,12 +120,12 @@ const Editor = (params: { id: string }): React.ReactElement => {
     }
   });
 
-  // change the default name to predefinedfields when create
+  // change the default name to datacollection_header when create
   creator.onQuestionAdded.add(function (sender, options) {
     let opt = options.question;
-    if (opt.getType() === "predefinedfields") {
-      opt.name = "predefinedfields";
-      opt.title = "Predefined Fields";
+    if (opt.getType() === "datacollection_header") {
+      opt.name = "datacollection_header";
+      opt.title = "Data Collection Header";
       opt.titleLocation = "hidden";
     } else if (opt.getType() === "checklist_header_fi") {
       opt.name = "checklist_header_fi";

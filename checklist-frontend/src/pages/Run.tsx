@@ -30,7 +30,7 @@ function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
   const questionsToInitialize = [
-    "predefinedfields",
+    "datacollection_header",
     "checklist_header_fi",
     "checklist_header_shipkit",
   ];

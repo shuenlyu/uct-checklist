@@ -24,11 +24,11 @@ code {
   text-align: center;
 }
 
-.sd-row__question--small {
+/* .sd-row__question--small {
   display: flex;
-  /* justify-content: center; */
+  justify-content: center;
   align-items: center;
-}
+} */
 
 @media print {
   #sv-nav-complete,

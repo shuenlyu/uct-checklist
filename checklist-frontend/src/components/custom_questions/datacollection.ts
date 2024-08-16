@@ -1,7 +1,7 @@
 // dc stands for datacollection
 export const dc_predefined_json = {
-  name: "predefinedfields",
-  title: "Predefined Fields",
+  name: "datacollection_header",
+  title: "Data Collection Header",
   titleLocation: "hidden",
   hideNumber: true,
   elementsJSON: [
