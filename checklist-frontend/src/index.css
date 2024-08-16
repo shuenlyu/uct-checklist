@@ -17,9 +17,11 @@ code {
 }
 
 .sd-question--html {
-  display: flex;
+  /* display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: center; */
+  align-content: center;
+  text-align: center;
 }
 
 .sd-row__question--small {
