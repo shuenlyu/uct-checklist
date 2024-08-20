@@ -23,6 +23,9 @@ code {
   align-content: center;
   text-align: center;
 }
+.sd-row__question {
+  align-content: center;
+}
 
 /* .sd-row__question--small {
   display: flex;
