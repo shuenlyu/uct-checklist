@@ -7,16 +7,17 @@ import { useApi } from "../utils/api";
 import Logger from "../utils/logger";
 
 //import custom question type
+import { checklistContentFI_json } from "./custom_questions/checklistContentFI";
 import { checklistHeaderFI_json } from "./custom_questions/checklistHeaderFI";
 import { checklistHeaderShipKit_json } from "./custom_questions/checklistHeaderShipkit";
 import { dc_predefined_json } from "./custom_questions/datacollection";
-
 // Enable the File Upload type for use in matrix columns
 matrixDropdownColumnTypes.file = {};
 
 ComponentCollection.Instance.add(dc_predefined_json);
 ComponentCollection.Instance.add(checklistHeaderFI_json);
 ComponentCollection.Instance.add(checklistHeaderShipKit_json);
+ComponentCollection.Instance.add(checklistContentFI_json);
 
 const Editor = (params: { id: string }): React.ReactElement => {
   const { fetchData, postData } = useApi();
@@ -102,6 +103,10 @@ const Editor = (params: { id: string }): React.ReactElement => {
     "checklist_header_shipkit",
     "Text Input Questions"
   );
+  creator.toolbox.changeCategory(
+    "checklist_content_fi",
+    "Text Input Questions"
+  );
 
   //define the properties to be shown for datacollection_header question type
   // const propertiesToShowInPredefined = [
@@ -121,20 +126,23 @@ const Editor = (params: { id: string }): React.ReactElement => {
   });
 
   // change the default name to datacollection_header when create
+  let questionCount = 1;
+
   creator.onQuestionAdded.add(function (sender, options) {
     let opt = options.question;
     if (opt.getType() === "datacollection_header") {
       opt.name = "datacollection_header";
-      opt.title = "Data Collection Header";
       opt.titleLocation = "hidden";
     } else if (opt.getType() === "checklist_header_fi") {
       opt.name = "checklist_header_fi";
-      opt.title = "Checklist-FI Header";
       opt.titleLocation = "hidden";
     } else if (opt.getType() === "checklist_header_shipkit") {
       opt.name = "checklist_header_shipkit";
-      opt.title = "Checklist-Shipkit Header";
       opt.titleLocation = "hidden";
+    } else if (opt.getType() === "checklist_content_fi") {
+      opt.titleLocation = "hidden";
+      opt.name = "checklist_content_fi-" + questionCount;
+      questionCount++;
     }
   });
   return (

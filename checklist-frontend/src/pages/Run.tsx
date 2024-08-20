@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import "survey-core/defaultV2.css";
 import { Survey } from "survey-react-ui";
+
 import { useApi } from "../utils/api";
 import { themes } from "../utils/themeOptions";
 
@@ -33,6 +34,7 @@ function initializeModelFromURL(search: string, modelData: any) {
     "datacollection_header",
     "checklist_header_fi",
     "checklist_header_shipkit",
+    "checklist_content_fi",
   ];
 
   questionsToInitialize.forEach((questionName) => {
