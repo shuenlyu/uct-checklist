@@ -106,14 +106,16 @@ class MSSQLDBAdapter {
     ]);
   }
 
-  async postResults(postId, json) {
+  async postResults(postId, json, userId, createdAt) {
     if (DEBUG) console.log("------ mssql: postResults invoke!");
     const json_str = JSON.stringify(json);
     return this.query(
-      "INSERT INTO results (postid, json) VALUES(@postId, @json); SELECT json FROM results WHERE postid = @postId AND json = @json;",
+      "INSERT INTO results (postid, json, submittedBy, createdAt) VALUES(@postId, @json, @userId, @createdAt); SELECT json FROM results WHERE postid = @postId AND json = @json AND submittedBy=@userId AND createdAt=@createdAt;",
       [
         { name: "postId", type: sql.NVarChar, value: postId },
         { name: "json", type: sql.NVarChar, value: json_str },
+        { name: "userId", type: sql.VarChar, value: userId },
+        { name: "createdAt", type: sql.DateTime, value: createdAt },
       ]
     );
   }

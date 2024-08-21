@@ -27,6 +27,14 @@ SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@image"] = {};
 
 // StylesManager.applyTheme("defaultV2");
 
+interface ResultItem {
+  createdAt: string;
+  id: string;
+  json: string;
+  postid: string;
+  submittedBy: string;
+}
+//TODO: populating fields from query parameters should be after fetch the latest result from the backend
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
@@ -36,10 +44,15 @@ function initializeModelFromURL(search: string, modelData: any) {
     "checklist_header_shipkit",
     "checklist_content_fi",
   ];
-
+  //TODO: for type checklist_content_fi, the name of questions are not exactly 'checklist_content_fi' but 'checklist_content_fi-(no)
+  // HOW to handle this case to populate data from query parameters automatically
   questionsToInitialize.forEach((questionName) => {
     const question = model.getQuestionByName(questionName);
-    Logger.info("initializeModelFromURL: ", question);
+    Logger.info(
+      "initializeModelFromURL: questionName and question ",
+      questionName,
+      question
+    );
     if (question) {
       queryParams.forEach((value, key) => {
         Logger.info("query parameters, key, value:", key, value);
@@ -61,19 +74,20 @@ Logger.info("Process.env: ", process.env);
 const Run = () => {
   // parse the query parameters from URL
   const { id } = useParams();
+
+  //used for fetch results and filter the latest result based on the userID
+  const queryParams = new URLSearchParams(window.location.search);
+  const userId = queryParams.get("inspectedby")
+    ? queryParams.get("inspectedby")
+    : "noname";
+
   const { fetchData, postData } = useApi();
   const [survey, setSurvey] = useState({ json: "", name: " " });
+  const [result, setResult] = useState({});
   const [theme, setTheme] = useState<ITheme>(themes[0]);
 
   //use initializeModelFromURL to initialize question values from queryParameters URL
   let model = initializeModelFromURL(window.location.search, survey.json);
-  model.addNavigationItem({
-    id: "survey_save_as_file",
-    title: "Save as PDF",
-    action: () => {
-      window.print();
-    },
-  });
 
   Serializer.getProperty("survey", "clearInvisibleValues").defaultValue =
     "none";
@@ -91,10 +105,46 @@ const Run = () => {
     setSurvey(response.data);
   };
 
+  //TODO: implement get the latest result in the backend
+  const getResults = async () => {
+    const response = await fetchData("/results?postId=" + id, false);
+    Logger.debug("Run getResults: ", response.data);
+
+    if (response.data.length > 0) {
+      // Filter for the objects with the specific submittedBy value
+      const filteredArray = response.data.filter(
+        (item: ResultItem) => item.submittedBy === userId
+      );
+      // Find the object with the latest createdAt timestamp
+      const latestEntry = filteredArray.reduce(
+        (latest: ResultItem, current: ResultItem) => {
+          return new Date(current.createdAt) > new Date(latest.createdAt)
+            ? current
+            : latest;
+        }
+      );
+      setResult(JSON.parse(latestEntry.json));
+    }
+  };
+
   useEffect(() => {
     getSurvey();
     getTheme();
+    getResults();
   }, []);
+
+  if (Object.keys(result).length > 0 && Object.keys(model.data).length === 0) {
+    Logger.debug("Run: result data is not empty", result);
+    model.data = result;
+  }
+  //Enable Save as PDF button
+  model.addNavigationItem({
+    id: "survey_save_as_file",
+    title: "Save as PDF",
+    action: () => {
+      window.print();
+    },
+  });
 
   model.onComplete.add(async (sender: Model) => {
     Logger.debug("onComplete Survey data:", sender.data);
@@ -103,7 +153,9 @@ const Run = () => {
       {
         postId: id as string,
         surveyResult: sender.data,
-        surveyResultText: JSON.stringify(sender.data),
+        userId: userId,
+        createdAt: new Date().toISOString(),
+        // surveyResultText: JSON.stringify(sender.data),
       },
       false
     );

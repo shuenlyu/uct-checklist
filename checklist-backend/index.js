@@ -317,7 +317,14 @@ app.post("/post", async (req, res) => {
     Logger.debug("---- api call: /post Started!");
     const postId = req.body.postId;
     const surveyResult = req.body.surveyResult;
-    const result = await dbAdapter.postResults(postId, surveyResult);
+    const userId = req.body.userId;
+    const createdAt = req.body.createdAt;
+    const result = await dbAdapter.postResults(
+      postId,
+      surveyResult,
+      userId,
+      createdAt
+    );
     Logger.debug("---- api call: /post, result: ", result);
     useMSSQL ? res.json(result[0]) : res.json(result.json);
   } catch (error) {

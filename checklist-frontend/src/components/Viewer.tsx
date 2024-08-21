@@ -20,11 +20,21 @@ const Viewer = (params: { id: string }): React.ReactElement => {
       if (data.length > 0 && visContainerRef.current) {
         var model = new Model(survey.json);
         visContainerRef.current.innerHTML = "";
+        //Add submittedBy and createdAt to the model
+        model.pages[0].addNewQuestion("text", "submittedBy", 0);
+        model.pages[0].addNewQuestion("text", "createdAt", 1);
+        const table_data = data.map((item: any) => {
+          const json =
+            typeof item.json === "string" ? JSON.parse(item.json) : item.json;
+          return {
+            createdAt: item.createdAt,
+            submittedBy: item.submittedBy,
+            ...json,
+          };
+        });
         var surveyAnalyticsTabulator = new SurveyAnalyticsTabulator.Tabulator(
           model,
-          data.map((item: any) =>
-            typeof item.json === "string" ? JSON.parse(item.json) : item.json
-          )
+          table_data
         );
         surveyAnalyticsTabulator.render(visContainerRef.current);
       }

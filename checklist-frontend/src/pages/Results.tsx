@@ -1,8 +1,8 @@
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
+import Layout from "../components/Layout";
 import Viewer from "../components/Viewer";
 import { useApi } from "../utils/api";
-import { useState, useEffect } from "react";
-import Layout from "../components/Layout";
 
 const Results = () => {
   const { id } = useParams();
@@ -20,7 +20,9 @@ const Results = () => {
   return (
     <Layout>
       <>
-        <h1>{"'" + survey.name + "' results"}</h1>
+        <h1 style={{ textAlign: "center" }}>
+          {"'" + survey.name + "' results"}
+        </h1>
         <div className="sjs-results-container">
           <Viewer id={id as string} />
         </div>
