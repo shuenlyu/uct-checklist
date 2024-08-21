@@ -33,8 +33,7 @@ export const checklistContentFI_json = {
       startWithNewLine: false,
       titleLocation: "hidden",
       hideNumber: true,
-      defaultValue: "Check for BKM and ensure goof visibility",
-      html: "Check for BKM and ensure goof visibility",
+      html: "",
     },
     {
       type: "text",
