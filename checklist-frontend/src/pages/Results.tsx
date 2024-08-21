@@ -20,9 +20,13 @@ const Results = () => {
   return (
     <Layout>
       <>
-        <h1 style={{ textAlign: "center" }}>
-          {"'" + survey.name + "' results"}
-        </h1>
+        {survey.name !== "" ? (
+          <h1 style={{ textAlign: "center" }}>
+            {"'" + survey.name + "' results"}
+          </h1>
+        ) : (
+          <h1>{""}</h1>
+        )}
         <div className="sjs-results-container">
           <Viewer id={id as string} />
         </div>
