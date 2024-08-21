@@ -188,10 +188,15 @@ class MSSQLDBAdapter {
     if (DEBUG) console.log("------ mssql: storeSurvey invoke!", id, json);
     const json_str = JSON.stringify(json);
     return this.query(
-      "UPDATE surveys SET json = @json WHERE id = @id; SELECT * FROM surveys WHERE id = @id;",
+      "UPDATE surveys SET json = @json, updatedAt=@updatedAt WHERE id = @id; SELECT * FROM surveys WHERE id = @id;",
       [
         { name: "id", type: sql.UniqueIdentifier, value: id },
         { name: "json", type: sql.NVarChar, value: json_str },
+        {
+          name: "updatedAt",
+          type: sql.DateTime,
+          value: new Date().toISOString(),
+        },
       ]
     );
   }

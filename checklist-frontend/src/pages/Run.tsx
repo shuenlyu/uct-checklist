@@ -44,15 +44,18 @@ function initializeModelFromURL(search: string, modelData: any) {
     "checklist_header_shipkit",
     "checklist_content_fi",
   ];
-  //TODO: for type checklist_content_fi, the name of questions are not exactly 'checklist_content_fi' but 'checklist_content_fi-(no)
   // HOW to handle this case to populate data from query parameters automatically
-  questionsToInitialize.forEach((questionName) => {
-    const question = model.getQuestionByName(questionName);
-    Logger.info(
-      "initializeModelFromURL: questionName and question ",
-      questionName,
-      question
+  const questions = model.getAllQuestions();
+
+  //filtered out those questions that are in the questionsToInitialize or starts with the prefix
+  const filteredQuestions = questions.filter((question) => {
+    return questionsToInitialize.some((prefix) =>
+      question.name.startsWith(prefix)
     );
+  });
+
+  filteredQuestions.forEach((question) => {
+    Logger.info("initializeModelFromURL: question ", question);
     if (question) {
       queryParams.forEach((value, key) => {
         Logger.info("query parameters, key, value:", key, value);
@@ -61,13 +64,31 @@ function initializeModelFromURL(search: string, modelData: any) {
           // Check if subquestion exists before assigning value
           subquestion.value = value;
         } else {
-          Logger.warn(`Subquestion named ${key} not found in ${questionName}`);
+          Logger.warn(`Subquestion named ${key} not found in ${question.name}`);
         }
       });
     }
   });
 
   return model;
+}
+
+function mergeDeep(target: any, source: any) {
+  for (const key in source) {
+    if (source.hasOwnProperty(key)) {
+      if (target.hasOwnProperty(key)) {
+        if (
+          typeof target[key] === "object" &&
+          typeof source[key] === "object"
+        ) {
+          mergeDeep(target[key], source[key]);
+        }
+      } else {
+        target[key] = source[key];
+      }
+    }
+  }
+  return target;
 }
 
 Logger.info("Process.env: ", process.env);
@@ -133,9 +154,10 @@ const Run = () => {
     getResults();
   }, []);
 
-  if (Object.keys(result).length > 0 && Object.keys(model.data).length === 0) {
+  if (Object.keys(result).length > 0) {
     Logger.debug("Run: result data is not empty", result);
-    model.data = result;
+    //recursively merge result data and model data
+    model.data = mergeDeep(model.data, result);
   }
   //Enable Save as PDF button
   model.addNavigationItem({
