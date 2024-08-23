@@ -39,7 +39,6 @@ const Editor = (params: { id: string }): React.ReactElement => {
       id: params.id,
       json: creator.JSON,
       text: creator.text,
-      updatedAt: new Date().toISOString(),
     });
     callback(saveNo, true);
   };
