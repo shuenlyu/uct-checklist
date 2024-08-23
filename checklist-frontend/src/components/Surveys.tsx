@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { load } from "../redux/surveys";
-import { useReduxDispatch, useReduxSelector } from "../redux";
 import { Link } from "react-router-dom";
-import "./Surveys.css";
-import { useApi } from "../utils/api";
 import icon from "../icon.svg";
 import { customers } from "../models/customer";
 import { products } from "../models/product";
+import { useReduxDispatch, useReduxSelector } from "../redux";
+import { load } from "../redux/surveys";
+import { useApi } from "../utils/api";
 import Logger from "../utils/logger";
-// read debug config from .env file 
+import "./Surveys.css";
+// read debug config from .env file
+import Loading from "./Loading";
 
 const Surveys = (): React.ReactElement => {
   const [openModal, setOpenModal] = useState(false);
@@ -146,7 +147,9 @@ const Surveys = (): React.ReactElement => {
     }
   }, [postStatus, dispatch]);
 
-  return (
+  return surveys.length === 0 ? (
+    <Loading />
+  ) : (
     <>
       <table className="sjs-surveys-list">
         {surveys.map((survey) => (

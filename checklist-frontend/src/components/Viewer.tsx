@@ -4,6 +4,7 @@ import { Model } from "survey-core";
 import "tabulator-tables/dist/css/tabulator.css";
 import { useApi } from "../utils/api";
 import Logger from "../utils/logger";
+import Loading from "./Loading";
 const SurveyAnalyticsTabulator = require("survey-analytics/survey.analytics.tabulator");
 
 const Viewer = (params: { id: string }): React.ReactElement => {
@@ -45,7 +46,8 @@ const Viewer = (params: { id: string }): React.ReactElement => {
     <>
       <div className="sjs-results-content" ref={visContainerRef}>
         <div className="sjs-results-placeholder">
-          <span>This survey doesn't have any answers yet</span>
+          {/* <span>This survey doesn't have any answers yet</span> */}
+          <Loading />
         </div>
       </div>
     </>

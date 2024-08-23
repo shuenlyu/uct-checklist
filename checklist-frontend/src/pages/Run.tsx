@@ -17,6 +17,13 @@ import { themes } from "../utils/themeOptions";
 import Logger from "../utils/logger";
 
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
+import Loading from "../components/Loading";
+
+declare global {
+  interface Window {
+    rerunSurvey: () => void;
+  }
+}
 // for showing signature pad on matrix drop down
 matrixDropdownColumnTypes.signaturepad = {};
 SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@signaturepad"] =
@@ -110,6 +117,18 @@ const Run = () => {
   //use initializeModelFromURL to initialize question values from queryParameters URL
   let model = initializeModelFromURL(window.location.search, survey.json);
 
+  //try to change the behavior of the completed page
+  //rerun survey after complete the survey
+  // model.showCompletedPage = false;
+  model.completedHtml =
+    "<h2>Thank you for your work!</h2><div style='display: flex; justify-content: center; text-align: center;'><button class='svc-preview__test-again sd-btn sd-btn--action sd-navigation__complete-btn' id='rerun' onclick='rerunSurvey()'>Run Survey Again</button></div>";
+
+  const rerunSurvey = () => {
+    // Logger.info("Rerun survey");
+    model.clear(false);
+  };
+  window.rerunSurvey = rerunSurvey;
+
   Serializer.getProperty("survey", "clearInvisibleValues").defaultValue =
     "none";
   //model applyTheme
@@ -182,8 +201,10 @@ const Run = () => {
       false
     );
   });
-
-  return (
+  // if sruvey json is empty, show loading, otherwise show the survey
+  return survey.json === "" ? (
+    <Loading />
+  ) : (
     <>
       <Survey model={model} />
     </>
