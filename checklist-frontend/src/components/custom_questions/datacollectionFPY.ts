@@ -16,7 +16,7 @@ export const datacollectionFPY_json = {
     },
     {
       type: "boolean",
-      name: "sub_q1",
+      name: "is_failed",
       minWidth: "55%",
       maxWidth: "55%",
       startWithNewLine: false,
@@ -32,32 +32,52 @@ export const datacollectionFPY_json = {
       visible: false,
       minWidth: "100%",
       title: "Enter the Failed Description",
-      requiredIf: "{composite.sub_q1} = true",
-      visibleIf: "{composite.sub_q1} = true",
+      requiredIf: "{composite.is_failed} = true",
+      visibleIf: "{composite.is_failed} = true",
     },
   ],
   onInit() {
     Serializer.addProperty("datacollection_fpy", {
-      name: "question_title",
+      name: "is_failed_title",
       displayName: "Question Title",
       type: "text",
       category: "general",
-      default: "Question Title",
+      default: "Please Modify Question Title",
     });
   },
   onLoaded(question: any) {
     this.changeSubQuestionTitle(question);
   },
   onPropertyChanged(question: any, propertyName: string) {
-    if (propertyName === "question_title") {
+    if (propertyName === "is_failed_title") {
       this.changeSubQuestionTitle(question);
     }
   },
+  onValueChanged(question: any, name: any, newValue: any) {
+    const failedReason =
+      question.contentPanel.getQuestionByName("failed_reason");
+    const is_failedQuestion =
+      question.contentPanel.getQuestionByName("is_failed");
+
+    if (name === "is_failed") {
+      if (newValue === false && !!failedReason) {
+        failedReason.value = "";
+      }
+      if (!!is_failedQuestion && is_failedQuestion.value === false) {
+        failedReason.value = "";
+      }
+    }
+  },
   changeSubQuestionTitle(question: any) {
-    const subQuestion = question.contentPanel.getQuestionByName("sub_q1");
+    const subQuestion = question.contentPanel.getQuestionByName("is_failed");
+    const failedReason =
+      question.contentPanel.getQuestionByName("failed_reason");
 
     if (!!subQuestion) {
-      subQuestion.title = question.question_title;
+      subQuestion.title = question.is_failed_title;
+      if (subQuestion.value === false && !!failedReason) {
+        failedReason.value = "";
+      }
     }
   },
 };

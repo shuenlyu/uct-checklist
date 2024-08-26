@@ -1,3 +1,7 @@
+import { maxHeaderSize } from "http";
+import { start } from "repl";
+import { MatrixCellWrapperEditSurvey } from "survey-creator-core";
+
 // dc stands for datacollection
 export const dc_predefined_json = {
   name: "datacollection_header",
@@ -10,7 +14,8 @@ export const dc_predefined_json = {
       name: "wo",
       title: "WO",
       titleLocation: "left",
-      minWidth: 200,
+      maxWidth: "33%",
+      minWidth: "33%",
       isRequired: true,
     },
     {
@@ -19,7 +24,8 @@ export const dc_predefined_json = {
       title: "OMS",
       titleLocation: "left",
       isRequired: true,
-      minWidth: 200,
+      minWidth: "33%",
+      maxWidth: "33%",
       startWithNewLine: false,
     },
     {
@@ -28,7 +34,8 @@ export const dc_predefined_json = {
       title: "Step",
       titleLocation: "left",
       isRequired: true,
-      minWidth: 200,
+      minWidth: "33%",
+      maxWidth: "33%",
       startWithNewLine: false,
     },
     {
@@ -37,7 +44,18 @@ export const dc_predefined_json = {
       title: "Station",
       titleLocation: "left",
       isRequired: true,
-      minWidth: 200,
+      minWidth: "33%",
+      maxWidth: "33%",
+    },
+    {
+      type: "text",
+      name: "omssn",
+      title: "OMS SN",
+      titleLocation: "left",
+      isRequired: true,
+      minWidth: "23%",
+      maxWidth: "23%",
+      startWithNewLine: false,
     },
     {
       type: "text",
@@ -45,7 +63,8 @@ export const dc_predefined_json = {
       title: "User ID",
       titleLocation: "left",
       isRequired: true,
-      minWidth: 200,
+      minWidth: "43%",
+      maxWidth: "43%",
       startWithNewLine: false,
     },
   ],

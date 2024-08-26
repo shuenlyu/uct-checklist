@@ -1,5 +1,6 @@
 // decide which env file should be used, either .env.development or .env.production
 // require('dotenv').config();
+const sql = require("mssql");
 const express = require("express");
 const session = require("express-session");
 const fileUpload = require("express-fileupload");
@@ -11,6 +12,7 @@ const uuid = require("uuid");
 const config = require("./config/config");
 const samlStrategy = require("./config/passport");
 const Logger = require("./logger");
+const { unpackSurvey } = require("./utils");
 
 function envToBool(variable) {
   return variable === "true";
@@ -26,6 +28,48 @@ if (useMSSQL) {
   //USE postgresql db as backend db
   dbAdapter = require("./dbadapter-pgp");
 }
+
+const checkType = (key) => {
+  if (key === "is_fpy") {
+    return sql.Bit;
+  } else if (key === "created_at") {
+    return sql.DateTime;
+  } else {
+    return sql.NVarChar;
+  }
+};
+const updateDataCollection = async (id, new_data) => {
+  try {
+    // Delete existing data with the given postId
+    await dbAdapter.query("DELETE FROM data_collection WHERE id = @id", [
+      { name: "id", type: sql.NVarChar, value: id },
+    ]);
+
+    // Insert new data into the data_collection table
+    const insertPromises = new_data.map((data) => {
+      const columns = Object.keys(data).join(", ");
+      const placeholders = Object.keys(data)
+        .map((key) => `@${key}`)
+        .join(", ");
+      const params = Object.keys(data).map((key) => ({
+        name: key,
+        type: checkType(key), // Adjust the type as needed
+        value: data[key],
+      }));
+
+      const query = `INSERT INTO data_collection (${columns}) VALUES (${placeholders})`;
+      Logger.debug(`UpdateDataCollection data for Id ${id}:`, query, params);
+      return dbAdapter.query(query, params);
+    });
+    // Wait for all insert operations to complete
+    await Promise.all(insertPromises);
+
+    Logger.debug(`Data for Id ${id} has been updated successfully.`);
+  } catch (error) {
+    Logger.error(`Error updating data for Id ${id}:`, error.message);
+    throw error;
+  }
+};
 
 const app = express();
 
@@ -329,6 +373,69 @@ app.post("/post", async (req, res) => {
     //TODO: add logic here for data collection to unpack the survey Result json and store it in the db
     //and replace the question name with the question title
     //check if there is FPY is in the question tile, if yes, then extract the FPY value and store it in the table
+    // Process the survey result and prepare new_data array
+    const postResult = JSON.parse(result[0].json);
+
+    if (postResult.hasOwnProperty("datacollection_header")) {
+      const new_data = [];
+      const surveyJson = await dbAdapter.getSurvey(postId, userId);
+      const unpackedSurvey = unpackSurvey(JSON.parse(surveyJson[0].json));
+
+      Logger.debug("---- api call: /post, unpackedSurvey: ", unpackedSurvey);
+      const id = `${postResult["datacollection_header"]["wo"]}_${postResult["datacollection_header"]["oms"]}_${postResult["datacollection_header"]["step"]}_${postResult["datacollection_header"]["station"]}_${postResult["datacollection_header"]["omssn"]}`;
+
+      const common_columns = {
+        ...postResult["datacollection_header"],
+        postid: postId,
+        created_at: createdAt,
+        id: id,
+      };
+      delete postResult["datacollection_header"];
+
+      const createTempData = (is_fpy, answer, failed_reason, question) => ({
+        ...common_columns,
+        is_fpy,
+        answer:
+          typeof answer === "boolean" ? (answer ? "Fail" : "Pass") : answer,
+        failed_reason: failed_reason ?? "",
+        question,
+      });
+
+      if (
+        postResult.hasOwnProperty("datacollection_fpy") &&
+        unpackedSurvey.hasOwnProperty("datacollection_fpy")
+      ) {
+        const { is_fpy, is_failed, failed_reason } =
+          postResult["datacollection_fpy"];
+        const question =
+          unpackedSurvey["datacollection_fpy"]["is_failed_title"];
+        new_data.push(
+          createTempData(is_fpy, is_failed, failed_reason, question)
+        );
+        delete postResult["datacollection_fpy"];
+      }
+
+      for (const key in postResult) {
+        if (postResult.hasOwnProperty(key)) {
+          const answer = postResult[key];
+          const question = unpackedSurvey[key]?.title || "Unknown";
+          new_data.push(createTempData(false, answer, "", question));
+        }
+      }
+      Logger.debug("---- api call: /post, new_data: ", new_data);
+
+      new_data.forEach((data, index) => {
+        if (!data.hasOwnProperty("type")) {
+          Logger.error(
+            `Data at index ${index} is missing 'type' property:`,
+            data
+          );
+        }
+      });
+      await updateDataCollection(id, new_data);
+    }
+
+    // Update the data_collection table with new data
 
     useMSSQL ? res.json(result[0]) : res.json(result.json);
   } catch (error) {
