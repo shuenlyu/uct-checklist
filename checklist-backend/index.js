@@ -326,6 +326,10 @@ app.post("/post", async (req, res) => {
       createdAt
     );
     Logger.debug("---- api call: /post, result: ", result);
+    //TODO: add logic here for data collection to unpack the survey Result json and store it in the db
+    //and replace the question name with the question title
+    //check if there is FPY is in the question tile, if yes, then extract the FPY value and store it in the table
+
     useMSSQL ? res.json(result[0]) : res.json(result.json);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);

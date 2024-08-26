@@ -18,6 +18,7 @@ import Logger from "../utils/logger";
 
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 import Loading from "../components/Loading";
+import { saveHtml2Pdf } from "../utils/saveToPdf";
 
 declare global {
   interface Window {
@@ -183,7 +184,9 @@ const Run = () => {
     id: "survey_save_as_file",
     title: "Save as PDF",
     action: () => {
+      // using window built-in function to save the survey as PDF
       window.print();
+      // saveHtml2Pdf();
     },
   });
 

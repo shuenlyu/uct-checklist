@@ -11,6 +11,8 @@ import { checklistContentFI_json } from "./custom_questions/checklistContentFI";
 import { checklistHeaderFI_json } from "./custom_questions/checklistHeaderFI";
 import { checklistHeaderShipKit_json } from "./custom_questions/checklistHeaderShipkit";
 import { dc_predefined_json } from "./custom_questions/datacollection";
+import { datacollectionFPY_json } from "./custom_questions/datacollectionFPY";
+
 // Enable the File Upload type for use in matrix columns
 matrixDropdownColumnTypes.file = {};
 
@@ -18,6 +20,7 @@ ComponentCollection.Instance.add(dc_predefined_json);
 ComponentCollection.Instance.add(checklistHeaderFI_json);
 ComponentCollection.Instance.add(checklistHeaderShipKit_json);
 ComponentCollection.Instance.add(checklistContentFI_json);
+ComponentCollection.Instance.add(datacollectionFPY_json);
 
 const Editor = (params: { id: string }): React.ReactElement => {
   const { fetchData, postData } = useApi();
@@ -107,6 +110,7 @@ const Editor = (params: { id: string }): React.ReactElement => {
     "checklist_content_fi",
     "Text Input Questions"
   );
+  creator.toolbox.changeCategory("datacollection_fpy", "Text Input Questions");
 
   //define the properties to be shown for datacollection_header question type
   // const propertiesToShowInPredefined = [
@@ -143,6 +147,9 @@ const Editor = (params: { id: string }): React.ReactElement => {
       opt.titleLocation = "hidden";
       opt.name = "checklist_content_fi-" + questionCount;
       questionCount++;
+    } else if (opt.getType() === "datacollection_fpy") {
+      opt.titleLocation = "hidden";
+      opt.name = "datacollection_fpy";
     }
   });
   return (
