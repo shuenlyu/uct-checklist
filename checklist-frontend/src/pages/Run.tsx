@@ -81,6 +81,13 @@ function initializeModelFromURL(search: string, modelData: any) {
   return model;
 }
 
+/**
+ * Recursively merges the properties of two objects.
+ *
+ * @param target - The target object to merge into.
+ * @param source - The source object to merge from.
+ * @returns The merged object.
+ */
 function mergeDeep(target: any, source: any) {
   for (const key in source) {
     if (source.hasOwnProperty(key)) {
@@ -123,7 +130,6 @@ const Run = () => {
   // model.showCompletedPage = false;
   model.completedHtml =
     "<h2>Thank you for your work!</h2><div style='display: flex; justify-content: center; text-align: center;'><button class='svc-preview__test-again sd-btn sd-btn--action sd-navigation__complete-btn' id='rerun' onclick='rerunSurvey()'>Run Survey Again</button></div>";
-
   const rerunSurvey = () => {
     // Logger.info("Rerun survey");
     model.clear(false);

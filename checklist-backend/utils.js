@@ -1,5 +1,3 @@
-const Logger = require("./logger");
-
 function unpackSurvey(survey) {
   const unpacked = {};
 
@@ -15,29 +13,6 @@ function unpackSurvey(survey) {
   return unpacked;
 }
 
-const updateDataCollection = async (postId, new_data) => {
-  try {
-    // Delete existing data with the given postId
-    await dbAdapter.query("DELETE FROM data_collection WHERE postid = ?", [
-      postId,
-    ]);
-
-    // Insert new data into the data_collection table
-    const insertPromises = new_data.map((data) => {
-      return dbAdapter.query("INSERT INTO data_collection SET ?", data);
-    });
-
-    // Wait for all insert operations to complete
-    await Promise.all(insertPromises);
-
-    Logger.debug(`Data for postId ${postId} has been updated successfully.`);
-  } catch (error) {
-    Logger.error(`Error updating data for postId ${postId}:`, error.message);
-    throw error;
-  }
-};
-
 module.exports = {
   unpackSurvey,
-  updateDataCollection,
 };
