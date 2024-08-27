@@ -42,6 +42,10 @@ interface ResultItem {
   postid: string;
   submittedBy: string;
 }
+
+interface ResultData {
+  [key: string]: any;
+}
 //TODO: populating fields from query parameters should be after fetch the latest result from the backend
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
@@ -107,7 +111,8 @@ function mergeDeep(target: any, source: any) {
 }
 
 Logger.info("Process.env: ", process.env);
-const Run = () => {
+const Run = ({ result_data }: { result_data?: ResultData }) => {
+  Logger.info("Run Props: result_data", result_data);
   // parse the query parameters from URL
   const { id } = useParams();
 
@@ -174,16 +179,25 @@ const Run = () => {
     }
   };
 
+  // if Run componenet got result data props, then disable getResults hook
+  useEffect(() => {
+    if (!result_data) {
+      getResults();
+    }
+  }, [result_data]);
+
   useEffect(() => {
     getSurvey();
     getTheme();
-    getResults();
   }, []);
-
+  //if result data is not empty, then getResults won't execute and assign model.data with result data
   if (Object.keys(result).length > 0) {
     Logger.debug("Run: result data is not empty", result);
     //recursively merge result data and model data
     model.data = mergeDeep(model.data, result);
+  }
+  if (result_data) {
+    model.data = result_data;
   }
   //Enable Save as PDF button
   model.addNavigationItem({
