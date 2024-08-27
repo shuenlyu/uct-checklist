@@ -382,7 +382,7 @@ app.post("/post", async (req, res) => {
       const unpackedSurvey = unpackSurvey(JSON.parse(surveyJson[0].json));
 
       Logger.debug("---- api call: /post, unpackedSurvey: ", unpackedSurvey);
-      const id = `${postResult["datacollection_header"]["wo"]}_${postResult["datacollection_header"]["oms"]}_${postResult["datacollection_header"]["step"]}_${postResult["datacollection_header"]["station"]}_${postResult["datacollection_header"]["omssn"]}`;
+      const id = `${postResult["datacollection_header"]["wo"]}_${postResult["datacollection_header"]["oms"]}_${postResult["datacollection_header"]["step"]}_${postResult["datacollection_header"]["station"]}_${postResult["datacollection_header"]["omssn"]}_${postResult["datacollection_header"]["plant_code"]}`;
 
       const common_columns = {
         ...postResult["datacollection_header"],

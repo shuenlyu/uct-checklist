@@ -1,7 +1,3 @@
-import { maxHeaderSize } from "http";
-import { start } from "repl";
-import { MatrixCellWrapperEditSurvey } from "survey-creator-core";
-
 // dc stands for datacollection
 export const dc_predefined_json = {
   name: "datacollection_header",
@@ -44,8 +40,8 @@ export const dc_predefined_json = {
       title: "Station",
       titleLocation: "left",
       isRequired: true,
-      minWidth: "33%",
-      maxWidth: "33%",
+      minWidth: "25%",
+      maxWidth: "25%",
     },
     {
       type: "text",
@@ -53,8 +49,18 @@ export const dc_predefined_json = {
       title: "OMS SN",
       titleLocation: "left",
       isRequired: true,
-      minWidth: "23%",
-      maxWidth: "23%",
+      minWidth: "20%",
+      maxWidth: "20%",
+      startWithNewLine: false,
+    },
+    {
+      type: "text",
+      name: "plant_code",
+      title: "Plant Code",
+      titleLocation: "left",
+      isRequired: true,
+      minWidth: "20%",
+      maxWidth: "20%",
       startWithNewLine: false,
     },
     {
@@ -63,8 +69,8 @@ export const dc_predefined_json = {
       title: "User ID",
       titleLocation: "left",
       isRequired: true,
-      minWidth: "43%",
-      maxWidth: "43%",
+      minWidth: "35%",
+      maxWidth: "35%",
       startWithNewLine: false,
     },
   ],
