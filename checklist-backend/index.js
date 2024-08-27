@@ -41,7 +41,7 @@ const checkType = (key) => {
 const updateDataCollection = async (id, new_data) => {
   try {
     // Delete existing data with the given postId
-    await dbAdapter.query("DELETE FROM data_collection WHERE id = @id", [
+    await dbAdapter.query("DELETE FROM ASSM_DataCollection WHERE id = @id", [
       { name: "id", type: sql.NVarChar, value: id },
     ]);
 
@@ -57,7 +57,7 @@ const updateDataCollection = async (id, new_data) => {
         value: data[key],
       }));
 
-      const query = `INSERT INTO data_collection (${columns}) VALUES (${placeholders})`;
+      const query = `INSERT INTO ASSM_DataCollection (${columns}) VALUES (${placeholders})`;
       Logger.debug(`UpdateDataCollection data for Id ${id}:`, query, params);
       return dbAdapter.query(query, params);
     });
