@@ -16,6 +16,7 @@ import { themes } from "../utils/themeOptions";
 
 import Logger from "../utils/logger";
 
+import { useLocation } from "react-router-dom";
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 import Loading from "../components/Loading";
 import { saveHtml2Pdf } from "../utils/saveToPdf";
@@ -43,9 +44,6 @@ interface ResultItem {
   submittedBy: string;
 }
 
-interface ResultData {
-  [key: string]: any;
-}
 //TODO: populating fields from query parameters should be after fetch the latest result from the backend
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
@@ -111,10 +109,12 @@ function mergeDeep(target: any, source: any) {
 }
 
 Logger.info("Process.env: ", process.env);
-const Run = ({ result_data }: { result_data?: ResultData }) => {
-  Logger.info("Run Props: result_data", result_data);
+const Run = () => {
   // parse the query parameters from URL
   const { id } = useParams();
+  const location = useLocation();
+  const { result_id } = location.state || {};
+  Logger.info("Run state: result_id", result_id);
 
   //used for fetch results and filter the latest result based on the userID
   const queryParams = new URLSearchParams(window.location.search);
@@ -163,28 +163,35 @@ const Run = ({ result_data }: { result_data?: ResultData }) => {
     Logger.debug("Run getResults: ", response.data);
 
     if (response.data.length > 0) {
-      // Filter for the objects with the specific submittedBy value
-      const filteredArray = response.data.filter(
-        (item: ResultItem) => item.submittedBy === userId
-      );
-      // Find the object with the latest createdAt timestamp
-      const latestEntry = filteredArray.reduce(
-        (latest: ResultItem, current: ResultItem) => {
-          return new Date(current.createdAt) > new Date(latest.createdAt)
-            ? current
-            : latest;
-        }
-      );
-      setResult(JSON.parse(latestEntry.json));
+      // TODO: implement api to fetch result based result id
+      if (result_id) {
+        const filteredArray = response.data.filter(
+          (item: ResultItem) => item.id === result_id
+        );
+        setResult(JSON.parse(filteredArray[0].json));
+      } else {
+        // Filter for the objects with the specific submittedBy value
+        const filteredArray = response.data.filter(
+          (item: ResultItem) => item.submittedBy === userId
+        );
+        // Find the object with the latest createdAt timestamp
+        const latestEntry = filteredArray.reduce(
+          (latest: ResultItem, current: ResultItem) => {
+            return new Date(current.createdAt) > new Date(latest.createdAt)
+              ? current
+              : latest;
+          }
+        );
+        setResult(JSON.parse(latestEntry.json));
+      }
     }
   };
 
+  //if result_id is not null, then get result from results table
   // if Run componenet got result data props, then disable getResults hook
   useEffect(() => {
-    if (!result_data) {
-      getResults();
-    }
-  }, [result_data]);
+    getResults();
+  }, [result_id]);
 
   useEffect(() => {
     getSurvey();
@@ -194,10 +201,11 @@ const Run = ({ result_data }: { result_data?: ResultData }) => {
   if (Object.keys(result).length > 0) {
     Logger.debug("Run: result data is not empty", result);
     //recursively merge result data and model data
-    model.data = mergeDeep(model.data, result);
-  }
-  if (result_data) {
-    model.data = result_data;
+    if (!result_id) {
+      model.data = mergeDeep(model.data, result);
+    } else {
+      model.data = result;
+    }
   }
   //Enable Save as PDF button
   model.addNavigationItem({

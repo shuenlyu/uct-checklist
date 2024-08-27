@@ -24,13 +24,7 @@ function gotoRun(
     return;
   }
   console.log("row data: ", row);
-  if (row.hasOwnProperty("createdAt")) {
-    delete row.createdAt;
-  }
-  if (row.hasOwnProperty("submittedBy")) {
-    delete row.submittedBy;
-  }
-  navigate(`/run/${id}`, { state: { result_data: row } });
+  navigate(`/run/${id}`, { state: { result_id: row.id } });
   //go to Route /run/:id
 }
 
@@ -52,12 +46,14 @@ const Viewer = (params: { id: string }): React.ReactElement => {
         //Add submittedBy and createdAt to the model
         model.pages[0].addNewQuestion("text", "submittedBy", 0);
         model.pages[0].addNewQuestion("text", "createdAt", 1);
+        model.pages[0].addNewQuestion("text", "id");
         const table_data = data.map((item: any) => {
           const json =
             typeof item.json === "string" ? JSON.parse(item.json) : item.json;
           return {
             createdAt: item.createdAt,
             submittedBy: item.submittedBy,
+            id: item.id,
             ...json,
           };
         });
@@ -71,9 +67,11 @@ const Viewer = (params: { id: string }): React.ReactElement => {
   }, [params.id]);
 
   useEffect(() => {
+    const extensionLocation = "details";
+    const extensionName = "gotoRun";
     const extension = SurveyAnalyticsTabulator.TableExtensions.findExtension(
-      "details",
-      "gotoRun"
+      extensionLocation,
+      extensionName
     );
     if (!extension) {
       SurveyAnalyticsTabulator.TableExtensions.registerExtension({
