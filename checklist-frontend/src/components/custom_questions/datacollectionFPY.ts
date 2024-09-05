@@ -12,7 +12,8 @@ export const datacollectionFPY_json = {
       minWidth: "44%",
       maxWidth: "44%",
       title: "Will this impact the First Pass Yield (FPY)",
-      isRequired: true,
+      isRequired: false,
+      readOnly: true,
     },
     {
       type: "boolean",
@@ -44,13 +45,23 @@ export const datacollectionFPY_json = {
       category: "general",
       default: "Please Modify Question Title",
     });
+    Serializer.addProperty("datacollection_fpy", {
+      name: "is_fpy_default",
+      displayName: "Is FPY",
+      type: "boolean",
+      category: "general",
+      default: false,
+    });
   },
   onLoaded(question: any) {
     this.changeSubQuestionTitle(question);
+    this.changeIsFpy(question);
   },
   onPropertyChanged(question: any, propertyName: string) {
     if (propertyName === "is_failed_title") {
       this.changeSubQuestionTitle(question);
+    } else if (propertyName === "is_fpy_default") {
+      this.changeIsFpy(question);
     }
   },
   onValueChanged(question: any, name: any, newValue: any) {
@@ -78,6 +89,12 @@ export const datacollectionFPY_json = {
       if (subQuestion.value === false && !!failedReason) {
         failedReason.value = "";
       }
+    }
+  },
+  changeIsFpy(question: any) {
+    const isFpyQuestion = question.contentPanel.getQuestionByName("is_fpy");
+    if (!!isFpyQuestion) {
+      isFpyQuestion.defaultValue = question.is_fpy_default;
     }
   },
 };
