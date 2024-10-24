@@ -187,18 +187,25 @@ const Run = () => {
     }
   };
 
+  //check if 'datacollection_header' exists in model.getAllQuestions()
+  const shouldGetResults = !model
+    .getAllQuestions()
+    .some((question) => question.name === "datacollection_header");
+
   //if result_id is not null, then get result from results table
   // if Run componenet got result data props, then disable getResults hook
   useEffect(() => {
-    getResults();
-  }, [result_id]);
+    if (shouldGetResults) {
+      getResults();
+    }
+  }, [result_id, shouldGetResults]);
 
   useEffect(() => {
     getSurvey();
     getTheme();
   }, []);
   //if result data is not empty, then getResults won't execute and assign model.data with result data
-  if (Object.keys(result).length > 0) {
+  if (Object.keys(result).length > 0 && shouldGetResults) {
     Logger.debug("Run: result data is not empty", result);
     //recursively merge result data and model data
     if (!result_id) {
