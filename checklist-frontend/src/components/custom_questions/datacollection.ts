@@ -13,6 +13,7 @@ export const dc_predefined_json = {
       maxWidth: "33%",
       minWidth: "33%",
       isRequired: true,
+      isReadOnly: true,
     },
     {
       type: "text",
@@ -23,6 +24,7 @@ export const dc_predefined_json = {
       minWidth: "33%",
       maxWidth: "33%",
       startWithNewLine: false,
+      isReadOnly: true,
     },
     {
       type: "text",
@@ -33,6 +35,7 @@ export const dc_predefined_json = {
       minWidth: "33%",
       maxWidth: "33%",
       startWithNewLine: false,
+      isReadOnly: true,
     },
     {
       type: "text",
@@ -42,6 +45,7 @@ export const dc_predefined_json = {
       isRequired: true,
       minWidth: "25%",
       maxWidth: "25%",
+      isReadOnly: true,
     },
     {
       type: "text",
@@ -52,6 +56,7 @@ export const dc_predefined_json = {
       minWidth: "20%",
       maxWidth: "20%",
       startWithNewLine: false,
+      isReadOnly: true,
     },
     {
       type: "text",
@@ -62,6 +67,7 @@ export const dc_predefined_json = {
       minWidth: "20%",
       maxWidth: "20%",
       startWithNewLine: false,
+      isReadOnly: true,
     },
     {
       type: "text",
@@ -72,6 +78,7 @@ export const dc_predefined_json = {
       minWidth: "35%",
       maxWidth: "35%",
       startWithNewLine: false,
+      isReadOnly: true,
     },
   ],
 };
