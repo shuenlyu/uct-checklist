@@ -392,14 +392,23 @@ app.post("/post", async (req, res) => {
       };
       delete postResult["datacollection_header"];
 
-      const createTempData = (is_fpy, answer, failed_reason, question) => ({
+      const createTempData = (
+        is_fpy,
+        answer,
+        failed_reason,
+        question,
+        sequence
+      ) => ({
         ...common_columns,
         is_fpy,
         answer:
           typeof answer === "boolean" ? (answer ? "Fail" : "Pass") : answer,
         failed_reason: failed_reason ?? "",
         question,
+        sequence,
       });
+
+      let sequence = 0;
 
       if (
         postResult.hasOwnProperty("datacollection_fpy") &&
@@ -410,16 +419,18 @@ app.post("/post", async (req, res) => {
         const question =
           unpackedSurvey["datacollection_fpy"]["is_failed_title"];
         new_data.push(
-          createTempData(is_fpy, is_failed, failed_reason, question)
+          createTempData(is_fpy, is_failed, failed_reason, question, sequence)
         );
         delete postResult["datacollection_fpy"];
+        sequence++;
       }
 
       for (const key in postResult) {
         if (postResult.hasOwnProperty(key)) {
           const answer = postResult[key];
           const question = unpackedSurvey[key]?.title || "Unknown";
-          new_data.push(createTempData(false, answer, "", question));
+          new_data.push(createTempData(false, answer, "", question, sequence));
+          sequence++;
         }
       }
       Logger.debug("---- api call: /post, new_data: ", new_data);
