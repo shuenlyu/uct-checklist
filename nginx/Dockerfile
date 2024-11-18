@@ -2,8 +2,8 @@ FROM nginx:alpine
 COPY default.conf /etc/nginx/conf.d/default.conf
 
 #ENSURE the SSL directory exists
-COPY ssl/checklistgen.uct.com.crt /etc/nginx/ssl/checklistgen.uct.com.crt
-COPY ssl/checklistgen.uct.com.key /etc/nginx/ssl/checklistgen.uct.com.key
+COPY ssl/10.6.2.248.crt /etc/nginx/ssl/10.6.2.248.crt
+COPY ssl/10.6.2.248.key /etc/nginx/ssl/10.6.2.248.key
 
 #expose 443 for frontend code
 EXPOSE 443
