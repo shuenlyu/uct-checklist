@@ -196,12 +196,12 @@ const Surveys = (): React.ReactElement => {
               <Link className="sjs-button" to={"results/" + survey.id}>
                 <span>Results</span>
               </Link>
-              <span
+              {/* <span
                 className="sjs-button sjs-remove-btn"
                 onClick={() => handleRemove(survey)}
               >
                 Remove
-              </span>
+              </span> */}
             </td>
           </tr>
         ))}
