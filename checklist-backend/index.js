@@ -500,6 +500,18 @@ app.get("/results", async (req, res) => {
   }
 });
 
+app.get("/getEmailList", async (req, res) => {
+  try {
+    Logger.debug("---- api call: /getEmailList Started!");
+    const result = await dbAdapter.getEmailList();
+    Logger.debug("---- api call: /getEmailList, result: ", result);
+    res.json(result);
+  } catch (error) {
+    Logger.error("===== ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.use(express.static(__dirname + "/public"));
 app.listen(process.env.PORT || 3002, () => {
   console.log("Server is listening on port", process.env.PORT || 3002);
