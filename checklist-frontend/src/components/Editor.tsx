@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from "react";
-import { ComponentCollection, matrixDropdownColumnTypes } from "survey-core";
+import React, { useEffect, useMemo, useState } from "react";
+import { ComponentCollection, ItemValue, matrixDropdownColumnTypes, Serializer } from "survey-core";
 import "survey-creator-core/survey-creator-core.css";
 import { SurveyCreator, SurveyCreatorComponent } from "survey-creator-react";
 import { useReduxDispatch } from "../redux";
@@ -7,6 +7,7 @@ import { useApi } from "../utils/api";
 import Logger from "../utils/logger";
 
 //import custom question type
+import { log } from "console";
 import { checklistContentFI_json } from "./custom_questions/checklistContentFI";
 import { checklistHeaderFI_json } from "./custom_questions/checklistHeaderFI";
 import { checklistHeaderShipKit_json } from "./custom_questions/checklistHeaderShipkit";
@@ -25,6 +26,7 @@ ComponentCollection.Instance.add(datacollectionFPY_json);
 const Editor = (params: { id: string }): React.ReactElement => {
   const { fetchData, postData } = useApi();
   const dispatch = useReduxDispatch();
+  const [emailList, setEmailList] = useState<ItemValue[]>([]);
   const creator = useMemo(() => {
     const options = {
       showLogicTab: true,
@@ -95,6 +97,28 @@ const Editor = (params: { id: string }): React.ReactElement => {
     })();
   }, [dispatch, creator, params.id]);
 
+  //add useEffect for fetching the emailList for checklist 
+  useEffect(()=>{
+      const fetchEmailList = async () => {
+          try {
+              const response = await fetchData("/getEmailList");
+              if (response.status !== 200){
+                  throw new Error("Failed to fetch email list");
+              }
+              const emails = response.data;
+              Logger.debug("emails: ", emails);
+              setEmailList(emails.map((email:{Email:string}, index:number) => {
+                return new ItemValue(index, email.Email);
+              }));
+              Logger.debug('emailList: ', emailList);
+          } catch(error){
+              console.error("fetchEmailList: ", error);
+          }
+      };
+      fetchEmailList();
+
+  }, [dispatch, creator, params.id]);  
+
   //modify the added question type into text input question category
   creator.toolbox.forceCompact = false;
   creator.toolbox.changeCategory(
@@ -147,11 +171,14 @@ const Editor = (params: { id: string }): React.ReactElement => {
       opt.titleLocation = "hidden";
       opt.name = "checklist_content_fi-" + questionCount;
       questionCount++;
+      // Assuming 'checkedby' is a dropdown inside 'checklist_content_fi'
+      opt.checkedby = emailList;
     } else if (opt.getType() === "datacollection_fpy") {
       opt.titleLocation = "hidden";
       opt.name = "datacollection_fpy";
     }
   });
+
   return (
     <>
       <SurveyCreatorComponent creator={creator} />

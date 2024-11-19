@@ -251,6 +251,11 @@ class MSSQLDBAdapter {
     const params = [];
     return this.query(query, params);
   }
+
+    async getEmailList() {
+      if (DEBUG) console.log("------ mssql: getEmailList invoke!");
+      return this.query("SELECT TOP (1000) [Email] FROM [MES].[dbo].[GLOB_User] where isActive = '1' and PlantCode = '6101'");
+    }
 }
 const instance = new MSSQLDBAdapter();
 module.exports = instance;
