@@ -1,5 +1,5 @@
 # pull official base image
-FROM node:latest 
+FROM node:16.20.2 
 
 # set working directory
 WORKDIR /checklist-frontend
