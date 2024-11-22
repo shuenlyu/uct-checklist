@@ -146,7 +146,9 @@ const Run = () => {
   //model applyTheme
   const getTheme = async () => {
     const response = await fetchData("/getTheme?surveyId=" + id, false);
-    setTheme(JSON.parse(response.data.theme));
+    if(response.data && response.data.theme){
+      setTheme(JSON.parse(response.data.theme));
+    }
   };
 
   model.applyTheme(theme);

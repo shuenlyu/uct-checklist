@@ -174,8 +174,8 @@ app.post("/create", async (req, res) => {
       result
     );
     useMSSQL
-      ? res.json({ name: result[0].name, id: id })
-      : res.json({ name: result.name, id: id });
+      ? res.json({ name: result[0].name, id: id, customer: result[0].customer, prod_line: result[0].prod_line })
+      : res.json({ name: result.name, id: id, customer: result.customer, prod_line: result.prod_line });
   } catch (error) {
     Logger.error("/create", error.message);
     res.status(500).json({ error: error.message });
@@ -209,8 +209,8 @@ app.post("/duplicate", async (req, res) => {
       result
     );
     useMSSQL
-      ? res.json({ name: result[0].name, id: id })
-      : res.json({ name: result.name, id: id });
+      ? res.json({ name: result[0].name, id: id, customer: result[0].customer, prod_line: result[0].prod_line })
+      : res.json({ name: result.name, id: id, customer: result.customer, prod_line: result.prod_line });
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
     res.status(500).json({ error: error.message });
