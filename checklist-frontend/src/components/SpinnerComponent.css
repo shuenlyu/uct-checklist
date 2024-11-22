@@ -1,0 +1,25 @@
+.sjs-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+}
+
+.sjs-spinner__circle {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 3px solid transparent;
+  border-top-color: #1ab394; /* Adjust the color to match SurveyJS theme */
+  border-radius: 50%;
+  animation: sjs-spin 1s linear infinite;
+}
+
+@keyframes sjs-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

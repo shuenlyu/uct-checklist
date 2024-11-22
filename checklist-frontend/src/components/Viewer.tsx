@@ -100,8 +100,8 @@ const Viewer = (params: { id: string }): React.ReactElement => {
     <>
       <div className="sjs-results-content" ref={visContainerRef}>
         <div className="sjs-results-placeholder">
-          {/* <span>This survey doesn't have any answers yet</span> */}
-          <Loading />
+          <span>This survey doesn't have any answers yet</span>
+          {/* <Loading /> */}
         </div>
       </div>
     </>

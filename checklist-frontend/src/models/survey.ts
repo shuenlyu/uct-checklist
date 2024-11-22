@@ -3,6 +3,17 @@ export interface ISurveyDefinition {
   name: string;
   json: any;
 }
+export interface Survey {
+  id: string;
+  name: string;
+  json: string;
+  available: boolean;
+  customer: string;
+  prod_line: string;
+  user_id: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export const defaultJSON = {
   id: "",
