@@ -14,6 +14,7 @@ const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
 interface ApiHook {
   fetchData: (endpoint: string, requireAuthn?: boolean) => Promise<any>;
   postData: (endpoint: string, payload: any, requireAuth?: boolean) => Promise<any>;
+  deleteData: (endpoint: string, requireAuth?: boolean) => Promise<any>;
 }
 
 export const useApi = (): ApiHook => {
@@ -26,6 +27,7 @@ export const useApi = (): ApiHook => {
     return {
       fetchData: () => Promise.reject(new Error("API_BASE_URL not defined")),
       postData: () => Promise.reject(new Error("API_BASE_URL not defined")),
+      deleteData: () => Promise.reject(new Error("API_BASE_URL not defined")),
     };
   }
 
@@ -72,8 +74,23 @@ export const useApi = (): ApiHook => {
     }
   };
 
+  // Function to delete a resource 
+  const deleteData = async (endpoint: string, requireAuth = true): Promise<any> => {
+    try {
+      const api = requireAuth ? apiWithAuth : apiWithoutAuth;
+      Logger.debug("-----deleteData api, endpoint: ", endpoint);
+      const response = await api.delete(endpoint);
+      Logger.debug("-----deleteData api, response: ", response);
+      return response;
+    } catch (error) {
+      Logger.error("-----deleteData api, endpoint err:", endpoint, error);
+      throw error;
+    }
+  };
+
   return {
     fetchData,
     postData,
+    deleteData,
   };
 };

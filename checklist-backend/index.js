@@ -512,6 +512,47 @@ app.get("/getEmailList", async (req, res) => {
   }
 });
 
+// folders manipulation
+//get folders
+app.get('/getFolders', async (req, res) => {
+  try {
+    Logger.debug('---- api call: /getFolders Started!');
+    const result = await dbAdapter.getFolders();
+    Logger.debug('---- api call: /getFolders, result: ', result);
+    res.json(result);
+
+  } catch(error){
+    Logger.error("=====getFolders ERROR:", error.message);
+    res.status(500).json({error:error.message});
+  }
+});
+//delete folder
+app.delete('/folders/:folderId', async(req, res) => {
+  const {folderId} = req.params;
+  try {
+    Logger.debug('---- api call: api.delete("/folders/:folderId") Started!');
+    const result = await dbAdapter.deleteFolder(folderId);
+    Logger.debug('---- api call: /deleteFolder, result: ', result);
+    res.json(result);
+  }catch(error){
+    Logger.error("=====delete Folder ERROR:", error.message);
+    res.status(500).json({error:error.message});
+  }
+});
+//create folder 
+app.post('/folders', async(req, res) => {
+  try {
+    Logger.debug('---- api call: api.post("/folders") Started!');
+    const name = req.body.name;
+    const result = await dbAdapter.createFolder(name);
+    Logger.debug('---- api call: api.post("/folders"), result: ', result);
+    res.json(result);
+  }catch(error){
+    Logger.error("=====create Folder ERROR:", error.message);
+    res.status(500).json({error:error.message});
+  }
+});
+
 app.use(express.static(__dirname + "/public"));
 app.listen(process.env.PORT || 3002, () => {
   console.log("Server is listening on port", process.env.PORT || 3002);

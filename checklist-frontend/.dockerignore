@@ -2,7 +2,7 @@
 node_modules
 
 #exclude pack-lock.json
-#package-lock.json
+package-lock.json
 
 npm-debug.log
 .dockerignore

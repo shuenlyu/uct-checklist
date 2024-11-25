@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { FlatExpression } from 'survey-pdf';
 import { customers } from '../models/customer';
 import { products } from '../models/product';
 import { Survey } from '../models/survey';
@@ -10,6 +11,12 @@ import RemoveModal from './RemoveModal';
 import SurveyItem from './SurveyItem';
 import './Surveys.css';
 
+interface Folder {
+  id: number;
+  name: string;
+  files: Survey[];
+}
+
 
 const Surveys = (): React.ReactElement => {
   // State variables
@@ -20,18 +27,40 @@ const Surveys = (): React.ReactElement => {
   const [surveyToRemove, setSurveyToRemove] = useState<Survey | null>(null);
 
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const { fetchData, postData } = useApi();
+  const { fetchData, postData, deleteData } = useApi();
+
+  // folder management status
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [folderStates, setFolderStates] = useState<{ [key: number]: boolean }>({});
+  const [loadedFolders, setLoadedFolders] = useState<{ [key: number]: boolean }>({});
+
 
   const [modalData, setModalData] = useState<{
     name: string;
-    customerId:number;
-    productId:number;
-  }|null>(null);
+    customerId: number;
+    productId: number;
+  } | null>(null);
 
   // Fetch surveys on component mount
   useEffect(() => {
     getSurveys();
+    getFolders();
   }, []);
+
+  // Fetch folders from API
+  const getFolders = async () => {
+    const response = await fetchData('/getFolders');
+    Logger.debug('Folders:', response.data);
+    setFolders(response.data);
+  }
+  // add folder 
+  const addFolder = async () => {
+    if (newFolderName.trim() === '') return;
+    const response = await postData('/folders', { name: newFolderName });
+    Logger.debug('Add Folder:', response);
+    // update Folders list
+  }
 
   // Fetch surveys from API
   const getSurveys = async () => {
@@ -63,7 +92,7 @@ const Surveys = (): React.ReactElement => {
     Logger.debug('Edit Modal Data:', modalData);
   };
 
-  const handleModalSubmit = async(data:{
+  const handleModalSubmit = async (data: {
     name: string;
     customerId: number;
     productId: number;
@@ -144,26 +173,35 @@ const Surveys = (): React.ReactElement => {
     <Loading />
   ) : (
     <>
-      <table className="sjs-surveys-list">
-        {surveys.map((survey) => (
-          <SurveyItem
-            key={survey.id}
-            survey={survey}
-            onEdit={openEditModal}
-            onCopy={duplicateSurvey}
-            onRemove={confirmRemoveSurvey}
-          />
-        ))}
+      <table className="sjs-surveys-list" >
+        {
+          surveys.map((survey) => (
+            <SurveyItem
+              key={survey.id}
+              survey={survey}
+              onEdit={openEditModal}
+              onCopy={duplicateSurvey}
+              onRemove={confirmRemoveSurvey}
+            />
+          ))
+        }
       </table>
-      <div className="sjs-surveys-list__footer">
-        <span
-          className="sjs-button sjs-add-btn"
-          title="Add"
-          onClick={openAddModal}
-        >
-          Add Checklist
-        </span>
-
+      < div className="sjs-surveys-list__footer" >
+        <div style={{ display: 'flex', gap: '20px' }}>
+          <span
+            className="sjs-button sjs-add-btn"
+            title="Add"
+            onClick={openAddModal}
+          >
+            Add Checklist
+          </span>
+          {/* disable add folder button */}
+          {/* <span className='sjs-button sjs-add-btn'
+            title='addfolder'
+          >
+            Add Folder
+          </span> */}
+        </div>
         {/* Add/Edit Modal */}
         <EditModal
           isOpen={isModalOpen || isEditModalOpen}
@@ -177,7 +215,7 @@ const Surveys = (): React.ReactElement => {
         />
 
         {/* Remove Confirmation Modal */}
-        <RemoveModal
+        < RemoveModal
           surveyName={surveyToRemove?.name || ''}
           isOpen={isRemoveModalOpen}
           onClose={() => setRemoveModalOpen(false)}
