@@ -13,6 +13,7 @@ export interface Survey {
   user_id: string;
   createdAt: string;
   updatedAt: string;
+  folder_id: number;
 }
 
 export const defaultJSON = {

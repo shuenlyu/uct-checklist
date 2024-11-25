@@ -252,10 +252,33 @@ class MSSQLDBAdapter {
     return this.query(query, params);
   }
 
-    async getEmailList() {
-      if (DEBUG) console.log("------ mssql: getEmailList invoke!");
-      return this.query("SELECT TOP (1000) [Email] FROM [MES].[dbo].[GLOB_User] where isActive = '1' and PlantCode = '6101'");
-    }
+  async getEmailList() {
+    if (DEBUG) console.log("------ mssql: getEmailList invoke!");
+    return this.query("SELECT TOP (1000) [Email] FROM [MES].[dbo].[GLOB_User] where isActive = '1' and PlantCode = '6101'");
+  }
+
+  //get Folders 
+  async getFolders() {
+    if (DEBUG) console.log("------ mssql: getFolders invoke!");
+    return this.query("SELECT * FROM folders");
+  }
+
+  //delete folder 
+  async deleteFolder(folderId) {
+    if (DEBUG) console.log("------ mssql: deleteFolder invoke!");
+    return this.query("DELETE FROM folders WHERE id = @folderId", [
+      { name: "folderId", type: sql.UniqueIdentifier, value: folderId },
+    ]);
+  }
+
+  //add folder 
+  async createFolder(name) {
+    if (DEBUG) console.log("------ mssql: createFolder invoke!");
+    return this.query(
+      "INSERT INTO folders (name) VALUES(@name); SELECT * FROM folders WHERE name = @name;",
+      [{ name: "name", type: sql.NVarChar, value: name }]
+    );
+  }
 }
 const instance = new MSSQLDBAdapter();
 module.exports = instance;
