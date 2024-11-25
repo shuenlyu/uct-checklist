@@ -254,16 +254,35 @@ class MSSQLDBAdapter {
 
   async getEmailList() {
     if (DEBUG) console.log("------ mssql: getEmailList invoke!");
-    return this.query("SELECT TOP (1000) [Email] FROM [MES].[dbo].[GLOB_User] where isActive = '1' and PlantCode = '6101'");
+    return this.query(
+      "SELECT TOP (1000) [Email] FROM [MES].[dbo].[GLOB_User] where isActive = '1' and PlantCode = '6101'"
+    );
   }
 
-  //get Folders 
+  //get Folders
   async getFolders() {
     if (DEBUG) console.log("------ mssql: getFolders invoke!");
     return this.query("SELECT * FROM folders");
   }
-
-  //delete folder 
+  //get folder files
+  async getFolderFiles(folderId) {
+    if (DEBUG) console.log("------ mssql: getFolderFiles invoke!");
+    return this.query("SELECT * FROM surveys WHERE folder_id = @folderId", [
+      { name: "folderId", type: sql.Int, value: folderId },
+    ]);
+  }
+  //update folder_id
+  async moveSurvey(surveyId, targetFolderId) {
+    if (DEBUG) console.log("------ mssql: moveSurvey invoke!");
+    return this.query(
+      "UPDATE surveys SET folder_id = @folderId WHERE id = @surveyId; SELECT * FROM surveys WHERE id = @surveyId;",
+      [
+        { name: "folderId", type: sql.Int, value: targetFolderId },
+        { name: "surveyId", type: sql.UniqueIdentifier, value: surveyId },
+      ]
+    );
+  }
+  //delete folder
   async deleteFolder(folderId) {
     if (DEBUG) console.log("------ mssql: deleteFolder invoke!");
     return this.query("DELETE FROM folders WHERE id = @folderId", [
@@ -271,7 +290,7 @@ class MSSQLDBAdapter {
     ]);
   }
 
-  //add folder 
+  //add folder
   async createFolder(name) {
     if (DEBUG) console.log("------ mssql: createFolder invoke!");
     return this.query(

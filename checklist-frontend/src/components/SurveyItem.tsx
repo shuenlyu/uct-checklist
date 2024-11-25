@@ -19,42 +19,45 @@ const SurveyItem: React.FC<SurveyItemProps> = ({
 }) => {
   // Logger.debug('SurveyItem', survey);
   return (
-    <tr key={survey.id} className="sjs-surveys-list__row">
-      <td>
-        <span>{survey.name}</span>
-        <span>
-          <img
-            className="edit-icon"
-            src={icon}
-            onClick={() =>
-              onEdit(survey.id, survey.name, survey.customer, survey.prod_line)
-            }
-            alt="edit icon"
-          />
-        </span>
-        <div></div>
-      </td>
-      <td>
-        <span className="sjs-button" onClick={() => onCopy(survey)}>
-          <span>Copy</span>
-        </span>
-        <Link className="sjs-button" to={"run/" + survey.id}>
-          <span>Run</span>
-        </Link>
-        <Link className="sjs-button" to={"edit/" + survey.id}>
-          <span>Edit</span>
-        </Link>
-        <Link className="sjs-button" to={"results/" + survey.id}>
-          <span>Results</span>
-        </Link>
-        <span
-          className="sjs-button sjs-remove-btn"
-          onClick={() => onRemove(survey)}
-        >
-          Remove
-        </span>
-      </td>
-    </tr>
+    <table className="sjs-surveys-list" >
+
+      <tr key={survey.id} className="sjs-surveys-list__row">
+        <td>
+          <span>{survey.name}</span>
+          <span>
+            <img
+              className="edit-icon"
+              src={icon}
+              onClick={() =>
+                onEdit(survey.id, survey.name, survey.customer, survey.prod_line)
+              }
+              alt="edit icon"
+            />
+          </span>
+          <div></div>
+        </td>
+        <td>
+          <span className="sjs-button" onClick={() => onCopy(survey)}>
+            <span>Copy</span>
+          </span>
+          <Link className="sjs-button" to={"run/" + survey.id}>
+            <span>Run</span>
+          </Link>
+          <Link className="sjs-button" to={"edit/" + survey.id}>
+            <span>Edit</span>
+          </Link>
+          <Link className="sjs-button" to={"results/" + survey.id}>
+            <span>Results</span>
+          </Link>
+          <span
+            className="sjs-button sjs-remove-btn"
+            onClick={() => onRemove(survey)}
+          >
+            Remove
+          </span>
+        </td>
+      </tr>
+    </table>
   );
 };
 

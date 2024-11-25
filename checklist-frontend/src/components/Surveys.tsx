@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { FlatExpression } from 'survey-pdf';
+import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
 import { customers } from '../models/customer';
 import { products } from '../models/product';
 import { Survey } from '../models/survey';
+import surveys from '../redux/surveys';
 import { useApi } from '../utils/api';
 import Logger from '../utils/logger';
 import EditModal from './EditModal';
@@ -27,7 +28,7 @@ const Surveys = (): React.ReactElement => {
   const [surveyToRemove, setSurveyToRemove] = useState<Survey | null>(null);
 
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const { fetchData, postData, deleteData } = useApi();
+  const { fetchData, postData, putData } = useApi();
 
   // folder management status
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -35,6 +36,8 @@ const Surveys = (): React.ReactElement => {
   const [folderStates, setFolderStates] = useState<{ [key: number]: boolean }>({});
   const [loadedFolders, setLoadedFolders] = useState<{ [key: number]: boolean }>({});
 
+  // set isLoading state used for displaying loading indicator 
+  const [isLoading, setIsLoading] = useState<{ [key: number]: boolean }>({});
 
   const [modalData, setModalData] = useState<{
     name: string;
@@ -44,7 +47,7 @@ const Surveys = (): React.ReactElement => {
 
   // Fetch surveys on component mount
   useEffect(() => {
-    getSurveys();
+    // getSurveys();
     getFolders();
   }, []);
 
@@ -53,6 +56,12 @@ const Surveys = (): React.ReactElement => {
     const response = await fetchData('/getFolders');
     Logger.debug('Folders:', response.data);
     setFolders(response.data);
+
+    const initialStates = response.data.reduce((acc: { [key: number]: boolean }, folder: Folder) => {
+      acc[folder.id] = false;
+      return acc;
+    }, {});
+    setFolderStates(initialStates);
   }
   // add folder 
   const addFolder = async () => {
@@ -169,23 +178,152 @@ const Surveys = (): React.ReactElement => {
     }
   };
 
-  return surveys.length === 0 ? (
-    <Loading />
-  ) : (
-    <>
-      <table className="sjs-surveys-list" >
-        {
-          surveys.map((survey) => (
-            <SurveyItem
-              key={survey.id}
-              survey={survey}
-              onEdit={openEditModal}
-              onCopy={duplicateSurvey}
-              onRemove={confirmRemoveSurvey}
-            />
-          ))
-        }
-      </table>
+  const toggleFolder = async (folderId: number) => {
+    if (!loadedFolders[folderId]) {
+      setIsLoading((prevState) => ({
+        ...prevState,
+        [folderId]: true
+      }))
+      setFolderStates((prevState) => ({
+        ...prevState,
+        [folderId]: true, // Expand the folder
+      }));
+      const response = await fetchData(`/folders/${folderId}/files`);
+      Logger.debug('toggleFolder status: ', response);
+      setFolders((prevFolders) =>
+        prevFolders.map((folder) =>
+          folder.id === folderId ? { ...folder, files: response.data } : folder
+        )
+      );
+      setLoadedFolders((prev) => ({ ...prev, [folderId]: true })); // Mark folder as loaded
+      setIsLoading((prevState) => ({
+        ...prevState,
+        [folderId]: false
+      }));
+    } else {
+      // If the folder is already loaded, just toggle its state      
+      setFolderStates((prevState) => ({
+        ...prevState,
+        [folderId]: !prevState[folderId],
+      }));
+    }
+  };
+
+  const onDragEnd = async (result: DropResult) => {
+    const { source, destination } = result;
+    if (!destination) return;
+
+    const sourceFolder = folders.find((folder) => folder.id === parseInt(source.droppableId));
+    const destinationFolder = folders.find((folder) => folder.id === parseInt(destination.droppableId));
+    if (!sourceFolder || !destinationFolder) return;
+
+    const draggedFile = sourceFolder.files[source.index];
+
+    Logger.debug('Dragged File in on DragEnd: ', sourceFolder, destinationFolder);
+    try {
+      const response = await putData(`/surveys/${draggedFile.id}/move`, { targetFolderId: destinationFolder.id });
+      setFolders((prevFolders) =>
+        prevFolders.map((folder) => {
+          if (folder.id === sourceFolder.id) {
+            const updatedFiles = [...folder.files];
+            updatedFiles.splice(source.index, 1);
+            return { ...folder, files: updatedFiles };
+          }
+          if (folder.id === destinationFolder.id) {
+            const updatedFiles = [...folder.files];
+            updatedFiles.splice(destination.index, 0, draggedFile);
+            return { ...folder, files: updatedFiles };
+          }
+          return folder;
+        })
+      );
+    } catch (error) {
+      Logger.error('Error moving file: ', error);
+    }
+  }
+
+  return (
+    <DragDropContext onDragEnd={onDragEnd}>
+      {folders && folders.map((folder) => (
+        <Droppable key={folder.id} droppableId={folder.id.toString()}>
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              style={{
+                marginBottom: "20px",
+                padding: "10px",
+                borderTop: "1px solid #ddd",
+                // border: "1px solid #ddd",
+                // borderRadius: "5px",
+              }}
+            >
+              {/* <div className='folder-header'>{folder.name}</div> */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3
+                  style={{ cursor: "pointer", margin: 0 }}
+                  onClick={() => toggleFolder(folder.id)}
+                >
+                  {folder.name} <span>{folderStates[folder.id] ? "▼" : "▶"}</span>
+                </h3>
+                {/* add and delete button */}
+                {/* <div>
+                  <button
+                    // onClick={() => addFile(folder.id)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "20px",
+                      marginRight: "10px",
+                    }}
+                    title="Add File"
+                  >
+                    ➕
+                  </button>
+                  <button
+                    // onClick={() => deleteFolder(folder.id)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "20px",
+                      color: "red",
+                    }}
+                    title="Delete Folder"
+                  >
+                    🗑️
+                  </button>
+                </div> */}
+              </div>
+              {/* TODO:enable loading component while downloading file from server, and show indicator that no checklist available */}
+              {folderStates[folder.id] && (isLoading[folder.id] ? <Loading /> : (
+                folder.files && folder.files.length > 0 ? (
+                  folder.files.map((survey, index) => (
+                    <Draggable key={survey.id} draggableId={survey.id.toString()} index={index}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                        >
+                          <SurveyItem
+                            key={survey.id}
+                            survey={survey}
+                            onEdit={openEditModal}
+                            onCopy={duplicateSurvey}
+                            onRemove={confirmRemoveSurvey}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))
+                ) : (<div style={{ marginTop: '20px' }}> Folder is empty !</div>)))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      ))}
       < div className="sjs-surveys-list__footer" >
         <div style={{ display: 'flex', gap: '20px' }}>
           <span
@@ -222,7 +360,7 @@ const Surveys = (): React.ReactElement => {
           onConfirm={removeSurvey}
         />
       </div>
-    </>
+    </DragDropContext>
   );
 };
 
