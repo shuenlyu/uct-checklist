@@ -174,8 +174,18 @@ app.post("/create", async (req, res) => {
       result
     );
     useMSSQL
-      ? res.json({ name: result[0].name, id: id, customer: result[0].customer, prod_line: result[0].prod_line })
-      : res.json({ name: result.name, id: id, customer: result.customer, prod_line: result.prod_line });
+      ? res.json({
+          name: result[0].name,
+          id: id,
+          customer: result[0].customer,
+          prod_line: result[0].prod_line,
+        })
+      : res.json({
+          name: result.name,
+          id: id,
+          customer: result.customer,
+          prod_line: result.prod_line,
+        });
   } catch (error) {
     Logger.error("/create", error.message);
     res.status(500).json({ error: error.message });
@@ -209,8 +219,18 @@ app.post("/duplicate", async (req, res) => {
       result
     );
     useMSSQL
-      ? res.json({ name: result[0].name, id: id, customer: result[0].customer, prod_line: result[0].prod_line })
-      : res.json({ name: result.name, id: id, customer: result.customer, prod_line: result.prod_line });
+      ? res.json({
+          name: result[0].name,
+          id: id,
+          customer: result[0].customer,
+          prod_line: result[0].prod_line,
+        })
+      : res.json({
+          name: result.name,
+          id: id,
+          customer: result.customer,
+          prod_line: result.prod_line,
+        });
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
     res.status(500).json({ error: error.message });
@@ -514,42 +534,65 @@ app.get("/getEmailList", async (req, res) => {
 
 // folders manipulation
 //get folders
-app.get('/getFolders', async (req, res) => {
+app.get("/getFolders", async (req, res) => {
   try {
-    Logger.debug('---- api call: /getFolders Started!');
+    Logger.debug("---- api call: /getFolders Started!");
     const result = await dbAdapter.getFolders();
-    Logger.debug('---- api call: /getFolders, result: ', result);
-    res.json(result);
-
-  } catch(error){
+    const folders = result.map((folder) => ({ ...folder, files: [] })); // initail files to empty list
+    Logger.debug("---- api call: /getFolders, result: ", folders);
+    res.json(folders);
+  } catch (error) {
     Logger.error("=====getFolders ERROR:", error.message);
-    res.status(500).json({error:error.message});
+    res.status(500).json({ error: error.message });
+  }
+});
+//fetch files for a specific folder
+app.get("/folders/:folderId/files", async (req, res) => {
+  const { folderId } = req.params;
+  try {
+    const result = await dbAdapter.getFolderFiles(folderId);
+    res.json(result);
+  } catch (error) {
+    console.error("=====getFiles ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+//move file to a different folder
+app.put("/surveys/:surveyId/move", async (req, res) => {
+  const { surveyId } = req.params;
+  const { targetFolderId } = req.body;
+  try {
+    const updatedSurvey = await dbAdapter.moveSurvey(surveyId, targetFolderId);
+    res.sendStatus(200);
+  } catch (error) {
+    Logger.error("=====moveFile ERROR:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 //delete folder
-app.delete('/folders/:folderId', async(req, res) => {
-  const {folderId} = req.params;
+app.delete("/folders/:folderId", async (req, res) => {
+  const { folderId } = req.params;
   try {
     Logger.debug('---- api call: api.delete("/folders/:folderId") Started!');
     const result = await dbAdapter.deleteFolder(folderId);
-    Logger.debug('---- api call: /deleteFolder, result: ', result);
+    Logger.debug("---- api call: /deleteFolder, result: ", result);
     res.json(result);
-  }catch(error){
+  } catch (error) {
     Logger.error("=====delete Folder ERROR:", error.message);
-    res.status(500).json({error:error.message});
+    res.status(500).json({ error: error.message });
   }
 });
-//create folder 
-app.post('/folders', async(req, res) => {
+//create folder
+app.post("/folders", async (req, res) => {
   try {
     Logger.debug('---- api call: api.post("/folders") Started!');
     const name = req.body.name;
     const result = await dbAdapter.createFolder(name);
     Logger.debug('---- api call: api.post("/folders"), result: ', result);
     res.json(result);
-  }catch(error){
+  } catch (error) {
     Logger.error("=====create Folder ERROR:", error.message);
-    res.status(500).json({error:error.message});
+    res.status(500).json({ error: error.message });
   }
 });
 

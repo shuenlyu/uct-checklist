@@ -1,20 +1,29 @@
 // require('dotenv').config();
 import axios, { AxiosInstance } from "axios";
-import axiosRetry from 'axios-retry';
+import axiosRetry from "axios-retry";
 import Logger from "./logger";
 
 // Configure axios to retry failed requests
 axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
 function envToBool(variable: string | undefined) {
-  return variable === 'true'
+  return variable === "true";
 }
 const DEBUG = envToBool(process.env.REACT_APP_DEBUG);
 
 interface ApiHook {
   fetchData: (endpoint: string, requireAuthn?: boolean) => Promise<any>;
-  postData: (endpoint: string, payload: any, requireAuth?: boolean) => Promise<any>;
+  postData: (
+    endpoint: string,
+    payload: any,
+    requireAuth?: boolean
+  ) => Promise<any>;
   deleteData: (endpoint: string, requireAuth?: boolean) => Promise<any>;
+  putData: (
+    endpoint: string,
+    payload: any,
+    requireAuth?: boolean
+  ) => Promise<any>;
 }
 
 export const useApi = (): ApiHook => {
@@ -28,6 +37,7 @@ export const useApi = (): ApiHook => {
       fetchData: () => Promise.reject(new Error("API_BASE_URL not defined")),
       postData: () => Promise.reject(new Error("API_BASE_URL not defined")),
       deleteData: () => Promise.reject(new Error("API_BASE_URL not defined")),
+      putData: () => Promise.reject(new Error("API_BASE_URL not defined")),
     };
   }
 
@@ -46,7 +56,10 @@ export const useApi = (): ApiHook => {
   });
 
   // Function to make a GET request
-  const fetchData = async (endpoint: string, requireAuth = true): Promise<any> => {
+  const fetchData = async (
+    endpoint: string,
+    requireAuth = true
+  ): Promise<any> => {
     try {
       const api = requireAuth ? apiWithAuth : apiWithoutAuth;
 
@@ -61,7 +74,11 @@ export const useApi = (): ApiHook => {
   };
 
   // Function to make a POST request
-  const postData = async (endpoint: string, payload: any, requireAuth = true): Promise<any> => {
+  const postData = async (
+    endpoint: string,
+    payload: any,
+    requireAuth = true
+  ): Promise<any> => {
     try {
       const api = requireAuth ? apiWithAuth : apiWithoutAuth;
       Logger.debug("-----postData api, endpoint: ", endpoint);
@@ -74,8 +91,11 @@ export const useApi = (): ApiHook => {
     }
   };
 
-  // Function to delete a resource 
-  const deleteData = async (endpoint: string, requireAuth = true): Promise<any> => {
+  // Function to delete a resource
+  const deleteData = async (
+    endpoint: string,
+    requireAuth = true
+  ): Promise<any> => {
     try {
       const api = requireAuth ? apiWithAuth : apiWithoutAuth;
       Logger.debug("-----deleteData api, endpoint: ", endpoint);
@@ -88,9 +108,26 @@ export const useApi = (): ApiHook => {
     }
   };
 
+  const putData = async (
+    endpoint: string,
+    payload: any,
+    requireAuth = true
+  ): Promise<any> => {
+    try {
+      const api = requireAuth ? apiWithAuth : apiWithoutAuth;
+      Logger.debug("-----putData api, endpoint: ", endpoint);
+      const response = await api.put(endpoint, payload);
+      return response;
+    } catch (error) {
+      Logger.error("-----putData api, endpoint err:", endpoint, error);
+      throw error;
+    }
+  };
+
   return {
     fetchData,
     postData,
     deleteData,
+    putData,
   };
 };
