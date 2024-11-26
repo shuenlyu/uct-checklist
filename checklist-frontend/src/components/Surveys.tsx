@@ -321,7 +321,7 @@ const Surveys = (): React.ReactElement => {
                 >
                   {folder.name} <span>{folderStates[folder.id] ? "▼" : "▶"}</span>
                 </h3>
-                <div>
+                {/* <div>
                   <button
                     onClick={() => deleteFolder(folder.id)}
                     style={{
@@ -335,7 +335,7 @@ const Surveys = (): React.ReactElement => {
                   >
                     <FaTrash />
                   </button>
-                </div>
+                </div> */}
               </div>
               {folderStates[folder.id] && (isLoading[folder.id] ? <Loading /> : (
                 folder.files.length > 0 ? (
