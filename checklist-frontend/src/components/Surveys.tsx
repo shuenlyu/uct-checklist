@@ -46,6 +46,7 @@ const Surveys = (): React.ReactElement => {
     name: string;
     customerId: number;
     productId: number;
+    folderId: number;
   } | null>(null);
 
   // Fetch surveys on component mount
@@ -98,7 +99,8 @@ const Surveys = (): React.ReactElement => {
     id: string,
     name: string,
     customerName: string,
-    productLine: string
+    productLine: string,
+    folderId: number
   ) => {
     setEditModalOpen(true);
     const customerObj = customers.find((cust) => cust.name === customerName);
@@ -108,50 +110,87 @@ const Surveys = (): React.ReactElement => {
       name,
       customerId: customerObj ? customerObj.id : 0,
       productId: productObj ? productObj.id : 0,
+      folderId,
     });
     Logger.debug('Edit Modal Data:', modalData);
   };
-
   const handleModalSubmit = async (data: {
     name: string;
     customerId: number;
     productId: number;
+    folderId: number;
   }) => {
+    let response;
     if (isEditModalOpen) {
-      await updateSurvey(data.name, data.customerId, data.productId);
+      response = await updateSurvey(data.name, data.customerId, data.productId, data.folderId);
+      if (response.status === 200) {
+        Logger.debug('Modal Submit:', response);
+        Logger.debug('folders before update: ', folders);
+        // update folders.files state 
+        setFolders((prevFolders) => {
+          const updatedFolders = prevFolders.map((folder) => {
+            if (folder.id === data.folderId) {
+              const updatedFiles = folder.files.filter(file => file.id !== selectedId);
+              return { ...folder, files: [...updatedFiles, response.data] };
+            }
+            return folder;
+          });
+          return updatedFolders;
+        });
+        Logger.debug('folders after update:', folders);
+      }
     } else {
       //create survey 
-      await createSurvey(data.name, data.customerId, data.productId);
+      response = await createSurvey(data.name, data.customerId, data.productId, data.folderId);
+      if (response.status === 200) {
+        Logger.debug('Modal Submit:', response);
+        Logger.debug('folders before update: ', folders);
+        // update folders.files state 
+        setFolders((prevFolders) => {
+          const updatedFolders = prevFolders.map((folder) => {
+            if (folder.id === data.folderId) {
+              return { ...folder, files: [...folder.files, response.data] };
+            }
+            return folder;
+          });
+          return updatedFolders;
+        });
+        Logger.debug('folders after update:', folders);
+      }
     }
   };
 
+
   // Handle creating a new survey
-  const createSurvey = async (name: string, customerId: number, productId: number) => {
-    Logger.debug('Create Survey:', name, customerId, productId);
+  const createSurvey = async (name: string, customerId: number, productId: number, folderId: number) => {
+    Logger.debug('Create Survey:', name, customerId, productId, folderId);
     const customerName = customers.find((cust) => cust.id === customerId)?.name || '';
     const productName = products.find((pro) => pro.id === productId)?.name || '';
     const response = await postData('/create', {
       name,
       customer: customerName,
       product: productName,
+      folderId,
     });
     Logger.debug('Create Survey:', response);
     if (response.status === 200) {
       Logger.debug('Survey created:', response.data);
       setModalOpen(false);
     }
+    return response;
   };
 
   // Handle updating an existing survey
-  const updateSurvey = async (name: string, customerId: number, productId: number) => {
+  const updateSurvey = async (name: string, customerId: number, productId: number, folderId: number) => {
     const customerName = customers.find((cust) => cust.id === customerId)?.name || '';
     const productName = products.find((pro) => pro.id === productId)?.name || '';
     const response = await fetchData(
-      `/changeName?name=${name}&id=${selectedId}&customer=${customerName}&product=${productName}`
+      `/changeName?name=${name}&id=${selectedId}&customer=${customerName}&product=${productName}&folderId=${folderId}`
     );
     if (response.status === 200) {
       setEditModalOpen(false);
     }
+    return response;
   };
 
   // Handle duplicating a survey
@@ -161,7 +200,20 @@ const Surveys = (): React.ReactElement => {
       customer: survey.customer,
       product: survey.prod_line,
       json: survey.json,
+      folderId: survey.folder_id
     });
+    if (response.status === 200) {
+      Logger.debug('Survey duplicated:', response.data);
+      setFolders((prevFolders) => {
+        const updatedFolders = prevFolders.map((folder) => {
+          if (folder.id === survey.folder_id) {
+            return { ...folder, files: [...folder.files, response.data] };
+          }
+          return folder;
+        });
+        return updatedFolders;
+      });
+    }
   };
 
   // Handle removing a survey
@@ -175,6 +227,20 @@ const Surveys = (): React.ReactElement => {
     const response = await fetchData('/delete?id=' + surveyToRemove.id);
     if (response.status === 200) {
       setRemoveModalOpen(false);
+
+      // Remove the survey from the state
+      setFolders((prevFolders) => {
+        const updatedFolders = prevFolders.map((folder) => {
+          if (folder.id === surveyToRemove.folder_id) {
+            return {
+              ...folder,
+              files: folder.files.filter((file) => file.id !== surveyToRemove.id),
+            };
+          }
+          return folder;
+        });
+        return updatedFolders;
+      });
       setSurveyToRemove(null);
     }
   };
@@ -353,6 +419,7 @@ const Surveys = (): React.ReactElement => {
           onSubmit={handleModalSubmit}
           initialData={modalData || undefined}
           title={isEditModalOpen ? 'Edit Checklist' : 'Enter New Checklist'}
+          folders={folders}
         />
 
         {/* Remove Confirmation Modal */}

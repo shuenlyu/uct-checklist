@@ -54,15 +54,16 @@ class MSSQLDBAdapter {
     return this.query(`SELECT * FROM ${tableName}`);
   }
 
-  async addSurvey(name, customer, product, id, userId) {
+  async addSurvey(name, customer, product, folder_id, id, userId) {
     if (DEBUG) console.log("------ mssql: addSurvey invoke!");
     return this.query(
-      "INSERT INTO surveys (id, name, customer, prod_line, json, user_id) VALUES(@id, @name, @customer, @prod_line, '{}', @user_id); SELECT * FROM surveys WHERE id = @id;",
+      "INSERT INTO surveys (id, name, customer, prod_line, folder_id, json, user_id) VALUES(@id, @name, @customer, @prod_line, @folder_id, '{}', @user_id); SELECT * FROM surveys WHERE id = @id;",
       [
         { name: "id", type: sql.UniqueIdentifier, value: id },
         { name: "name", type: sql.NVarChar, value: name },
         { name: "customer", type: sql.NVarChar, value: customer },
         { name: "prod_line", type: sql.NVarChar, value: product },
+        { name: "folder_id", type: sql.Int, value: folder_id },
         { name: "user_id", type: sql.NVarChar, value: userId },
       ]
     );
@@ -171,15 +172,16 @@ class MSSQLDBAdapter {
     ]);
   }
 
-  async changeName(id, name, customer, product) {
+  async changeName(id, name, customer, product, folder_id) {
     if (DEBUG) console.log("------ mssql: changeName invoke!");
     return this.query(
-      "UPDATE surveys SET name = @name, customer = @customer, prod_line = @prod_line WHERE id = @id; SELECT * FROM surveys WHERE id = @id;",
+      "UPDATE surveys SET name = @name, customer = @customer, prod_line = @prod_line, folder_id=@folder_id WHERE id = @id; SELECT * FROM surveys WHERE id = @id;",
       [
         { name: "id", type: sql.UniqueIdentifier, value: id },
         { name: "name", type: sql.NVarChar, value: name },
         { name: "customer", type: sql.NVarChar, value: customer },
         { name: "prod_line", type: sql.NVarChar, value: product },
+        { name: "folder_id", type: sql.Int, value: folder_id },
       ]
     );
   }
@@ -226,17 +228,18 @@ class MSSQLDBAdapter {
     );
   }
 
-  async duplicateSurvey(name, customer, product, json, id, userId) {
+  async duplicateSurvey(name, customer, product, folder_id, json, id, userId) {
     if (DEBUG) console.log("------ mssql: DB:duplicateSurvey invoke!");
     // const json_str = JSON.stringify(json);
 
     return this.query(
-      "INSERT INTO surveys (id, name, customer, prod_line, json, user_id) VALUES(@id, @name, @customer, @prod_line, @json, @userId); SELECT * FROM surveys WHERE id = @id;",
+      "INSERT INTO surveys (id, name, customer, prod_line, folder_id, json, user_id) VALUES(@id, @name, @customer, @prod_line, @folder_id,  @json, @userId); SELECT * FROM surveys WHERE id = @id;",
       [
         { name: "id", type: sql.UniqueIdentifier, value: id },
         { name: "name", type: sql.NVarChar, value: name },
         { name: "customer", type: sql.NVarChar, value: customer },
         { name: "prod_line", type: sql.NVarChar, value: product },
+        { name: "folder_id", type: sql.Int, value: folder_id },
         { name: "json", type: sql.NVarChar, value: json },
         { name: "userId", type: sql.NVarChar, value: userId },
       ]

@@ -156,11 +156,13 @@ app.post("/create", async (req, res) => {
     const name = req.body.name;
     const customer = req.body.customer;
     const product = req.body.product;
+    const folder_id = req.body.folderId;
     const userId = req.user.email;
     const result = await dbAdapter.addSurvey(
       name,
       customer,
       product,
+      folder_id,
       id,
       userId
     );
@@ -170,6 +172,7 @@ app.post("/create", async (req, res) => {
       name,
       customer,
       product,
+      folder_id,
       userId,
       result
     );
@@ -179,12 +182,14 @@ app.post("/create", async (req, res) => {
           id: id,
           customer: result[0].customer,
           prod_line: result[0].prod_line,
+          folder_id: result[0].folder_id,
         })
       : res.json({
           name: result.name,
           id: id,
           customer: result.customer,
           prod_line: result.prod_line,
+          folder_id: result.folder_id,
         });
   } catch (error) {
     Logger.error("/create", error.message);
@@ -199,21 +204,24 @@ app.post("/duplicate", async (req, res) => {
     const name = req.body.name;
     const customer = req.body.customer;
     const product = req.body.product;
+    const folder_id = req.body.folderId;
     const json = req.body.json;
     const userId = req.user.email;
     const result = await dbAdapter.duplicateSurvey(
       name,
       customer,
       product,
+      folder_id,
       json,
       id,
       userId
     );
     Logger.debug(
-      "---- api call: /duplicate, name, customer, product, json, userId, result: ",
+      "---- api call: /duplicate, name, customer, product, folder_id, json, userId, result: ",
       name,
       customer,
       product,
+      folder_id,
       json,
       userId,
       result
@@ -224,12 +232,14 @@ app.post("/duplicate", async (req, res) => {
           id: id,
           customer: result[0].customer,
           prod_line: result[0].prod_line,
+          folder_id: result[0].folder_id,
         })
       : res.json({
           name: result.name,
           id: id,
           customer: result.customer,
           prod_line: result.prod_line,
+          folder_id: result.folder_id,
         });
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -289,12 +299,20 @@ app.get("/changeName", async (req, res) => {
     const name = req.query["name"];
     const customer = req.query["customer"];
     const product = req.query["product"];
-    const result = await dbAdapter.changeName(id, name, customer, product);
+    const folder_id = req.query["folderId"];
+    const result = await dbAdapter.changeName(
+      id,
+      name,
+      customer,
+      product,
+      folder_id
+    );
     Logger.debug(
       "---- api call: /changeName, name, customer, product, result, result: ",
       name,
       customer,
       product,
+      folder_id,
       result
     );
     useMSSQL ? res.json(result[0]) : res.json(result);
