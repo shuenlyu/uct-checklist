@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
-import { FaTrash } from 'react-icons/fa'; // Import the delete icon
+import { FaTrash } from 'react-icons/fa';
 import { customers } from '../models/customer';
 import { products } from '../models/product';
 import { Survey } from '../models/survey';
@@ -19,29 +19,19 @@ interface Folder {
   files: Survey[];
 }
 
-
 const Surveys = (): React.ReactElement => {
-  // State variables
+  // set edit modal state 
   const [isModalOpen, setModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
+
   const [selectedId, setSelectedId] = useState('');
   const [isRemoveModalOpen, setRemoveModalOpen] = useState(false);
   const [surveyToRemove, setSurveyToRemove] = useState<Survey | null>(null);
-
-  // state for addFolderModal
   const [isFolderModalOpen, setFolderModalOpen] = useState(false);
-
-
-  const { fetchData, postData, deleteData, putData } = useApi();
-
-  // folder management status
   const [folders, setFolders] = useState<Folder[]>([]);
   const [folderStates, setFolderStates] = useState<{ [key: number]: boolean }>({});
   const [loadedFolders, setLoadedFolders] = useState<{ [key: number]: boolean }>({});
-
-  // set isLoading state used for displaying loading indicator 
   const [isLoading, setIsLoading] = useState<{ [key: number]: boolean }>({});
-
   const [modalData, setModalData] = useState<{
     name: string;
     customerId: number;
@@ -49,43 +39,52 @@ const Surveys = (): React.ReactElement => {
     folderId: number;
   } | null>(null);
 
-  // Fetch surveys on component mount
+  const { fetchData, postData, deleteData, putData } = useApi();
+
   useEffect(() => {
-    // getSurveys();
     getFolders();
   }, []);
 
-  // Fetch folders from API
   const getFolders = async () => {
-    const response = await fetchData('/getFolders');
-    Logger.debug('Folders:', response.data);
-    setFolders(response.data);
-
-    const initialStates = response.data.reduce((acc: { [key: number]: boolean }, folder: Folder) => {
-      acc[folder.id] = false;
-      return acc;
-    }, {});
-    setFolderStates(initialStates);
-  }
-  // add folder 
-  const addFolder = async (folderName: string) => {
-    if (folderName.trim() === '') return;
-    const response = await postData('/folders', { name: folderName });
-    Logger.debug('Add Folder:', response);
-    if (response.status === 200) {
-      setFolders((prevFolders) => [...prevFolders, ...response.data]);
-    }
-  }
-
-  const deleteFolder = async (folderId: number) => {
-    const response = await deleteData(`/folders/${folderId}`);
-    Logger.debug('Delete Folder:', response);
-    if (response.status === 200) {
-      setFolders((prevFolders) => prevFolders.filter((folder) => folder.id !== folderId));
+    try {
+      const response = await fetchData('/getFolders');
+      Logger.debug('Folders:', response.data);
+      setFolders(response.data);
+      const initialStates = response.data.reduce((acc: { [key: number]: boolean }, folder: Folder) => {
+        acc[folder.id] = false;
+        return acc;
+      }, {});
+      setFolderStates(initialStates);
+    } catch (error) {
+      Logger.error('Error fetching folders:', error);
     }
   };
 
-  // Handle opening and closing modals
+  const addFolder = async (folderName: string) => {
+    if (folderName.trim() === '') return;
+    try {
+      const response = await postData('/folders', { name: folderName });
+      Logger.debug('Add Folder:', response);
+      if (response.status === 200) {
+        setFolders((prevFolders) => [...prevFolders, ...response.data]);
+      }
+    } catch (error) {
+      Logger.error('Error adding folder:', error);
+    }
+  };
+
+  const deleteFolder = async (folderId: number) => {
+    try {
+      const response = await deleteData(`/folders/${folderId}`);
+      Logger.debug('Delete Folder:', response);
+      if (response.status === 200) {
+        setFolders((prevFolders) => prevFolders.filter((folder) => folder.id !== folderId));
+      }
+    } catch (error) {
+      Logger.error('Error deleting folder:', error);
+    }
+  };
+
   const openAddModal = () => {
     setModalOpen(true);
     setModalData(null);
@@ -112,58 +111,33 @@ const Surveys = (): React.ReactElement => {
       productId: productObj ? productObj.id : 0,
       folderId,
     });
-    Logger.debug('Edit Modal Data:', modalData);
   };
+
   const handleModalSubmit = async (data: {
     name: string;
     customerId: number;
     productId: number;
     folderId: number;
   }) => {
-    let response;
-    if (isEditModalOpen) {
-      response = await updateSurvey(data.name, data.customerId, data.productId, data.folderId);
-      if (response.status === 200) {
-        Logger.debug('Modal Submit:', response);
-        Logger.debug('folders before update: ', folders);
-        // update folders.files state 
-        setFolders((prevFolders) => {
-          const updatedFolders = prevFolders.map((folder) => {
-            if (folder.id === data.folderId) {
-              const updatedFiles = folder.files.filter(file => file.id !== selectedId);
-              return { ...folder, files: [...updatedFiles, response.data] };
-            }
-            return folder;
-          });
-          return updatedFolders;
-        });
-        Logger.debug('folders after update:', folders);
+    try {
+      let response;
+      if (isEditModalOpen) {
+        response = await updateSurvey(data.name, data.customerId, data.productId, data.folderId);
+        if (response.status === 200) {
+          updateFolderFiles(data.folderId, response.data);
+        }
+      } else {
+        response = await createSurvey(data.name, data.customerId, data.productId, data.folderId);
+        if (response.status === 200) {
+          updateFolderFiles(data.folderId, response.data);
+        }
       }
-    } else {
-      //create survey 
-      response = await createSurvey(data.name, data.customerId, data.productId, data.folderId);
-      if (response.status === 200) {
-        Logger.debug('Modal Submit:', response);
-        Logger.debug('folders before update: ', folders);
-        // update folders.files state 
-        setFolders((prevFolders) => {
-          const updatedFolders = prevFolders.map((folder) => {
-            if (folder.id === data.folderId) {
-              return { ...folder, files: [...folder.files, response.data] };
-            }
-            return folder;
-          });
-          return updatedFolders;
-        });
-        Logger.debug('folders after update:', folders);
-      }
+    } catch (error) {
+      Logger.error('Error submitting modal data:', error);
     }
   };
 
-
-  // Handle creating a new survey
   const createSurvey = async (name: string, customerId: number, productId: number, folderId: number) => {
-    Logger.debug('Create Survey:', name, customerId, productId, folderId);
     const customerName = customers.find((cust) => cust.id === customerId)?.name || '';
     const productName = products.find((pro) => pro.id === productId)?.name || '';
     const response = await postData('/create', {
@@ -172,15 +146,12 @@ const Surveys = (): React.ReactElement => {
       product: productName,
       folderId,
     });
-    Logger.debug('Create Survey:', response);
     if (response.status === 200) {
-      Logger.debug('Survey created:', response.data);
       setModalOpen(false);
     }
     return response;
   };
 
-  // Handle updating an existing survey
   const updateSurvey = async (name: string, customerId: number, productId: number, folderId: number) => {
     const customerName = customers.find((cust) => cust.id === customerId)?.name || '';
     const productName = products.find((pro) => pro.id === productId)?.name || '';
@@ -193,30 +164,23 @@ const Surveys = (): React.ReactElement => {
     return response;
   };
 
-  // Handle duplicating a survey
   const duplicateSurvey = async (survey: Survey) => {
-    const response = await postData('/duplicate', {
-      name: survey.name + '(copy)',
-      customer: survey.customer,
-      product: survey.prod_line,
-      json: survey.json,
-      folderId: survey.folder_id
-    });
-    if (response.status === 200) {
-      Logger.debug('Survey duplicated:', response.data);
-      setFolders((prevFolders) => {
-        const updatedFolders = prevFolders.map((folder) => {
-          if (folder.id === survey.folder_id) {
-            return { ...folder, files: [...folder.files, response.data] };
-          }
-          return folder;
-        });
-        return updatedFolders;
+    try {
+      const response = await postData('/duplicate', {
+        name: survey.name + '(copy)',
+        customer: survey.customer,
+        product: survey.prod_line,
+        json: survey.json,
+        folderId: survey.folder_id
       });
+      if (response.status === 200) {
+        updateFolderFiles(survey.folder_id, response.data);
+      }
+    } catch (error) {
+      Logger.error('Error duplicating survey:', error);
     }
   };
 
-  // Handle removing a survey
   const confirmRemoveSurvey = (survey: Survey) => {
     setSurveyToRemove(survey);
     setRemoveModalOpen(true);
@@ -224,24 +188,15 @@ const Surveys = (): React.ReactElement => {
 
   const removeSurvey = async () => {
     if (!surveyToRemove) return;
-    const response = await fetchData('/delete?id=' + surveyToRemove.id);
-    if (response.status === 200) {
-      setRemoveModalOpen(false);
-
-      // Remove the survey from the state
-      setFolders((prevFolders) => {
-        const updatedFolders = prevFolders.map((folder) => {
-          if (folder.id === surveyToRemove.folder_id) {
-            return {
-              ...folder,
-              files: folder.files.filter((file) => file.id !== surveyToRemove.id),
-            };
-          }
-          return folder;
-        });
-        return updatedFolders;
-      });
-      setSurveyToRemove(null);
+    try {
+      const response = await fetchData('/delete?id=' + surveyToRemove.id);
+      if (response.status === 200) {
+        setRemoveModalOpen(false);
+        removeSurveyFromFolder(surveyToRemove.folder_id, surveyToRemove.id);
+        setSurveyToRemove(null);
+      }
+    } catch (error) {
+      Logger.error('Error removing survey:', error);
     }
   };
 
@@ -250,25 +205,28 @@ const Surveys = (): React.ReactElement => {
       setIsLoading((prevState) => ({
         ...prevState,
         [folderId]: true
-      }))
+      }));
       setFolderStates((prevState) => ({
         ...prevState,
-        [folderId]: true, // Expand the folder
+        [folderId]: true,
       }));
-      const response = await fetchData(`/folders/${folderId}/files`);
-      Logger.debug('toggleFolder status: ', response);
-      setFolders((prevFolders) =>
-        prevFolders.map((folder) =>
-          folder.id === folderId ? { ...folder, files: response.data } : folder
-        )
-      );
-      setLoadedFolders((prev) => ({ ...prev, [folderId]: true })); // Mark folder as loaded
-      setIsLoading((prevState) => ({
-        ...prevState,
-        [folderId]: false
-      }));
+      try {
+        const response = await fetchData(`/folders/${folderId}/files`);
+        setFolders((prevFolders) =>
+          prevFolders.map((folder) =>
+            folder.id === folderId ? { ...folder, files: response.data } : folder
+          )
+        );
+        setLoadedFolders((prev) => ({ ...prev, [folderId]: true }));
+      } catch (error) {
+        Logger.error('Error toggling folder:', error);
+      } finally {
+        setIsLoading((prevState) => ({
+          ...prevState,
+          [folderId]: false
+        }));
+      }
     } else {
-      // If the folder is already loaded, just toggle its state      
       setFolderStates((prevState) => ({
         ...prevState,
         [folderId]: !prevState[folderId],
@@ -286,32 +244,65 @@ const Surveys = (): React.ReactElement => {
 
     const draggedFile = sourceFolder.files[source.index];
 
-    Logger.debug('Dragged File in on DragEnd: ', sourceFolder, destinationFolder);
     try {
       const response = await putData(`/surveys/${draggedFile.id}/move`, { targetFolderId: destinationFolder.id });
-      setFolders((prevFolders) =>
-        prevFolders.map((folder) => {
-          if (folder.id === sourceFolder.id) {
-            const updatedFiles = [...folder.files];
-            updatedFiles.splice(source.index, 1);
-            return { ...folder, files: updatedFiles };
-          }
-          if (folder.id === destinationFolder.id) {
-            const updatedFiles = [...folder.files];
-            updatedFiles.splice(destination.index, 0, draggedFile);
-            return { ...folder, files: updatedFiles };
-          }
-          return folder;
-        })
-      );
+      if (response.status === 200) {
+        moveSurveyBetweenFolders(sourceFolder.id, destinationFolder.id, source.index, destination.index, draggedFile);
+      }
     } catch (error) {
-      Logger.error('Error moving file: ', error);
+      Logger.error('Error moving file:', error);
     }
-  }
+  };
+
+  const updateFolderFiles = (folderId: number, survey: Survey) => {
+    setFolders((prevFolders) => {
+      const updatedFolders = prevFolders.map((folder) => {
+        if (folder.id === folderId) {
+          const updatedFiles = folder.files.filter(file => file.id !== selectedId);
+          return { ...folder, files: [...updatedFiles, survey] };
+        }
+        return folder;
+      });
+      return updatedFolders;
+    });
+  };
+
+  const removeSurveyFromFolder = (folderId: number, surveyId: string) => {
+    setFolders((prevFolders) => {
+      const updatedFolders = prevFolders.map((folder) => {
+        if (folder.id === folderId) {
+          return {
+            ...folder,
+            files: folder.files.filter((file) => file.id !== surveyId),
+          };
+        }
+        return folder;
+      });
+      return updatedFolders;
+    });
+  };
+
+  const moveSurveyBetweenFolders = (sourceFolderId: number, destinationFolderId: number, sourceIndex: number, destinationIndex: number, survey: Survey) => {
+    setFolders((prevFolders) =>
+      prevFolders.map((folder) => {
+        if (folder.id === sourceFolderId) {
+          const updatedFiles = [...folder.files];
+          updatedFiles.splice(sourceIndex, 1);
+          return { ...folder, files: updatedFiles };
+        }
+        if (folder.id === destinationFolderId) {
+          const updatedFiles = [...folder.files];
+          updatedFiles.splice(destinationIndex, 0, survey);
+          return { ...folder, files: updatedFiles };
+        }
+        return folder;
+      })
+    );
+  };
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      {folders && folders.map((folder) => (
+      {folders.map((folder) => (
         <Droppable key={folder.id} droppableId={folder.id.toString()}>
           {(provided) => (
             <div
@@ -321,11 +312,8 @@ const Surveys = (): React.ReactElement => {
                 marginBottom: "20px",
                 padding: "10px",
                 borderTop: "1px solid #ddd",
-                // border: "1px solid #ddd",
-                // borderRadius: "5px",
               }}
             >
-              {/* <div className='folder-header'>{folder.name}</div> */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3
                   style={{ cursor: "pointer", margin: 0 }}
@@ -333,21 +321,7 @@ const Surveys = (): React.ReactElement => {
                 >
                   {folder.name} <span>{folderStates[folder.id] ? "▼" : "▶"}</span>
                 </h3>
-                {/* add and delete button */}
                 <div>
-                  {/* <button
-                    // onClick={() => addFile(folder.id)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: "20px",
-                      marginRight: "10px",
-                    }}
-                    title="Add File"
-                  >
-                    ➕
-                  </button> */}
                   <button
                     onClick={() => deleteFolder(folder.id)}
                     style={{
@@ -363,9 +337,8 @@ const Surveys = (): React.ReactElement => {
                   </button>
                 </div>
               </div>
-              {/* TODO:enable loading component while downloading file from server, and show indicator that no checklist available */}
               {folderStates[folder.id] && (isLoading[folder.id] ? <Loading /> : (
-                folder.files && folder.files.length > 0 ? (
+                folder.files.length > 0 ? (
                   folder.files.map((survey, index) => (
                     <Draggable key={survey.id} draggableId={survey.id.toString()} index={index}>
                       {(provided) => (
@@ -390,9 +363,8 @@ const Surveys = (): React.ReactElement => {
             </div>
           )}
         </Droppable>
-      ))
-      }
-      < div className="sjs-surveys-list__footer" >
+      ))}
+      <div className="sjs-surveys-list__footer">
         <div style={{ display: 'flex', gap: '20px' }}>
           <span
             className="sjs-button sjs-add-btn"
@@ -401,7 +373,6 @@ const Surveys = (): React.ReactElement => {
           >
             Add Checklist
           </span>
-          {/* disable add folder button */}
           <span className='sjs-button sjs-add-btn'
             title='addfolder'
             onClick={openFolderModal}
@@ -409,7 +380,6 @@ const Surveys = (): React.ReactElement => {
             Add Folder
           </span>
         </div>
-        {/* Add/Edit Modal */}
         <EditModal
           isOpen={isModalOpen || isEditModalOpen}
           onClose={() => {
@@ -421,9 +391,7 @@ const Surveys = (): React.ReactElement => {
           title={isEditModalOpen ? 'Edit Checklist' : 'Enter New Checklist'}
           folders={folders}
         />
-
-        {/* Remove Confirmation Modal */}
-        < RemoveModal
+        <RemoveModal
           surveyName={surveyToRemove?.name || ''}
           isOpen={isRemoveModalOpen}
           onClose={() => setRemoveModalOpen(false)}
@@ -435,7 +403,7 @@ const Surveys = (): React.ReactElement => {
           onSubmit={addFolder}
         />
       </div>
-    </DragDropContext >
+    </DragDropContext>
   );
 };
 
