@@ -44,12 +44,12 @@ const SurveyItem: React.FC<SurveyItemProps> = ({
           <Link className={styles.button} to={`results/${survey.id}`}>
             Results
           </Link>
-          <button
+          {/* <button
             className={`${styles.button} ${styles.removeButton}`}
             onClick={() => onRemove(survey)}
           >
             Remove
-          </button>
+          </button> */}
         </div>
       </div>
     </div>
