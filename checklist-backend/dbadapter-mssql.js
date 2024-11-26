@@ -286,7 +286,7 @@ class MSSQLDBAdapter {
   async deleteFolder(folderId) {
     if (DEBUG) console.log("------ mssql: deleteFolder invoke!");
     return this.query("DELETE FROM folders WHERE id = @folderId", [
-      { name: "folderId", type: sql.UniqueIdentifier, value: folderId },
+      { name: "folderId", type: sql.Int, value: folderId },
     ]);
   }
 

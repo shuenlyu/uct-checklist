@@ -589,7 +589,9 @@ app.post("/folders", async (req, res) => {
     const name = req.body.name;
     const result = await dbAdapter.createFolder(name);
     Logger.debug('---- api call: api.post("/folders"), result: ', result);
-    res.json(result);
+    const folders = result.map((folder) => ({ ...folder, files: [] })); // initail files to empty list
+    Logger.debug("---- api call: /getFolders, result: ", folders);
+    res.json(folders);
   } catch (error) {
     Logger.error("=====create Folder ERROR:", error.message);
     res.status(500).json({ error: error.message });

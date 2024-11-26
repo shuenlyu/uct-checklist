@@ -34,7 +34,6 @@ const SurveyItem: React.FC<SurveyItemProps> = ({
               alt="edit icon"
             />
           </span>
-          <div></div>
         </td>
         <td>
           <span className="sjs-button" onClick={() => onCopy(survey)}>

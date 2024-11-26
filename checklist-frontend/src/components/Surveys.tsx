@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
+import { FaTrash } from 'react-icons/fa'; // Import the delete icon
 import { customers } from '../models/customer';
 import { products } from '../models/product';
 import { Survey } from '../models/survey';
-import surveys from '../redux/surveys';
 import { useApi } from '../utils/api';
 import Logger from '../utils/logger';
+import AddFolderModal from './AddFolderModal';
 import EditModal from './EditModal';
 import Loading from './Loading';
 import RemoveModal from './RemoveModal';
@@ -27,12 +28,14 @@ const Surveys = (): React.ReactElement => {
   const [isRemoveModalOpen, setRemoveModalOpen] = useState(false);
   const [surveyToRemove, setSurveyToRemove] = useState<Survey | null>(null);
 
-  const [surveys, setSurveys] = useState<Survey[]>([]);
-  const { fetchData, postData, putData } = useApi();
+  // state for addFolderModal
+  const [isFolderModalOpen, setFolderModalOpen] = useState(false);
+
+
+  const { fetchData, postData, deleteData, putData } = useApi();
 
   // folder management status
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [newFolderName, setNewFolderName] = useState('');
   const [folderStates, setFolderStates] = useState<{ [key: number]: boolean }>({});
   const [loadedFolders, setLoadedFolders] = useState<{ [key: number]: boolean }>({});
 
@@ -64,23 +67,31 @@ const Surveys = (): React.ReactElement => {
     setFolderStates(initialStates);
   }
   // add folder 
-  const addFolder = async () => {
-    if (newFolderName.trim() === '') return;
-    const response = await postData('/folders', { name: newFolderName });
+  const addFolder = async (folderName: string) => {
+    if (folderName.trim() === '') return;
+    const response = await postData('/folders', { name: folderName });
     Logger.debug('Add Folder:', response);
-    // update Folders list
+    if (response.status === 200) {
+      setFolders((prevFolders) => [...prevFolders, ...response.data]);
+    }
   }
 
-  // Fetch surveys from API
-  const getSurveys = async () => {
-    const response = await fetchData('/getActive');
-    setSurveys(response.data);
+  const deleteFolder = async (folderId: number) => {
+    const response = await deleteData(`/folders/${folderId}`);
+    Logger.debug('Delete Folder:', response);
+    if (response.status === 200) {
+      setFolders((prevFolders) => prevFolders.filter((folder) => folder.id !== folderId));
+    }
   };
 
   // Handle opening and closing modals
   const openAddModal = () => {
     setModalOpen(true);
     setModalData(null);
+  };
+
+  const openFolderModal = () => {
+    setFolderModalOpen(true);
   };
 
   const openEditModal = (
@@ -127,7 +138,6 @@ const Surveys = (): React.ReactElement => {
     Logger.debug('Create Survey:', response);
     if (response.status === 200) {
       Logger.debug('Survey created:', response.data);
-      setSurveys([...surveys, response.data]);
       setModalOpen(false);
     }
   };
@@ -140,11 +150,6 @@ const Surveys = (): React.ReactElement => {
       `/changeName?name=${name}&id=${selectedId}&customer=${customerName}&product=${productName}`
     );
     if (response.status === 200) {
-      const index = surveys.findIndex((obj) => obj.id === selectedId);
-      if (index !== -1) {
-        surveys[index] = { ...surveys[index], name, customer: customerName, prod_line: productName };
-        setSurveys([...surveys]);
-      }
       setEditModalOpen(false);
     }
   };
@@ -157,9 +162,6 @@ const Surveys = (): React.ReactElement => {
       product: survey.prod_line,
       json: survey.json,
     });
-    if (response.status === 200) {
-      setSurveys([...surveys, response.data]);
-    }
   };
 
   // Handle removing a survey
@@ -172,7 +174,6 @@ const Surveys = (): React.ReactElement => {
     if (!surveyToRemove) return;
     const response = await fetchData('/delete?id=' + surveyToRemove.id);
     if (response.status === 200) {
-      setSurveys(surveys.filter((s) => s.id !== surveyToRemove.id));
       setRemoveModalOpen(false);
       setSurveyToRemove(null);
     }
@@ -267,8 +268,8 @@ const Surveys = (): React.ReactElement => {
                   {folder.name} <span>{folderStates[folder.id] ? "▼" : "▶"}</span>
                 </h3>
                 {/* add and delete button */}
-                {/* <div>
-                  <button
+                <div>
+                  {/* <button
                     // onClick={() => addFile(folder.id)}
                     style={{
                       background: "none",
@@ -280,21 +281,21 @@ const Surveys = (): React.ReactElement => {
                     title="Add File"
                   >
                     ➕
-                  </button>
+                  </button> */}
                   <button
-                    // onClick={() => deleteFolder(folder.id)}
+                    onClick={() => deleteFolder(folder.id)}
                     style={{
                       background: "none",
                       border: "none",
                       cursor: "pointer",
                       fontSize: "20px",
-                      color: "red",
+                      color: "gray",
                     }}
                     title="Delete Folder"
                   >
-                    🗑️
+                    <FaTrash />
                   </button>
-                </div> */}
+                </div>
               </div>
               {/* TODO:enable loading component while downloading file from server, and show indicator that no checklist available */}
               {folderStates[folder.id] && (isLoading[folder.id] ? <Loading /> : (
@@ -323,7 +324,8 @@ const Surveys = (): React.ReactElement => {
             </div>
           )}
         </Droppable>
-      ))}
+      ))
+      }
       < div className="sjs-surveys-list__footer" >
         <div style={{ display: 'flex', gap: '20px' }}>
           <span
@@ -334,11 +336,12 @@ const Surveys = (): React.ReactElement => {
             Add Checklist
           </span>
           {/* disable add folder button */}
-          {/* <span className='sjs-button sjs-add-btn'
+          <span className='sjs-button sjs-add-btn'
             title='addfolder'
+            onClick={openFolderModal}
           >
             Add Folder
-          </span> */}
+          </span>
         </div>
         {/* Add/Edit Modal */}
         <EditModal
@@ -359,8 +362,13 @@ const Surveys = (): React.ReactElement => {
           onClose={() => setRemoveModalOpen(false)}
           onConfirm={removeSurvey}
         />
+        <AddFolderModal
+          isOpen={isFolderModalOpen}
+          onClose={() => setFolderModalOpen(false)}
+          onSubmit={addFolder}
+        />
       </div>
-    </DragDropContext>
+    </DragDropContext >
   );
 };
 
