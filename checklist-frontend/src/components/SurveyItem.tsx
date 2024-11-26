@@ -2,11 +2,10 @@ import React from "react";
 import { Link } from "react-router-dom";
 import icon from "../icon.svg";
 import { Survey } from "../models/survey";
-import Logger from "../utils/logger";
 
 interface SurveyItemProps {
   survey: Survey;
-  onEdit: (id: string, name: string, customer: string, product: string) => void;
+  onEdit: (id: string, name: string, customer: string, product: string, folder_id: number) => void;
   onCopy: (survey: Survey) => void;
   onRemove: (survey: Survey) => void;
 }
@@ -29,7 +28,7 @@ const SurveyItem: React.FC<SurveyItemProps> = ({
               className="edit-icon"
               src={icon}
               onClick={() =>
-                onEdit(survey.id, survey.name, survey.customer, survey.prod_line)
+                onEdit(survey.id, survey.name, survey.customer, survey.prod_line, survey.folder_id)
               }
               alt="edit icon"
             />
