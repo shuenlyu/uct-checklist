@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
+import styles from './AddFolderModal.module.css';
 
 interface FolderModalProps {
     isOpen: boolean;
@@ -8,6 +9,7 @@ interface FolderModalProps {
 
 const AddFolderModal: React.FC<FolderModalProps> = ({ isOpen, onClose, onSubmit }) => {
     const [folderName, setFolderName] = useState('');
+
     const handleSubmit = () => {
         onSubmit(folderName);
         setFolderName('');
@@ -16,28 +18,28 @@ const AddFolderModal: React.FC<FolderModalProps> = ({ isOpen, onClose, onSubmit 
 
     if (!isOpen) return null;
 
-
     return (
-        <div className="confirm-modal">
-            <div className="confirm-modal-content">
+        <>
+            <div className={styles.modalContainer} onClick={onClose}></div>
+            <div className={styles.modalContent}>
                 <h2>Add Folder</h2>
                 <input
                     type="text"
                     value={folderName}
                     onChange={(e) => setFolderName(e.target.value)}
                     placeholder="Folder Name"
+                    className={styles.inputField}
                 />
-                <div className="buttons" style={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    gap: '10px',
-                    marginTop: '20px',
-                }}>
-                    <button className='modal-button' onClick={handleSubmit}>Add</button>
-                    <button className='modal-button cancel-button' onClick={onClose}>Cancel</button>
+                <div className={styles.buttons}>
+                    <button className={`${styles.modalButton} ${styles.addButton}`} onClick={handleSubmit}>
+                        Add
+                    </button>
+                    <button className={`${styles.modalButton} ${styles.cancelButton}`} onClick={onClose}>
+                        Cancel
+                    </button>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

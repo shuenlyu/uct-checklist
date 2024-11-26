@@ -1,0 +1,58 @@
+/* SurveyItem.module.css */
+
+.surveyItem {
+  width: 100%;
+}
+
+.surveyRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.surveyName {
+  display: flex;
+  align-items: center;
+}
+
+.editIcon {
+  width: 13px;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.button {
+  appearance: none;
+  -webkit-appearance: none;
+  text-decoration: none;
+  outline: none;
+  border-radius: 100px;
+  background: transparent;
+  padding: 8px 16px;
+  border: none;
+  color: #19b394;
+  cursor: pointer;
+  font-weight: 600;
+  text-align: center;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.button:hover {
+  background-color: rgba(25, 179, 148, 0.1);
+}
+
+.removeButton {
+  color: #e60a3e;
+}
+
+.removeButton:hover {
+  background-color: rgba(230, 10, 62, 0.1);
+}

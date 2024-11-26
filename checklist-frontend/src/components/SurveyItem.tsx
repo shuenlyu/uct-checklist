@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import icon from "../icon.svg";
 import { Survey } from "../models/survey";
+import styles from './SurveyItem.module.css';
 
 interface SurveyItemProps {
   survey: Survey;
@@ -16,46 +17,42 @@ const SurveyItem: React.FC<SurveyItemProps> = ({
   onCopy,
   onRemove,
 }) => {
-  // Logger.debug('SurveyItem', survey);
   return (
-    <table className="sjs-surveys-list" >
-
-      <tr key={survey.id} className="sjs-surveys-list__row">
-        <td>
+    <div className={styles.surveyItem}>
+      <div className={styles.surveyRow}>
+        <div className={styles.surveyName}>
           <span>{survey.name}</span>
-          <span>
-            <img
-              className="edit-icon"
-              src={icon}
-              onClick={() =>
-                onEdit(survey.id, survey.name, survey.customer, survey.prod_line, survey.folder_id)
-              }
-              alt="edit icon"
-            />
-          </span>
-        </td>
-        <td>
-          <span className="sjs-button" onClick={() => onCopy(survey)}>
-            <span>Copy</span>
-          </span>
-          <Link className="sjs-button" to={"run/" + survey.id}>
-            <span>Run</span>
+          <img
+            className={styles.editIcon}
+            src={icon}
+            onClick={() =>
+              onEdit(survey.id, survey.name, survey.customer, survey.prod_line, survey.folder_id)
+            }
+            alt="edit icon"
+          />
+        </div>
+        <div className={styles.buttons}>
+          <button className={styles.button} onClick={() => onCopy(survey)}>
+            Copy
+          </button>
+          <Link className={styles.button} to={`run/${survey.id}`}>
+            Run
           </Link>
-          <Link className="sjs-button" to={"edit/" + survey.id}>
-            <span>Edit</span>
+          <Link className={styles.button} to={`edit/${survey.id}`}>
+            Edit
           </Link>
-          <Link className="sjs-button" to={"results/" + survey.id}>
-            <span>Results</span>
+          <Link className={styles.button} to={`results/${survey.id}`}>
+            Results
           </Link>
-          <span
-            className="sjs-button sjs-remove-btn"
+          <button
+            className={`${styles.button} ${styles.removeButton}`}
             onClick={() => onRemove(survey)}
           >
             Remove
-          </span>
-        </td>
-      </tr>
-    </table>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

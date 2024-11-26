@@ -1,0 +1,44 @@
+/* Surveys.module.css */
+
+.container {
+  padding: 16px;
+}
+
+.addButton {
+  display: inline-block;
+  padding: 16px 48px;
+  background: white;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  text-align: center;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.addButton:hover,
+.addButton:focus {
+  border-color: #19b394;
+}
+
+.folder {
+  margin-top: 16px;
+}
+
+.folderHeader {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.folderName {
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.surveysList {
+  margin-top: 8px;
+}
+
+.loadingIndicator {
+  margin-left: 8px;
+}

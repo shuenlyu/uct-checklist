@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { customers } from '../models/customer';
 import { products } from '../models/product';
+import styles from './EditModal.module.css';
 import SpinnerComponent from './SpinnerComponent';
 
 interface Folder {
@@ -26,7 +27,6 @@ interface EditModalProps {
   title: string;
   folders: Folder[];
 }
-
 
 const EditModal: React.FC<EditModalProps> = ({
   isOpen,
@@ -57,7 +57,6 @@ const EditModal: React.FC<EditModalProps> = ({
     }
   }, [initialData, isOpen]);
 
-
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
@@ -81,132 +80,80 @@ const EditModal: React.FC<EditModalProps> = ({
 
   return (
     <>
-      <div className="modal-container" onClick={onClose}></div>
-      <div className="modal-content">
-        <div
-          style={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div className="modal-header">
-            <p>{title}</p>
+      <div className={styles.modalContainer} onClick={onClose}></div>
+      <div className={styles.modalContent}>
+        <div className={styles.modalBody}>
+          <div className={styles.modalHeader}>
+            <h2>{title}</h2>
           </div>
-          <div className="Add-checklist">
-            <div>
-              <label htmlFor="customer" style={{ fontWeight: 600 }}>
-                Select Customer
-              </label>
-              <select
-                name="customer"
-                className="select-dropdown"
-                value={customer}
-                onChange={(e) => {
-                  const selectedCustomerId = parseInt(e.target.value) || 0;
-                  setCustomer(selectedCustomerId);
-                  setProduct(0);
-                  setIsValidChecklist(true);
-                }}
-              >
-                <option value="">Choose a customer from list</option>
-                {customers.map((cust) => (
-                  <option
-                    key={cust.id}
-                    style={{ textTransform: 'capitalize' }}
-                    value={cust.id}
-                  >
-                    {cust.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div style={{ marginTop: 20 }}>
-              <label htmlFor="product" style={{ fontWeight: 600 }}>
-                Select Product Line
-              </label>
-              <select
-                name="product"
-                className="select-dropdown"
-                value={product}
-                onChange={(e) => {
-                  setProduct(parseInt(e.target.value) || 0);
-                  setIsValidChecklist(true);
-                }}
-              >
-                <option value="">Choose a product line from list</option>
-                {products.map((product) => (
-                  <option
-                    key={product.id}
-                    style={{ textTransform: 'capitalize' }}
-                    value={product.id}
-                  >
-                    {product.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div style={{ marginTop: 20 }}>
-              <label htmlFor='folder' style={{ fontWeight: 600 }}>
-                Select Folder
-              </label>
-              <select
-                name='folder'
-                className='select-dropdown'
-                value={folder}
-                onChange={(e) => {
-                  setFolder(parseInt(e.target.value) || 0);
-                  setIsValidChecklist(true);
-                }}>
-                <option value=''>Choose a folder from list</option>
-                {folders.map((folder) => (
-                  <option
-                    key={folder.id}
-                    style={{ textTransform: 'capitalize' }}
-                    value={folder.id}
-                  >
-                    {folder.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div style={{ marginTop: 20 }}>
-              <label htmlFor="name" style={{ fontWeight: 600 }}>
-                Checklist Name
-              </label>
-              <input
-                type="text"
-                placeholder="Add Checklist Name"
-                value={inputValue}
-                style={{ marginTop: 4 }}
-                onChange={(e) => {
-                  setInputValue(e.target.value);
-                  setIsValidChecklist(true);
-                }}
-              />
-            </div>
-          </div>
+          <select
+            value={customer}
+            onChange={(e) => setCustomer(Number(e.target.value))}
+            className={styles.selectField}
+          >
+            <option value={0}>Select Customer</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={product}
+            onChange={(e) => setProduct(Number(e.target.value))}
+            className={styles.selectField}
+          >
+            <option value={0}>Select Product</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={folder}
+            onChange={(e) => setFolder(Number(e.target.value))}
+            className={styles.selectField}
+          >
+            <option value={0}>Select Folder</option>
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Name"
+            className={styles.inputField}
+          />
           {!isValidChecklist && (
-            <p className="input-remark">
-              Customer, Product line & checklist name are required fields
-            </p>
+            <div className={styles.errorMessage}>
+              Please fill out all fields.
+            </div>
           )}
-          <div className="buttons" style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '10px',
-            marginTop: '20px',
-          }}>
-            <button className="modal-button cancel-button" onClick={onClose}>
-              Cancel
-            </button>
+          <div className={styles.buttons}>
             <button
-              className="modal-button"
+              className={`${styles.modalButton} ${styles.submitButton}`}
               onClick={handleSubmit}
               disabled={isLoading}
             >
-              {isLoading ? <SpinnerComponent /> : title === 'Enter New Checklist' ? 'Add' : 'Update'}
+              {isLoading ? (
+                <div className={styles.spinnerContainer}>
+                  <SpinnerComponent />
+                </div>
+              ) : (
+                'Submit'
+              )}
+            </button>
+            <button
+              className={`${styles.modalButton} ${styles.cancelButton}`}
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              Cancel
             </button>
           </div>
         </div>
