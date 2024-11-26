@@ -70,6 +70,7 @@
     "workerDirectory": "public"
   },
   "devDependencies": {
+    "@types/react-beautiful-dnd": "^13.1.8",
     "msw": "^0.39.2"
   }
 }
