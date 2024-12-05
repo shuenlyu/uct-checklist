@@ -19,8 +19,8 @@ import Logger from "../utils/logger";
 import { useLocation } from "react-router-dom";
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 import Loading from "../components/Loading";
-import { saveHtml2Pdf } from "../utils/saveToPdf";
 
+// 通过 TypeScript 的声明合并功能，扩展了 Window 接口，使得 Window 对象上可以存在一个名为 rerunSurvey 的方法
 declare global {
   interface Window {
     rerunSurvey: () => void;
@@ -113,7 +113,9 @@ const Run = () => {
   // parse the query parameters from URL
   const { id } = useParams();
   const location = useLocation();
-  const { result_id } = location.state || {};
+  // in the results page, the result_id is passed as a state from the Viewer component
+  const { result_id: initialResultId } = location.state || {};
+  let result_id = initialResultId;
   Logger.info("Run state: result_id", result_id);
 
   //used for fetch results and filter the latest result based on the userID
@@ -122,12 +124,22 @@ const Run = () => {
     ? queryParams.get("inspectedby")
     : "noname";
 
+  //get the id and view parameters from URL, 
+  // UIB will pass id(last result id for a particular wo) as a parameter to view the last result
+  result_id = queryParams.get("id") || result_id;
+  // viewOnly is a flag to view the survey in read-only mode
+  let viewOnly = false;
+  if (queryParams.get("view") === "1") {
+    viewOnly = true;
+  }
+
   const { fetchData, postData } = useApi();
   const [survey, setSurvey] = useState({ json: "", name: " " });
   const [result, setResult] = useState({});
   const [theme, setTheme] = useState<ITheme>(themes[0]);
 
   //use initializeModelFromURL to initialize question values from queryParameters URL
+  // QUESTION:survey.json is empty, how to populate the fields from query parameters
   let model = initializeModelFromURL(window.location.search, survey.json);
 
   //try to change the behavior of the completed page
@@ -146,11 +158,10 @@ const Run = () => {
   //model applyTheme
   const getTheme = async () => {
     const response = await fetchData("/getTheme?surveyId=" + id, false);
-    if(response.data && response.data.theme){
+    if (response.data && response.data.theme) {
       setTheme(JSON.parse(response.data.theme));
     }
   };
-
   model.applyTheme(theme);
   Logger.debug("Run: theme applied, ", theme);
 
@@ -190,9 +201,10 @@ const Run = () => {
   };
 
   //check if 'datacollection_header' exists in model.getAllQuestions()
+  // disable load the last result for datacollection_header
   const shouldGetResults = !model
     .getAllQuestions()
-    .some((question) => question.name === "datacollection_header");
+    .some((question) => question.name === "datacollection_header") || result_id;
 
   //if result_id is not null, then get result from results table
   // if Run componenet got result data props, then disable getResults hook
@@ -223,10 +235,13 @@ const Run = () => {
     action: () => {
       // using window built-in function to save the survey as PDF
       window.print();
-      // saveHtml2Pdf();
     },
   });
 
+  // if viewOnly is true, then set model.mode to display
+  if (viewOnly) {
+    model.mode = "display";
+  }
   model.onComplete.add(async (sender: Model) => {
     Logger.debug("onComplete Survey data:", sender.data);
     await postData(

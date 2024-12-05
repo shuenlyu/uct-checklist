@@ -34,6 +34,8 @@ const checkType = (key) => {
     return sql.Bit;
   } else if (key === "created_at") {
     return sql.DateTime;
+  } else if (key === "sequence") {
+    return sql.Int;
   } else {
     return sql.NVarChar;
   }
