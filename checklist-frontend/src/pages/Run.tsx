@@ -53,6 +53,8 @@ function initializeModelFromURL(search: string, modelData: any) {
     "checklist_header_fi",
     "checklist_header_shipkit",
     "checklist_content_fi",
+    "universal_header",
+    "universal_content",
   ];
   // HOW to handle this case to populate data from query parameters automatically
   const questions = model.getAllQuestions();
