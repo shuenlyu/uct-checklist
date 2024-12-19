@@ -44,7 +44,7 @@ interface ResultItem {
   submittedBy: string;
 }
 
-//TODO: populating fields from query parameters should be after fetch the latest result from the backend
+//[x]: populating fields from query parameters should be after fetch the latest result from the backend
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
@@ -121,6 +121,7 @@ const Run = () => {
   Logger.info("Run state: result_id", result_id);
 
   //used for fetch results and filter the latest result based on the userID
+  // add queryParams.get('userId') to get the userId from the URL if inspectedBY is not present, then use userid
   const queryParams = new URLSearchParams(window.location.search);
   const userId = queryParams.get("inspectedby")
     ? queryParams.get("inspectedby")

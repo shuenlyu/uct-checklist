@@ -9,6 +9,7 @@ export const universal_header_json = {
       name: "wo",
       title: "WO",
       titleLocation: "left",
+      maxWidth: "40%",
       visiable: true,
     },
     {
@@ -16,6 +17,7 @@ export const universal_header_json = {
       name: "oms",
       title: "OMS",
       titleLocation: "left",
+      maxWidth: "40%",
       visible: true,
     },
     {
@@ -23,6 +25,7 @@ export const universal_header_json = {
       name: "step",
       title: "Step",
       titleLocation: "left",
+      maxWidth: "40%",
       visible: true,
     },
     {
@@ -30,6 +33,7 @@ export const universal_header_json = {
       name: "station",
       title: "Station",
       titleLocation: "left",
+      maxWidth: "40%",
       visible: true,
     },
     {
@@ -37,6 +41,7 @@ export const universal_header_json = {
       name: "omssn",
       title: "OMS SN",
       titleLocation: "left",
+      maxWidth: "40%",
       visible: true,
     },
     {
@@ -44,6 +49,7 @@ export const universal_header_json = {
       name: "plant_code",
       title: "Plant Code",
       titleLocation: "left",
+      maxWidth: "40%",
       visible: true,
     },
     {
@@ -51,6 +57,7 @@ export const universal_header_json = {
       name: "userid",
       title: "User ID",
       titleLocation: "left",
+      maxWidth: "40%",
       visible: true,
     },
     //Adding new middle name question
@@ -60,6 +67,7 @@ export const universal_header_json = {
       name: "toolid",
       title: "Tool ID",
       titleLocation: "left",
+      maxWidth: "40%",
       visible: true,
     },
     {
@@ -70,11 +78,13 @@ export const universal_header_json = {
       title: "Date",
       visible: true,
       titleLocation: "left",
+      maxWidth: "40%",
     },
   ],
   //SurveyJS calls this function one time on registing component, after creating "fullname" class.
   onInit() {
     //SurveyJS will create a new class "fullname". We can add properties for this class onInit()
+    // ?QUESTION Serializer is a SurveyJS class. What is the purpose of Serializer.addProperty()?
     Serializer.addProperty("universal_header", {
       name: "showWo:boolean",
       default: true,
@@ -124,6 +134,9 @@ export const universal_header_json = {
   //SurveyJS calls this function after creating new question and loading it's properties from JSON
   //It calls in runtime and at design-time (after loading from JSON) and pass the current component/root question as parameter
   onLoaded(question: any) {
+    question.contentPanel.questionTitleLocation = "left";
+    question.contentPanel.questionTitleWidth = "85px";
+    console.log("universalHeader onLoaded executed", question);
     this.changeWoVisibility(question);
     this.changeOmsVisibility(question);
     this.changeStepVisibility(question);
@@ -133,10 +146,17 @@ export const universal_header_json = {
     this.changeUserIdVisibility(question);
     this.changeToolidVisibility(question);
     this.changeDateVisibility(question);
+    const visibleQuestions = question.contentPanel.questions.filter(
+      (q: any) => q.visible
+    );
+    visibleQuestions.forEach((q: any, index: number) => {
+      q.startWithNewLine = index % 3 === 0;
+    });
   },
   //SurveyJS calls this on a property change in the component/root question
   //It has three parameters that are self explained
   onPropertyChanged(question: any, propertyName: any, newValue: any) {
+    console.log("onPropertyChanged", propertyName, newValue);
     if (propertyName == "showWo") {
       this.changeWoVisibility(question);
     } else if (propertyName == "showOms") {
@@ -155,6 +175,28 @@ export const universal_header_json = {
       this.changeToolidVisibility(question);
     } else if (propertyName == "showDate") {
       this.changeDateVisibility(question);
+    }
+
+    if (
+      [
+        "showWo",
+        "showOms",
+        "showStep",
+        "showStation",
+        "showOmssn",
+        "showPlantCode",
+        "showUserId",
+        "showToolid",
+        "showDate",
+      ].includes(propertyName)
+    ) {
+      const visibleQuestions = question.contentPanel.questions.filter(
+        (q: any) => q.visible
+      );
+      visibleQuestions.forEach((q: any, index: number) => {
+        console.log("q, index", q.name, index);
+        q.startWithNewLine = index % 3 === 0;
+      });
     }
   },
   //The custom function that used in onLoaded and onPropertyChanged functions
