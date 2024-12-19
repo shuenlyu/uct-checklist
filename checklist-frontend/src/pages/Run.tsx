@@ -125,7 +125,7 @@ const Run = () => {
   const queryParams = new URLSearchParams(window.location.search);
   const userId = queryParams.get("inspectedby")
     ? queryParams.get("inspectedby")
-    : "noname";
+    : (queryParams.get("userid") ? queryParams.get("userid") : "noname");
 
   //get the id and view parameters from URL, 
   // UIB will pass id(last result id for a particular wo) as a parameter to view the last result
