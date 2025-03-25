@@ -40,6 +40,21 @@ const checkType = (key) => {
     return sql.NVarChar;
   }
 };
+// filter out the group from the array
+const getGroup = (arr) => {
+  let group = null;
+  if (arr.includes("ALL_SITES")) {
+    group = "ALL_SITES";
+  } else if (arr.includes("UCAP")) {
+    group = "UCAP";
+  } else if (arr.includes("UCTM")) {
+    group = "UCTM";
+  } else if (arr.includes("UCME")) {
+    group = "UCME";
+  }
+  return group;
+};
+
 const updateDataCollection = async (id, new_data) => {
   try {
     // Delete existing data with the given postId
@@ -158,13 +173,20 @@ app.post("/create", async (req, res) => {
     const product = req.body.product;
     const folder_id = req.body.folderId;
     const userId = req.user.email;
+    const user_group = getGroup(req.user.group);
+    Logger.debug(
+      "---- api call: /create, req.user.group, req.user: ",
+      user_group,
+      req.user
+    );
     const result = await dbAdapter.addSurvey(
       name,
       customer,
       product,
       folder_id,
       id,
-      userId
+      userId,
+      user_group
     );
     Logger.debug(
       "---- api call: /create,id, name, customer, product, userId, result, result: ",
@@ -183,6 +205,7 @@ app.post("/create", async (req, res) => {
           customer: result[0].customer,
           prod_line: result[0].prod_line,
           folder_id: result[0].folder_id,
+          groups: result[0].groups,
         })
       : res.json({
           name: result.name,
@@ -190,6 +213,7 @@ app.post("/create", async (req, res) => {
           customer: result.customer,
           prod_line: result.prod_line,
           folder_id: result.folder_id,
+          groups: result[0].groups,
         });
   } catch (error) {
     Logger.error("/create", error.message);
@@ -207,6 +231,7 @@ app.post("/duplicate", async (req, res) => {
     const folder_id = req.body.folderId;
     const json = req.body.json;
     const userId = req.user.email;
+    const user_group = getGroup(req.user.group);
     const result = await dbAdapter.duplicateSurvey(
       name,
       customer,
@@ -214,7 +239,8 @@ app.post("/duplicate", async (req, res) => {
       folder_id,
       json,
       id,
-      userId
+      userId,
+      user_group
     );
     Logger.debug(
       "---- api call: /duplicate, name, customer, product, folder_id, json, userId, result: ",
@@ -233,6 +259,7 @@ app.post("/duplicate", async (req, res) => {
           customer: result[0].customer,
           prod_line: result[0].prod_line,
           folder_id: result[0].folder_id,
+          groups: result[0].groups,
         })
       : res.json({
           name: result.name,
@@ -240,6 +267,7 @@ app.post("/duplicate", async (req, res) => {
           customer: result.customer,
           prod_line: result.prod_line,
           folder_id: result.folder_id,
+          groups: result.groups,
         });
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -250,6 +278,7 @@ app.post("/duplicate", async (req, res) => {
 app.get("/getActive", async (req, res) => {
   try {
     Logger.debug("---- api call: /getActive Started!");
+    Logger.debug("---- req: ", req);
     const user = { email: req.user.email, role: req.user.role };
     const result = await dbAdapter.getSurveys(user);
     // Logger.debug("---- api call: /getActive, user, result: ", user, result);
@@ -300,12 +329,14 @@ app.get("/changeName", async (req, res) => {
     const customer = req.query["customer"];
     const product = req.query["product"];
     const folder_id = req.query["folderId"];
+    const user_group = getGroup(req.user.group);
     const result = await dbAdapter.changeName(
       id,
       name,
       customer,
       product,
-      folder_id
+      folder_id,
+      user_group
     );
     Logger.debug(
       "---- api call: /changeName, name, customer, product, result, result: ",
@@ -566,9 +597,11 @@ app.get("/getFolders", async (req, res) => {
 });
 //fetch files for a specific folder
 app.get("/folders/:folderId/files", async (req, res) => {
+  Logger.debug("---- api call: /folders/:folderId/files Started!", req);
+  const user_group = getGroup(req.user.group);
   const { folderId } = req.params;
   try {
-    const result = await dbAdapter.getFolderFiles(folderId);
+    const result = await dbAdapter.getFolderFiles(folderId, user_group);
     res.json(result);
   } catch (error) {
     console.error("=====getFiles ERROR:", error.message);

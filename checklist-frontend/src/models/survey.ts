@@ -14,6 +14,7 @@ export interface Survey {
   createdAt: string;
   updatedAt: string;
   folder_id: number;
+  groups?:string;
 }
 
 export const defaultJSON = {

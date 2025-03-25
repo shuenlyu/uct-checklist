@@ -54,10 +54,10 @@ class MSSQLDBAdapter {
     return this.query(`SELECT * FROM ${tableName}`);
   }
 
-  async addSurvey(name, customer, product, folder_id, id, userId) {
+  async addSurvey(name, customer, product, folder_id, id, userId, user_group) {
     if (DEBUG) console.log("------ mssql: addSurvey invoke!");
     return this.query(
-      "INSERT INTO surveys (id, name, customer, prod_line, folder_id, json, user_id) VALUES(@id, @name, @customer, @prod_line, @folder_id, '{}', @user_id); SELECT * FROM surveys WHERE id = @id;",
+      "INSERT INTO surveys (id, name, customer, prod_line, folder_id, json, user_id, groups) VALUES(@id, @name, @customer, @prod_line, @folder_id, '{}', @user_id, @user_group); SELECT * FROM surveys WHERE id = @id;",
       [
         { name: "id", type: sql.UniqueIdentifier, value: id },
         { name: "name", type: sql.NVarChar, value: name },
@@ -65,6 +65,7 @@ class MSSQLDBAdapter {
         { name: "prod_line", type: sql.NVarChar, value: product },
         { name: "folder_id", type: sql.Int, value: folder_id },
         { name: "user_id", type: sql.NVarChar, value: userId },
+        { name: "user_group", type: sql.NVarChar, value: user_group },
       ]
     );
   }
@@ -172,16 +173,17 @@ class MSSQLDBAdapter {
     ]);
   }
 
-  async changeName(id, name, customer, product, folder_id) {
+  async changeName(id, name, customer, product, folder_id, user_group) {
     if (DEBUG) console.log("------ mssql: changeName invoke!");
     return this.query(
-      "UPDATE surveys SET name = @name, customer = @customer, prod_line = @prod_line, folder_id=@folder_id WHERE id = @id; SELECT * FROM surveys WHERE id = @id;",
+      "UPDATE surveys SET name = @name, customer = @customer, prod_line = @prod_line, folder_id=@folder_id, groups=@user_group WHERE id = @id; SELECT * FROM surveys WHERE id = @id;",
       [
         { name: "id", type: sql.UniqueIdentifier, value: id },
         { name: "name", type: sql.NVarChar, value: name },
         { name: "customer", type: sql.NVarChar, value: customer },
         { name: "prod_line", type: sql.NVarChar, value: product },
         { name: "folder_id", type: sql.Int, value: folder_id },
+        { name: "user_group", type: sql.NVarChar, value: user_group },
       ]
     );
   }
@@ -228,12 +230,21 @@ class MSSQLDBAdapter {
     );
   }
 
-  async duplicateSurvey(name, customer, product, folder_id, json, id, userId) {
+  async duplicateSurvey(
+    name,
+    customer,
+    product,
+    folder_id,
+    json,
+    id,
+    userId,
+    user_group
+  ) {
     if (DEBUG) console.log("------ mssql: DB:duplicateSurvey invoke!");
     // const json_str = JSON.stringify(json);
 
     return this.query(
-      "INSERT INTO surveys (id, name, customer, prod_line, folder_id, json, user_id) VALUES(@id, @name, @customer, @prod_line, @folder_id,  @json, @userId); SELECT * FROM surveys WHERE id = @id;",
+      "INSERT INTO surveys (id, name, customer, prod_line, folder_id, json, user_id, groups) VALUES(@id, @name, @customer, @prod_line, @folder_id,  @json, @userId, @user_group); SELECT * FROM surveys WHERE id = @id;",
       [
         { name: "id", type: sql.UniqueIdentifier, value: id },
         { name: "name", type: sql.NVarChar, value: name },
@@ -242,6 +253,7 @@ class MSSQLDBAdapter {
         { name: "folder_id", type: sql.Int, value: folder_id },
         { name: "json", type: sql.NVarChar, value: json },
         { name: "userId", type: sql.NVarChar, value: userId },
+        { name: "user_group", type: sql.NVarChar, value: user_group },
       ]
     );
   }
@@ -268,11 +280,21 @@ class MSSQLDBAdapter {
     return this.query("SELECT * FROM folders");
   }
   //get folder files
-  async getFolderFiles(folderId) {
+  async getFolderFiles(folderId, user_group) {
     if (DEBUG) console.log("------ mssql: getFolderFiles invoke!");
-    return this.query("SELECT * FROM surveys WHERE folder_id = @folderId", [
-      { name: "folderId", type: sql.Int, value: folderId },
-    ]);
+    if (user_group === "ALL_SITES") {
+      return this.query("SELECT * FROM surveys WHERE folder_id = @folderId", [
+        { name: "folderId", type: sql.Int, value: folderId },
+      ]);
+    } else {
+      return this.query(
+        "SELECT * FROM surveys WHERE folder_id = @folderId AND groups = @user_group",
+        [
+          { name: "folderId", type: sql.Int, value: folderId },
+          { name: "user_group", type: sql.NVarChar, value: user_group },
+        ]
+      );
+    }
   }
   //update folder_id
   async moveSurvey(surveyId, targetFolderId) {

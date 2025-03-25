@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 services:
   nginx:
     build: ./nginx
@@ -9,16 +9,16 @@ services:
     ports:
       - "443:443"
       - "8443:8443"
-  # use the existing postgresql docker container 
+  # use the existing postgresql docker container
   # postgres:
   #   build: ./postgres
-  #   volumes: 
+  #   volumes:
   #     - postgres-data:/var/lib/postgresql/data
   #   ports:
   #     - "5432:5432"
 
-  backend: 
-    build: 
+  backend:
+    build:
       context: ./checklist-backend
     env_file:
       - .env.development
@@ -27,7 +27,7 @@ services:
     restart: always
 
   frontend:
-    build: 
+    build:
       context: ./checklist-frontend
       dockerfile: Dockerfile.hotloading
       args:
@@ -39,4 +39,4 @@ services:
       - backend
     volumes:
       - ./checklist-frontend:/checklist-frontend
-      - /checklist-frontend/node_modules
+      - ./checklist-frontend/node_modules:/checklist-frontend/node_modules
