@@ -56,3 +56,19 @@
 .removeButton:hover {
   background-color: rgba(230, 10, 62, 0.1);
 }
+
+/* Style for the survey group label */
+.groupLabel {
+  background-color: #d0ebff; /* Light blue background */
+  padding: 8px 16px;
+  border-radius: 10px;
+  color: #0056b3; /* Dark blue text */
+  font-weight: 400;
+  /* cursor: pointer; */
+  /* text-align: center; */
+  font-family: inherit;
+  font-size: 13px;
+  display: inline-block;
+  margin-right: 10px;
+  align-self: flex-end;
+}

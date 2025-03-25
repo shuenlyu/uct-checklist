@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import icon from "../icon.svg";
 import { Survey } from "../models/survey";
 import styles from './SurveyItem.module.css';
@@ -17,6 +18,7 @@ const SurveyItem: React.FC<SurveyItemProps> = ({
   onCopy,
   onRemove,
 }) => {
+  const { userGroup } = useAuth();
   return (
     <div className={styles.surveyItem}>
       <div className={styles.surveyRow}>
@@ -32,6 +34,11 @@ const SurveyItem: React.FC<SurveyItemProps> = ({
           />
         </div>
         <div className={styles.buttons}>
+          {survey.groups && (
+            <span className={styles.groupLabel}>
+              {survey.groups}
+            </span>
+          )}
           <button className={styles.button} onClick={() => onCopy(survey)}>
             Copy
           </button>
@@ -44,12 +51,12 @@ const SurveyItem: React.FC<SurveyItemProps> = ({
           <Link className={styles.button} to={`results/${survey.id}`}>
             Results
           </Link>
-          {/* <button
+          {userGroup === "ALL_SITES" && <button
             className={`${styles.button} ${styles.removeButton}`}
             onClick={() => onRemove(survey)}
           >
             Remove
-          </button> */}
+          </button>}
         </div>
       </div>
     </div>

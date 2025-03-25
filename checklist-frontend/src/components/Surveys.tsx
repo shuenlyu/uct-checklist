@@ -1,6 +1,8 @@
+import { group } from 'console';
 import React, { useEffect, useState } from 'react';
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
 import { FaTrash } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
 import { customers } from '../models/customer';
 import { products } from '../models/product';
 import { Survey } from '../models/survey';
@@ -41,6 +43,11 @@ const Surveys = (): React.ReactElement => {
 
   const { fetchData, postData, deleteData, putData } = useApi();
 
+  const { userGroup } = useAuth();
+  // get the group from the user
+  // Convert the JSON string into an array
+
+
   useEffect(() => {
     getFolders();
   }, []);
@@ -48,7 +55,7 @@ const Surveys = (): React.ReactElement => {
   const getFolders = async () => {
     try {
       const response = await fetchData('/getFolders');
-      Logger.debug('Folders:', response.data);
+      Logger.info('Folders:', response.data);
       setFolders(response.data);
       const initialStates = response.data.reduce((acc: { [key: number]: boolean }, folder: Folder) => {
         acc[folder.id] = false;
@@ -128,6 +135,7 @@ const Surveys = (): React.ReactElement => {
         }
       } else {
         response = await createSurvey(data.name, data.customerId, data.productId, data.folderId);
+        Logger.info('response data: ', response.data);
         if (response.status === 200) {
           updateFolderFiles(data.folderId, response.data);
         }
@@ -212,6 +220,7 @@ const Surveys = (): React.ReactElement => {
       }));
       try {
         const response = await fetchData(`/folders/${folderId}/files`);
+        Logger.info("------- toggleFolder: ", response.data);
         setFolders((prevFolders) =>
           prevFolders.map((folder) =>
             folder.id === folderId ? { ...folder, files: response.data } : folder
@@ -321,7 +330,7 @@ const Surveys = (): React.ReactElement => {
                 >
                   {folder.name} <span>{folderStates[folder.id] ? "▼" : "▶"}</span>
                 </h3>
-                {/* <div>
+                {userGroup === "ALL_SITES" && <div>
                   <button
                     onClick={() => deleteFolder(folder.id)}
                     style={{
@@ -335,7 +344,7 @@ const Surveys = (): React.ReactElement => {
                   >
                     <FaTrash />
                   </button>
-                </div> */}
+                </div>}
               </div>
               {folderStates[folder.id] && (isLoading[folder.id] ? <Loading /> : (
                 folder.files.length > 0 ? (

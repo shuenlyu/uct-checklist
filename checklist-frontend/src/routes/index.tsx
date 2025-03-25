@@ -1,16 +1,17 @@
 // require('dotenv').config();
 import React, { useEffect, useState } from "react";
-import { Route, NavLink, Routes, useNavigate, Navigate, Outlet } from "react-router-dom";
+import { Navigate, NavLink, Outlet, Route, Routes, useNavigate } from "react-router-dom";
 
-import Home from '../pages/Home';
 import About from '../pages/About';
-import Run from '../pages/Run';
 import Edit from '../pages/Edit';
-import Results from '../pages/Results';
+import Home from '../pages/Home';
 import Login from '../pages/Login';
+import Results from '../pages/Results';
+import Run from '../pages/Run';
 
-import { useApi } from "../utils/api";
 import Loading from "../components/Loading";
+import { useAuth } from '../contexts/AuthContext';
+import { useApi } from "../utils/api";
 import Logger from "../utils/logger";
 
 export const NavBar = () => (
@@ -30,31 +31,53 @@ const NoMatch = () => (
   </>
 );
 
+const getGroup = (arr: string[]): string | null => {
+  let group = null;
+  if (arr.includes("ALL_SITES")) {
+    group = "ALL_SITES";
+  } else if (arr.includes("UCAP")) {
+    group = "UCAP";
+  } else if (arr.includes("UCTM")) {
+    group = "UCTM";
+  } else if (arr.includes("UCME")) {
+    group = "UCME";
+  }
+  return group;
+};
+
 const ProtectedRoutes = () => {
   const { fetchData } = useApi();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState<boolean>(true);
-  const [user, setUser] = useState<Record<string, string>>();
+  const { user, setUser, userGroup, setUserGroup, loading, setLoading } = useAuth();
+  // const [loading, setLoading] = useState<boolean>(true);
+  // const [user, setUser] = useState<Record<string, string>>();
 
   Logger.info("======ProtectedRoutes started!!");
 
   useEffect(() => {
-    fetchData('/getMe')
-      .then((res) => {
-        if (res.data.user) {
-          Logger.info("===getMe fetchData: setUser===");
-          setUser(res.data.user)
-          setLoading(false)
-        } else {
-          Logger.info("===getMe fetchData: navigate to login ===");
-          navigate('/login')
-        }
-      })
-      .catch((err) => {
-        Logger.error("===getMe err: ", err);
-        navigate('/login')
-      })
-  }, [])
+    if (!user && loading) {
+      fetchData('/getMe')
+        .then((res) => {
+          if (res.data.user) {
+            Logger.info("===getMe fetchData: setUser===", res.data.user);
+            const groupArray: string[] = res.data.user?.group ? res.data.user.group : [];
+            const user_group = getGroup(groupArray);
+            setUserGroup(user_group);
+            setUser(res.data.user);
+            setLoading(false);
+          } else {
+            Logger.info("===getMe fetchData: navigate to login ===");
+            navigate('/login');
+            setLoading(false);
+          }
+        })
+        .catch((err) => {
+          Logger.error("===getMe err: ", err);
+          navigate('/login');
+          setLoading(false);
+        })
+    }
+  }, [fetchData, navigate, user, loading, userGroup, setUserGroup, setUser, setLoading]);
 
   if (loading) {
     return <Loading />
