@@ -75,6 +75,7 @@ const updateDataCollection = async (id, new_data) => {
 
 const app = express();
 
+// Configure CORS properly - allow specific origin(s)
 app.use(cors({ origin: process.env.APP_URL, credentials: true }));
 
 app.use(
@@ -96,6 +97,22 @@ app.use(
     limit: "50mb",
   })
 );
+
+// Define a simple root route that returns API info instead of serving UI
+app.get("/", (req, res) => {
+  res.json({
+    message: "Survey API Server",
+    version: "1.0.0",
+    endpoints: [
+      "/login", 
+      "/getMe", 
+      "/getActive", 
+      "/getSurvey", 
+      "/getTheme",
+      // Add other endpoints here
+    ]
+  });
+});
 
 app.get(
   "/login",
@@ -616,7 +633,12 @@ app.post("/folders", async (req, res) => {
   }
 });
 
-app.use(express.static(__dirname + "/public"));
+// For any other routes, return 404
+app.use((req, res) => {
+  res.status(404).json({ error: "Not Found", message: "Endpoint does not exist" });
+});
+
+// Start the server
 app.listen(process.env.PORT || 3002, () => {
-  console.log("Server is listening on port", process.env.PORT || 3002);
+  console.log("API server is listening on port", process.env.PORT || 3002);
 });
