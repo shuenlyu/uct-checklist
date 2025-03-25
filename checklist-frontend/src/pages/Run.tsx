@@ -44,7 +44,7 @@ interface ResultItem {
   submittedBy: string;
 }
 
-//TODO: populating fields from query parameters should be after fetch the latest result from the backend
+//[x]: populating fields from query parameters should be after fetch the latest result from the backend
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
@@ -53,6 +53,8 @@ function initializeModelFromURL(search: string, modelData: any) {
     "checklist_header_fi",
     "checklist_header_shipkit",
     "checklist_content_fi",
+    "universal_header",
+    "universal_content",
   ];
   // HOW to handle this case to populate data from query parameters automatically
   const questions = model.getAllQuestions();
@@ -119,10 +121,11 @@ const Run = () => {
   Logger.info("Run state: result_id", result_id);
 
   //used for fetch results and filter the latest result based on the userID
+  // add queryParams.get('userId') to get the userId from the URL if inspectedBY is not present, then use userid
   const queryParams = new URLSearchParams(window.location.search);
   const userId = queryParams.get("inspectedby")
     ? queryParams.get("inspectedby")
-    : "noname";
+    : (queryParams.get("userid") ? queryParams.get("userid") : "noname");
 
   //get the id and view parameters from URL, 
   // UIB will pass id(last result id for a particular wo) as a parameter to view the last result

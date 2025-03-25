@@ -13,6 +13,8 @@ import { checklistHeaderFI_json } from "./custom_questions/checklistHeaderFI";
 import { checklistHeaderShipKit_json } from "./custom_questions/checklistHeaderShipkit";
 import { dc_predefined_json } from "./custom_questions/datacollection";
 import { datacollectionFPY_json } from "./custom_questions/datacollectionFPY";
+import { universal_content_json } from "./custom_questions/universalContent";
+import { universal_header_json } from "./custom_questions/universalHeader";
 
 // Enable the File Upload type for use in matrix columns
 matrixDropdownColumnTypes.file = {};
@@ -22,6 +24,8 @@ ComponentCollection.Instance.add(checklistHeaderFI_json);
 ComponentCollection.Instance.add(checklistHeaderShipKit_json);
 ComponentCollection.Instance.add(checklistContentFI_json);
 ComponentCollection.Instance.add(datacollectionFPY_json);
+ComponentCollection.Instance.add(universal_header_json);
+ComponentCollection.Instance.add(universal_content_json);
 
 const Editor = (params: { id: string }): React.ReactElement => {
   const { fetchData, postData } = useApi();
@@ -98,26 +102,26 @@ const Editor = (params: { id: string }): React.ReactElement => {
   }, [dispatch, creator, params.id]);
 
   //add useEffect for fetching the emailList for checklist 
-  useEffect(()=>{
-      const fetchEmailList = async () => {
-          try {
-              const response = await fetchData("/getEmailList");
-              if (response.status !== 200){
-                  throw new Error("Failed to fetch email list");
-              }
-              const emails = response.data;
-              Logger.debug("emails: ", emails);
-              setEmailList(emails.map((email:{Email:string}, index:number) => {
-                return new ItemValue(index, email.Email);
-              }));
-              Logger.debug('emailList: ', emailList);
-          } catch(error){
-              console.error("fetchEmailList: ", error);
-          }
-      };
-      fetchEmailList();
+  useEffect(() => {
+    const fetchEmailList = async () => {
+      try {
+        const response = await fetchData("/getEmailList");
+        if (response.status !== 200) {
+          throw new Error("Failed to fetch email list");
+        }
+        const emails = response.data;
+        Logger.debug("emails: ", emails);
+        setEmailList(emails.map((email: { Email: string }, index: number) => {
+          return new ItemValue(index, email.Email);
+        }));
+        Logger.debug('emailList: ', emailList);
+      } catch (error) {
+        console.error("fetchEmailList: ", error);
+      }
+    };
+    fetchEmailList();
 
-  }, [dispatch, creator, params.id]);  
+  }, [dispatch, creator, params.id]);
 
   //modify the added question type into text input question category
   creator.toolbox.forceCompact = false;
@@ -135,6 +139,9 @@ const Editor = (params: { id: string }): React.ReactElement => {
     "Text Input Questions"
   );
   creator.toolbox.changeCategory("datacollection_fpy", "Text Input Questions");
+  creator.toolbox.changeCategory("universal_header", "Text Input Questions");
+  creator.toolbox.changeCategory("universal_content", "Text Input Questions");
+
 
   //define the properties to be shown for datacollection_header question type
   // const propertiesToShowInPredefined = [
@@ -154,7 +161,8 @@ const Editor = (params: { id: string }): React.ReactElement => {
   });
 
   // change the default name to datacollection_header when create
-  let questionCount = 1;
+  let checklist_fi_content_count = 1;
+  let universal_contnet_count = 1;
 
   creator.onQuestionAdded.add(function (sender, options) {
     let opt = options.question;
@@ -169,13 +177,22 @@ const Editor = (params: { id: string }): React.ReactElement => {
       opt.titleLocation = "hidden";
     } else if (opt.getType() === "checklist_content_fi") {
       opt.titleLocation = "hidden";
-      opt.name = "checklist_content_fi-" + questionCount;
-      questionCount++;
+      opt.name = "checklist_content_fi-" + checklist_fi_content_count;
+      checklist_fi_content_count++;
       // Assuming 'checkedby' is a dropdown inside 'checklist_content_fi'
       opt.checkedby = emailList;
     } else if (opt.getType() === "datacollection_fpy") {
       opt.titleLocation = "hidden";
       opt.name = "datacollection_fpy";
+    } else if (opt.getType() === "universal_header") {
+      opt.titleLocation = "hidden";
+      opt.name = "universal_header";
+    } else if (opt.getType() === "universal_content") {
+      opt.titleLocation = "hidden";
+      opt.name = "universal_content-" + universal_contnet_count;
+      universal_contnet_count++;
+      opt.checkedby = emailList;
+
     }
   });
 
