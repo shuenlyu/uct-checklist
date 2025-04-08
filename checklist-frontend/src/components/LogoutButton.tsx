@@ -8,7 +8,7 @@ function LogoutButton() {
     return (
         <div className="sjs-client-app__logout">
             <button className='sjs-client-app__logout-button' onClick={handleLogout}>
-                <IoLogOutOutline title="Logout" color="#f3f3f3" fontSize="32px" />
+            <IoLogOutOutline title="Logout" size={32} color="#f3f3f3" />
             </button>
         </div>
     )
