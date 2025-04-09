@@ -112,6 +112,21 @@ app.use(
   })
 );
 
+app.use((req, res, next) => {
+  const start = process.hrtime(); // High-resolution real time
+
+  res.on("finish", () => {
+    const [seconds, nanoseconds] = process.hrtime(start);
+    const durationInMs = (seconds * 1e3 + nanoseconds / 1e6).toFixed(2);
+    console.log(
+      `[${new Date().toISOString()}] ${req.method} ${
+        req.originalUrl
+      } took ${durationInMs} ms`
+    );
+  });
+
+  next();
+});
 app.get(
   "/login",
   passport.authenticate("saml", config.saml.options),
