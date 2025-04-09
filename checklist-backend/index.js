@@ -43,13 +43,13 @@ const checkType = (key) => {
 // filter out the group from the array
 const getGroup = (arr) => {
   let group = null;
-  if (arr.includes("ALL_SITES")) {
+  if (arr.includes("ChecklistGenerator_AllSites")) {
     group = "ALL_SITES";
-  } else if (arr.includes("UCAP")) {
+  } else if (arr.includes("ChecklistGenerator_UCAP")) {
     group = "UCAP";
-  } else if (arr.includes("UCTM")) {
+  } else if (arr.includes("ChecklistGenerator_UCTM")) {
     group = "UCTM";
-  } else if (arr.includes("UCME")) {
+  } else if (arr.includes("ChecklistGenerator_UCME")) {
     group = "UCME";
   }
   return group;
