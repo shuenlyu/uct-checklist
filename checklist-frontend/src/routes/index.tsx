@@ -30,16 +30,15 @@ const NoMatch = () => (
     <h1>404</h1>
   </>
 );
-
 const getGroup = (arr: string[]): string | null => {
   let group = null;
-  if (arr.includes("ALL_SITES")) {
+  if (arr.includes("ChecklistGenerator_AllSites")) {
     group = "ALL_SITES";
-  } else if (arr.includes("UCAP")) {
+  } else if (arr.includes("ChecklistGenerator_UCAP")) {
     group = "UCAP";
-  } else if (arr.includes("UCTM")) {
+  } else if (arr.includes("ChecklistGenerator_UCTM")) {
     group = "UCTM";
-  } else if (arr.includes("UCME")) {
+  } else if (arr.includes("ChecklistGenerator_UCME")) {
     group = "UCME";
   }
   return group;
