@@ -9,6 +9,10 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
+      - name: Trust /uct-checklist as a safe Git directory
+        run: |
+          git config --global --add safe.directory /uct-checklist
+
       - name: Deploy from mounted directory 
         run: |
           cd /uct-checklist
