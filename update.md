@@ -7,3 +7,5 @@ ALTER TABLE [dbo].[surveys] ADD groups VARCHAR(50) NOT NULL DEFAULT 'UCAP';
 
 - step3: modify the backend code to filter out the data based on site/group info
 - step4: modify the frontend code to allow admin select different groups while creating new checklist
+
+set up CI/CD for debug branch 
