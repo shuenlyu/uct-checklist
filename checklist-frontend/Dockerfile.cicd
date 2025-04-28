@@ -2,7 +2,7 @@
 FROM node:16.20.2 
 
 # set working directory
-WORKDIR /uct-checklist/checklist-frontend
+WORKDIR /checklist-frontend
 
 # install app dependencies
 COPY package.json ./
