@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  nginx:
+    build: /uct-checklist/nginx
+    restart: always
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "443:443"
+      - "8443:8443"
+
+  backend:
+    build:
+      context: /uct-checklist/checklist-backend
+    env_file:
+      - /uct-checklist/.env.development
+    ports:
+      - "3002:3002"
+    restart: always
+
+  frontend:
+    build:
+      context: /uct-checklist/checklist-frontend
+      dockerfile: Dockerfile.cicd
+      args:
+        - NODE_ENV=development
+    working_dir: /uct-checklist/checklist-frontend
+    ports:
+      - "3000:3000"
+    restart: always
+    depends_on:
+      - backend
+    volumes:
+      - /uct-checklist/checklist-frontend:/uct-checklist/checklist-frontend
+      - /uct-checklist/checklist-frontend/node_modules
+
