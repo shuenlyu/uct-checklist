@@ -13,9 +13,9 @@ jobs:
         run: |
           git config --global --add safe.directory /uct-checklist
 
-      - name: Deploy from mounted directory 
+      - name: Deploy from mounted directory
+        working-directory: /uct-checklist 
         run: |
-          cd /uct-checklist
           git switch debug
           git pull origin debug
           docker compose -f docker-compose.dev.hotloading.yml down 
