@@ -1,0 +1,43 @@
+version: "3.8"
+services:
+  nginx:
+    build: ./nginx
+    restart: always
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "443:443"
+      - "8443:8443"
+  # use the existing postgresql docker container
+  # postgres:
+  #   build: ./postgres
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+  backend:
+    build:
+      context: ./checklist-backend
+    env_file:
+      - .env.development
+    ports:
+      - "3002:3002"
+    restart: always
+
+  frontend:
+    build:
+      context: ./checklist-frontend
+      dockerfile: Dockerfile.cicd
+      args:
+        - NODE_ENV=development
+    working_dir: /uct-checklist/checklist-frontend
+    ports:
+      - "3000:3000"
+    restart: always
+    depends_on:
+      - backend
+    volumes:
+      - ./checklist-frontend:/uct-checklist/checklist-frontend
+      - /uct-checklist/checklist-frontend/node_modules

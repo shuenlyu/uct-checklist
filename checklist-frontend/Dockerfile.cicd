@@ -1,0 +1,16 @@
+# pull official base image
+FROM node:16.20.2 
+
+# set working directory
+WORKDIR /uct-checklist/checklist-frontend
+
+# install app dependencies
+COPY package.json ./
+#COPY package-lock.json ./
+RUN npm install --legacy-peer-deps
+
+# add app
+COPY . .
+
+# start app with react-scripts for hot-reloading
+CMD ["npm", "start"]
