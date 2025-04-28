@@ -14,7 +14,7 @@ jobs:
           git config --global --add safe.directory /uct-checklist
 
       - name: Deploy from mounted directory
-        working-directory: /uct-checklist 
+        working-directory: /home/shuen.lyu/uct_projects/uct-checklist 
         run: |
           git switch debug
           git pull origin debug
