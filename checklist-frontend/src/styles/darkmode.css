@@ -1,0 +1,165 @@
+/* src/styles/darkmode.css - CSS-based Dark Mode Solution */
+
+/* CSS Variables for Light Mode (default) */
+:root {
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f3f4f6;
+  --bg-header: #94a3b8;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-white: #ffffff;
+  --border-light: #e5e7eb;
+  --border-medium: #d1d5db;
+  --button-blue: #2563eb;
+  --button-blue-hover: #1d4ed8;
+  --button-green: #059669;
+  --button-green-hover: #047857;
+  --button-red: #dc2626;
+  --button-red-hover: #b91c1c;
+  --button-purple: #7c3aed;
+  --button-purple-hover: #6d28d9;
+  --button-gray: #f3f4f6;
+  --button-gray-hover: #e5e7eb;
+  --button-gray-text: #374151;
+  --shadow: rgba(0, 0, 0, 0.1);
+  --shadow-lg: rgba(0, 0, 0, 0.1);
+}
+
+/* CSS Variables for Dark Mode */
+[data-theme="dark"] {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --bg-header: #1f2937;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-white: #ffffff;
+  --border-light: #374151;
+  --border-medium: #4b5563;
+  --button-blue: #1d4ed8;
+  --button-blue-hover: #2563eb;
+  --button-green: #047857;
+  --button-green-hover: #059669;
+  --button-red: #b91c1c;
+  --button-red-hover: #dc2626;
+  --button-purple: #6d28d9;
+  --button-purple-hover: #7c3aed;
+  --button-gray: #4b5563;
+  --button-gray-hover: #6b7280;
+  --button-gray-text: #d1d5db;
+  --shadow: rgba(0, 0, 0, 0.3);
+  --shadow-lg: rgba(0, 0, 0, 0.4);
+}
+
+/* Apply transitions to all elements for smooth theme switching */
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Base styles using CSS variables */
+.theme-bg-primary { background-color: var(--bg-primary); }
+.theme-bg-secondary { background-color: var(--bg-secondary); }
+.theme-bg-tertiary { background-color: var(--bg-tertiary); }
+.theme-bg-header { background-color: var(--bg-header); }
+.theme-text-primary { color: var(--text-primary); }
+.theme-text-secondary { color: var(--text-secondary); }
+.theme-text-white { color: var(--text-white); }
+.theme-border-light { border-color: var(--border-light); }
+.theme-border-medium { border-color: var(--border-medium); }
+
+/* Button styles */
+.theme-btn-blue { 
+  background-color: var(--button-blue); 
+  color: var(--text-white);
+}
+.theme-btn-blue:hover { 
+  background-color: var(--button-blue-hover); 
+}
+
+.theme-btn-green { 
+  background-color: var(--button-green); 
+  color: var(--text-white);
+}
+.theme-btn-green:hover { 
+  background-color: var(--button-green-hover); 
+}
+
+.theme-btn-red { 
+  background-color: var(--button-red); 
+  color: var(--text-white);
+}
+.theme-btn-red:hover { 
+  background-color: var(--button-red-hover); 
+}
+
+.theme-btn-purple { 
+  background-color: var(--button-purple); 
+  color: var(--text-white);
+}
+.theme-btn-purple:hover { 
+  background-color: var(--button-purple-hover); 
+}
+
+.theme-btn-gray { 
+  background-color: var(--button-gray); 
+  color: var(--button-gray-text);
+}
+.theme-btn-gray:hover { 
+  background-color: var(--button-gray-hover); 
+}
+
+/* Shadow styles */
+.theme-shadow { 
+  box-shadow: 0 1px 3px 0 var(--shadow), 0 1px 2px 0 var(--shadow); 
+}
+.theme-shadow-lg { 
+  box-shadow: 0 10px 15px -3px var(--shadow-lg), 0 4px 6px -2px var(--shadow-lg); 
+}
+
+/* Icon colors for different themes */
+.theme-icon-folder { color: #6b7280; }
+[data-theme="dark"] .theme-icon-folder { color: #9ca3af; }
+
+.theme-icon-folder-open { color: #3b82f6; }
+[data-theme="dark"] .theme-icon-folder-open { color: #60a5fa; }
+
+.theme-icon-secondary { color: #6b7280; }
+[data-theme="dark"] .theme-icon-secondary { color: #9ca3af; }
+
+/* Special hover effects */
+.theme-hover-blue:hover {
+  color: #3b82f6;
+}
+[data-theme="dark"] .theme-hover-blue:hover {
+  color: #60a5fa;
+}
+
+/* Badge styles */
+.theme-badge {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+[data-theme="dark"] .theme-badge {
+  background-color: #4b5563;
+  color: #e5e7eb;
+}
+
+.theme-badge-blue {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+[data-theme="dark"] .theme-badge-blue {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+}
+
+/* Drag and drop hover effects */
+.theme-drag-hover {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+[data-theme="dark"] .theme-drag-hover {
+  border-color: #60a5fa;
+  background-color: rgba(59, 130, 246, 0.1);
+}

@@ -7,9 +7,9 @@ import navlogo from "../OneUCT_Logo.png";
 
 function Layout({ children }: { children: ReactElement }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Modern Header with Dark Blue Background */}
-      <header className="bg-slate-400 shadow-lg">
+    <div className="min-h-screen theme-bg-primary">
+      {/* Modern Header with Theme Support */}
+      <header className="theme-bg-header shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Left side - Logo and Navigation */}
@@ -23,7 +23,7 @@ function Layout({ children }: { children: ReactElement }) {
                     className="h-10 w-auto"
                   />
                 </div>
-                <h1 className="text-xl font-semibold text-white">Checklist Manager</h1>
+                <h1 className="text-xl font-semibold theme-text-white">Checklist Manager</h1>
               </div>
               
               {/* Navigation Menu */}
@@ -43,15 +43,15 @@ function Layout({ children }: { children: ReactElement }) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-sm min-h-[calc(100vh-8rem)]">
+        <div className="theme-bg-secondary rounded-lg theme-shadow min-h-[calc(100vh-8rem)]">
           {children}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-auto">
+      <footer className="theme-bg-secondary theme-border-light border-t mt-auto">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500">
+          <p className="text-center text-sm theme-text-secondary">
             © 2025 Ultra Clean Technology Holding Inc. All rights reserved.
           </p>
         </div>
@@ -61,11 +61,3 @@ function Layout({ children }: { children: ReactElement }) {
 }
 
 export default Layout;
-
-// ALTERNATIVE DARK BLUE OPTIONS:
-// If you want different shades of dark blue, replace bg-blue-800 with:
-// bg-blue-900 (darker)
-// bg-blue-700 (slightly lighter) 
-// bg-slate-800 (dark blue-gray)
-// bg-indigo-800 (purple-blue)
-// or custom: bg-[#1f4e79] (SharePoint-like blue)
