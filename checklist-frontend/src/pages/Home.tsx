@@ -8,7 +8,7 @@ const Home = () => {
         className="sjs-client-app__content--surveys-list"
         style={{ paddingTop: "20px" }}
       >
-        {/* <h1>My Checklists</h1> */}
+        
         <Surveys />
       </div>
     </Layout>

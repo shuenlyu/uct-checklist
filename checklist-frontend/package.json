@@ -3,20 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@headlessui/react": "^2.2.6",
     "@reduxjs/toolkit": "^1.8.1",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^12.1.4",
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.4.1",
     "@types/node": "^16.11.26",
-    "@types/react": "^17.0.43",
-    "@types/react-dom": "^17.0.14",
     "@types/react-redux": "^7.1.23",
     "@types/react-router": "^5.1.18",
     "@types/react-router-dom": "^5.3.3",
     "ajv": "^8.12.0",
     "axios": "^0.26.1",
     "axios-retry": "^4.4.2",
+    "clsx": "^2.1.1",
     "connected-react-router": "^6.9.2",
     "dotenv": "^16.4.5",
     "dotenv-cli": "^7.4.2",
@@ -26,7 +26,7 @@
     "react": "^17.0.2",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^17.0.2",
-    "react-icons": "^5.3.0",
+    "react-icons": "^4.12.0",
     "react-redux": "^7.2.8",
     "react-router": "^6.3.0",
     "react-router-dom": "^6.3.0",
@@ -37,7 +37,6 @@
     "survey-creator-react": "^1.12.9",
     "survey-pdf": "^1.12.9",
     "survey-react-ui": "^1.12.9",
-    "typescript": "^4.6.3",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -70,7 +69,10 @@
     "workerDirectory": "public"
   },
   "devDependencies": {
+    "@types/react": "^17.0.0",
     "@types/react-beautiful-dnd": "^13.1.8",
-    "msw": "^0.39.2"
+    "@types/react-dom": "^17.0.0",
+    "msw": "^0.39.2",
+    "typescript": "^5.8.3"
   }
 }

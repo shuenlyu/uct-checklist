@@ -20,6 +20,10 @@ import { useLocation } from "react-router-dom";
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 import Loading from "../components/Loading";
 
+// ADD THESE IMPORTS FOR BACK BUTTON
+import { Link } from 'react-router-dom';
+import { FaArrowLeft, FaFilePdf, FaUser, FaCalendarAlt, FaEye, FaPlay } from 'react-icons/fa';
+
 // 通过 TypeScript 的声明合并功能，扩展了 Window 接口，使得 Window 对象上可以存在一个名为 rerunSurvey 的方法
 declare global {
   interface Window {
@@ -149,7 +153,22 @@ const Run = () => {
   //rerun survey after complete the survey
   // model.showCompletedPage = false;
   model.completedHtml =
-    "<h2>Thank you for your work!</h2><div style='display: flex; justify-content: center; text-align: center;'><button class='svc-preview__test-again sd-btn sd-btn--action sd-navigation__complete-btn' id='rerun' onclick='rerunSurvey()'>Run Survey Again</button></div>";
+    `<div class="bg-white rounded-lg p-8 text-center">
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
+      <p class="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
+      <button class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200" id="rerun" onclick="rerunSurvey()">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Run Survey Again
+      </button>
+    </div>`;
+
   const rerunSurvey = () => {
     // Logger.info("Rerun survey");
     model.clear(false);
@@ -259,13 +278,104 @@ const Run = () => {
       false
     );
   });
-  // if sruvey json is empty, show loading, otherwise show the survey
-  return survey.json === "" ? (
-    <Loading />
-  ) : (
-    <>
-      <Survey model={model} />
-    </>
+
+  // UPDATED RETURN SECTION WITH BACK BUTTON
+  if (survey.json === "") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loading />
+          <p className="mt-4 text-gray-600">Loading checklist...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header with Back Button */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Left side - Back button and title */}
+            <div className="flex items-center space-x-4">
+              <Link 
+                to="/" 
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200 shadow-sm"
+              >
+                <FaArrowLeft className="w-4 h-4 mr-2" />
+                Back to Home
+              </Link>
+              
+              <div className="flex items-center space-x-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  viewOnly ? 'bg-gray-100' : 'bg-green-100'
+                }`}>
+                  {viewOnly ? (
+                    <FaEye className="w-4 h-4 text-gray-600" />
+                  ) : (
+                    <FaPlay className="w-4 h-4 text-green-600" />
+                  )}
+                </div>
+                <div>
+                  <h1 className="text-lg font-semibold text-gray-900">
+                    {viewOnly ? 'Viewing' : 'Running'} Checklist
+                  </h1>
+                  <p className="text-sm text-gray-500">{survey.name}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right side - Additional actions */}
+            <div className="flex items-center space-x-4">
+              {userId !== "noname" && (
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <FaUser className="w-4 h-4" />
+                  <span>{userId}</span>
+                </div>
+              )}
+              
+              <button
+                onClick={() => window.print()}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
+              >
+                <FaFilePdf className="w-4 h-4 mr-2" />
+                Save PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Survey Container */}
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Survey Info Bar */}
+          <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-600">Survey ID: {id}</span>
+                {result_id && (
+                  <span className="text-gray-600">Result ID: {result_id}</span>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <FaCalendarAlt className="w-4 h-4 text-gray-400" />
+                <span className="text-gray-600">
+                  {new Date().toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Survey Content */}
+          <div className="p-6">
+            <Survey model={model} />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
+
 export default Run;
