@@ -1,4 +1,4 @@
-// require('dotenv').config();
+// src/pages/Run.tsx - Fixed Theme Position & Application
 import { useParams } from "react-router";
 import {
   ITheme,
@@ -12,33 +12,32 @@ import "survey-core/defaultV2.css";
 import { Survey } from "survey-react-ui";
 
 import { useApi } from "../utils/api";
-import { themes } from "../utils/themeOptions";
-
+import { themes } from "../utils/themeOptions"; // Your existing themes
 import Logger from "../utils/logger";
 
 import { useLocation } from "react-router-dom";
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 import Loading from "../components/Loading";
 
+// SurveyJS Theme Selector Component
+import ThemeSelector from "../components/ThemeSelector";
+
 // ADD THESE IMPORTS FOR BACK BUTTON
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaFilePdf, FaUser, FaCalendarAlt, FaEye, FaPlay } from 'react-icons/fa';
+import { FaArrowLeft, FaFilePdf, FaUser, FaCalendarAlt, FaEye, FaPlay, FaCog } from 'react-icons/fa';
 
-// 通过 TypeScript 的声明合并功能，扩展了 Window 接口，使得 Window 对象上可以存在一个名为 rerunSurvey 的方法
+// Global window interface
 declare global {
   interface Window {
     rerunSurvey: () => void;
   }
 }
-// for showing signature pad on matrix drop down
+
+// SurveyJS matrix dropdown extensions
 matrixDropdownColumnTypes.signaturepad = {};
-SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@signaturepad"] =
-  {};
-// for showing image type on matrix drop down
+SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@signaturepad"] = {};
 matrixDropdownColumnTypes.image = {};
 SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@image"] = {};
-
-// StylesManager.applyTheme("defaultV2");
 
 interface ResultItem {
   createdAt: string;
@@ -48,7 +47,132 @@ interface ResultItem {
   submittedBy: string;
 }
 
-//[x]: populating fields from query parameters should be after fetch the latest result from the backend
+// Enhanced SurveyJS Theme Mapping with proper theme objects
+const createSurveyTheme = (themeName: string): ITheme => {
+  const baseTheme: ITheme = {
+    cssVariables: {
+      "--sjs-corner-radius": "4px",
+      "--sjs-base-unit": "8px",
+    }
+  };
+
+  // Color theme configurations
+  const colorThemes: { [key: string]: any } = {
+    default: {},
+    modern: {
+      cssVariables: {
+        "--sjs-corner-radius": "8px",
+        "--sjs-base-unit": "8px",
+      }
+    },
+    sharp: {
+      cssVariables: {
+        "--sjs-corner-radius": "0px",
+      }
+    },
+    blue: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#3b82f6",
+        "--sjs-primary-forecolor": "#ffffff",
+      }
+    },
+    green: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#10b981",
+        "--sjs-primary-forecolor": "#ffffff",
+      }
+    },
+    purple: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#8b5cf6",
+        "--sjs-primary-forecolor": "#ffffff",
+      }
+    },
+    red: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#ef4444",
+        "--sjs-primary-forecolor": "#ffffff",
+      }
+    },
+    orange: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#f97316",
+        "--sjs-primary-forecolor": "#ffffff",
+      }
+    },
+    yellow: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#eab308",
+        "--sjs-primary-forecolor": "#ffffff",
+      }
+    },
+    teal: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#14b8a6",
+        "--sjs-primary-forecolor": "#ffffff",
+      }
+    },
+    pink: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#ec4899",
+        "--sjs-primary-forecolor": "#ffffff",
+      }
+    },
+    indigo: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#6366f1",
+        "--sjs-primary-forecolor": "#ffffff",
+      }
+    },
+    stone: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#78716c",
+        "--sjs-primary-forecolor": "#ffffff",
+        "--sjs-general-backcolor": "#f5f5f4",
+        "--sjs-general-backcolor-dark": "#e7e5e4",
+      }
+    },
+    darkblue: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#1e3a8a",
+        "--sjs-primary-forecolor": "#ffffff",
+        "--sjs-general-backcolor": "#1f2937",
+        "--sjs-general-forecolor": "#ffffff",
+      }
+    },
+    darkgreen: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#065f46",
+        "--sjs-primary-forecolor": "#ffffff",
+        "--sjs-general-backcolor": "#1f2937",
+        "--sjs-general-forecolor": "#ffffff",
+      }
+    },
+    darkrose: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#881337",
+        "--sjs-primary-forecolor": "#ffffff",
+        "--sjs-general-backcolor": "#1f2937",
+        "--sjs-general-forecolor": "#ffffff",
+      }
+    },
+    winter: {
+      cssVariables: {
+        "--sjs-primary-backcolor": "#0f172a",
+        "--sjs-primary-forecolor": "#ffffff",
+        "--sjs-general-backcolor": "#f8fafc",
+        "--sjs-general-backcolor-dark": "#e2e8f0",
+      }
+    }
+  };
+
+  return {
+    ...baseTheme,
+    ...colorThemes[themeName],
+    themeName: themeName
+  };
+};
+
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
@@ -60,10 +184,8 @@ function initializeModelFromURL(search: string, modelData: any) {
     "universal_header",
     "universal_content",
   ];
-  // HOW to handle this case to populate data from query parameters automatically
-  const questions = model.getAllQuestions();
 
-  //filtered out those questions that are in the questionsToInitialize or starts with the prefix
+  const questions = model.getAllQuestions();
   const filteredQuestions = questions.filter((question) => {
     return questionsToInitialize.some((prefix) =>
       question.name.startsWith(prefix)
@@ -77,7 +199,6 @@ function initializeModelFromURL(search: string, modelData: any) {
         Logger.info("query parameters, key, value:", key, value);
         const subquestion = question.contentPanel.getQuestionByName(key);
         if (subquestion) {
-          // Check if subquestion exists before assigning value
           subquestion.value = value;
         } else {
           Logger.warn(`Subquestion named ${key} not found in ${question.name}`);
@@ -89,13 +210,6 @@ function initializeModelFromURL(search: string, modelData: any) {
   return model;
 }
 
-/**
- * Recursively merges the properties of two objects.
- *
- * @param target - The target object to merge into.
- * @param source - The source object to merge from.
- * @returns The merged object.
- */
 function mergeDeep(target: any, source: any) {
   for (const key in source) {
     if (source.hasOwnProperty(key)) {
@@ -114,27 +228,19 @@ function mergeDeep(target: any, source: any) {
   return target;
 }
 
-Logger.info("Process.env: ", process.env);
 const Run = () => {
-  // parse the query parameters from URL
   const { id } = useParams();
   const location = useLocation();
-  // in the results page, the result_id is passed as a state from the Viewer component
   const { result_id: initialResultId } = location.state || {};
   let result_id = initialResultId;
   Logger.info("Run state: result_id", result_id);
 
-  //used for fetch results and filter the latest result based on the userID
-  // add queryParams.get('userId') to get the userId from the URL if inspectedBY is not present, then use userid
   const queryParams = new URLSearchParams(window.location.search);
   const userId = queryParams.get("inspectedby")
     ? queryParams.get("inspectedby")
     : (queryParams.get("userid") ? queryParams.get("userid") : "noname");
 
-  //get the id and view parameters from URL, 
-  // UIB will pass id(last result id for a particular wo) as a parameter to view the last result
   result_id = queryParams.get("id") || result_id;
-  // viewOnly is a flag to view the survey in read-only mode
   let viewOnly = false;
   if (queryParams.get("view") === "1") {
     viewOnly = true;
@@ -144,92 +250,162 @@ const Run = () => {
   const [survey, setSurvey] = useState({ json: "", name: " " });
   const [result, setResult] = useState({});
   const [theme, setTheme] = useState<ITheme>(themes[0]);
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const [currentSurveyTheme, setCurrentSurveyTheme] = useState("default");
+  const [surveyModel, setSurveyModel] = useState<Model | null>(null); // Track model state
+  const [renderKey, setRenderKey] = useState(0); // Force re-render key
 
-  //use initializeModelFromURL to initialize question values from queryParameters URL
-  // QUESTION:survey.json is empty, how to populate the fields from query parameters
-  let model = initializeModelFromURL(window.location.search, survey.json);
+  // Initialize model when survey data is available
+  useEffect(() => {
+    if (survey.json) {
+      const model = initializeModelFromURL(window.location.search, survey.json);
+      
+      // Set up completion message
+      model.completedHtml =
+        `<div class="bg-white rounded-lg p-8 text-center">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
+          <p class="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
+          <button class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200" id="rerun" onclick="rerunSurvey()">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Run Survey Again
+          </button>
+        </div>`;
 
-  //try to change the behavior of the completed page
-  //rerun survey after complete the survey
-  // model.showCompletedPage = false;
-  model.completedHtml =
-    `<div class="bg-white rounded-lg p-8 text-center">
-      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
-      </div>
-      <h2 class="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
-      <p class="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
-      <button class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200" id="rerun" onclick="rerunSurvey()">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-        </svg>
-        Run Survey Again
-      </button>
-    </div>`;
+      // Set up rerun function
+      const rerunSurvey = () => {
+        model.clear(false);
+      };
+      window.rerunSurvey = rerunSurvey;
 
-  const rerunSurvey = () => {
-    // Logger.info("Rerun survey");
-    model.clear(false);
-  };
-  window.rerunSurvey = rerunSurvey;
+      // Configure serialization
+      Serializer.getProperty("survey", "clearInvisibleValues").defaultValue = "none";
 
-  Serializer.getProperty("survey", "clearInvisibleValues").defaultValue =
-    "none";
-  //model applyTheme
-  const getTheme = async () => {
-    const response = await fetchData("/getTheme?surveyId=" + id, false);
-    if (response.data && response.data.theme) {
-      setTheme(JSON.parse(response.data.theme));
+      // Add PDF button
+      model.addNavigationItem({
+        id: "survey_save_as_file",
+        title: "Save as PDF",
+        action: () => {
+          window.print();
+        },
+      });
+
+      // Set view mode
+      if (viewOnly) {
+        model.mode = "display";
+      }
+
+      // Set up completion handler
+      model.onComplete.add(async (sender: Model) => {
+        Logger.debug("onComplete Survey data:", sender.data);
+        await postData(
+          "/post",
+          {
+            postId: id as string,
+            surveyResult: sender.data,
+            userId: userId,
+            createdAt: new Date().toISOString(),
+          },
+          false
+        );
+      });
+
+      setSurveyModel(model);
     }
-  };
-  model.applyTheme(theme);
-  Logger.debug("Run: theme applied, ", theme);
+  }, [survey.json, id, userId, viewOnly, postData]);
 
-  const getSurvey = async () => {
-    const response = await fetchData("/getSurvey?surveyId=" + id, false);
-    setSurvey(response.data);
-  };
-
-  //TODO: implement get the latest result in the backend
-  const getResults = async () => {
-    const response = await fetchData("/results?postId=" + id, false);
-    Logger.debug("Run getResults: ", response.data);
-
-    if (response.data.length > 0) {
-      // TODO: implement api to fetch result based result id
-      if (result_id) {
-        const filteredArray = response.data.filter(
-          (item: ResultItem) => item.id === result_id
-        );
-        setResult(JSON.parse(filteredArray[0].json));
-      } else {
-        // Filter for the objects with the specific submittedBy value
-        const filteredArray = response.data.filter(
-          (item: ResultItem) => item.submittedBy === userId
-        );
-        // Find the object with the latest createdAt timestamp
-        const latestEntry = filteredArray.reduce(
-          (latest: ResultItem, current: ResultItem) => {
-            return new Date(current.createdAt) > new Date(latest.createdAt)
-              ? current
-              : latest;
-          }
-        );
-        setResult(JSON.parse(latestEntry.json));
+  // Apply theme to model when theme changes
+  const applyThemeToModel = (themeName: string) => {
+    if (surveyModel) {
+      const selectedTheme = createSurveyTheme(themeName);
+      Logger.info("Applying theme:", themeName, selectedTheme);
+      
+      try {
+        surveyModel.applyTheme(selectedTheme);
+        setCurrentSurveyTheme(themeName);
+        
+        // Force re-render by incrementing render key
+        setRenderKey(prev => prev + 1);
+        
+        Logger.info("Theme applied successfully:", themeName);
+      } catch (error) {
+        Logger.error("Error applying theme:", error);
       }
     }
   };
 
-  //check if 'datacollection_header' exists in model.getAllQuestions()
-  // disable load the last result for datacollection_header
-  const shouldGetResults = !model
-    .getAllQuestions()
-    .some((question) => question.name === "datacollection_header") || result_id;
+  const getTheme = async () => {
+    try {
+      const response = await fetchData("/getTheme?surveyId=" + id, false);
+      if (response.data && response.data.theme) {
+        const parsedTheme = JSON.parse(response.data.theme);
+        setTheme(parsedTheme);
+        if (surveyModel) {
+          surveyModel.applyTheme(parsedTheme);
+        }
+      } else {
+        // Apply default theme
+        applyThemeToModel("default");
+      }
+    } catch (error) {
+      Logger.error("Error getting theme:", error);
+      applyThemeToModel("default");
+    }
+  };
 
-  //if result_id is not null, then get result from results table
-  // if Run componenet got result data props, then disable getResults hook
+  const getSurvey = async () => {
+    try {
+      const response = await fetchData("/getSurvey?surveyId=" + id, false);
+      setSurvey(response.data);
+    } catch (error) {
+      Logger.error("Error getting survey:", error);
+    }
+  };
+
+  const getResults = async () => {
+    try {
+      const response = await fetchData("/results?postId=" + id, false);
+      Logger.debug("Run getResults: ", response.data);
+
+      if (response.data.length > 0) {
+        if (result_id) {
+          const filteredArray = response.data.filter(
+            (item: ResultItem) => item.id === result_id
+          );
+          if (filteredArray.length > 0) {
+            setResult(JSON.parse(filteredArray[0].json));
+          }
+        } else {
+          const filteredArray = response.data.filter(
+            (item: ResultItem) => item.submittedBy === userId
+          );
+          if (filteredArray.length > 0) {
+            const latestEntry = filteredArray.reduce(
+              (latest: ResultItem, current: ResultItem) => {
+                return new Date(current.createdAt) > new Date(latest.createdAt)
+                  ? current
+                  : latest;
+              }
+            );
+            setResult(JSON.parse(latestEntry.json));
+          }
+        }
+      }
+    } catch (error) {
+      Logger.error("Error getting results:", error);
+    }
+  };
+
+  const shouldGetResults = surveyModel && (!surveyModel
+    .getAllQuestions()
+    .some((question) => question.name === "datacollection_header") || result_id);
+
   useEffect(() => {
     if (shouldGetResults) {
       getResults();
@@ -238,70 +414,48 @@ const Run = () => {
 
   useEffect(() => {
     getSurvey();
-    getTheme();
   }, []);
-  //if result data is not empty, then getResults won't execute and assign model.data with result data
-  if (Object.keys(result).length > 0 && shouldGetResults) {
-    Logger.debug("Run: result data is not empty", result);
-    //recursively merge result data and model data
-    if (!result_id) {
-      model.data = mergeDeep(model.data, result);
-    } else {
-      model.data = result;
+
+  useEffect(() => {
+    if (surveyModel) {
+      getTheme();
     }
-  }
-  //Enable Save as PDF button
-  model.addNavigationItem({
-    id: "survey_save_as_file",
-    title: "Save as PDF",
-    action: () => {
-      // using window built-in function to save the survey as PDF
-      window.print();
-    },
-  });
+  }, [surveyModel]);
 
-  // if viewOnly is true, then set model.mode to display
-  if (viewOnly) {
-    model.mode = "display";
-  }
-  model.onComplete.add(async (sender: Model) => {
-    Logger.debug("onComplete Survey data:", sender.data);
-    await postData(
-      "/post",
-      {
-        postId: id as string,
-        surveyResult: sender.data,
-        userId: userId,
-        createdAt: new Date().toISOString(),
-        // surveyResultText: JSON.stringify(sender.data),
-      },
-      false
-    );
-  });
+  // Apply result data to model
+  useEffect(() => {
+    if (Object.keys(result).length > 0 && shouldGetResults && surveyModel) {
+      Logger.debug("Run: applying result data to model", result);
+      if (!result_id) {
+        surveyModel.data = mergeDeep(surveyModel.data, result);
+      } else {
+        surveyModel.data = result;
+      }
+    }
+  }, [result, surveyModel, result_id, shouldGetResults]);
 
-  // UPDATED RETURN SECTION WITH BACK BUTTON
-  if (survey.json === "") {
+  if (survey.json === "" || !surveyModel) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen theme-bg-primary flex items-center justify-center">
         <div className="text-center">
           <Loading />
-          <p className="mt-4 text-gray-600">Loading checklist...</p>
+          <p className="mt-4 theme-text-secondary">Loading checklist...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen theme-bg-primary">
       {/* Header with Back Button */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      <div className="theme-bg-secondary theme-border-light border-b sticky top-0 z-10 theme-shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Left side - Back button and title */}
             <div className="flex items-center space-x-4">
               <Link 
                 to="/" 
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200 shadow-sm"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium theme-text-secondary theme-bg-secondary theme-border-light border rounded-md hover:theme-bg-tertiary theme-hover-blue transition-colors duration-200 theme-shadow"
               >
                 <FaArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home
@@ -309,35 +463,45 @@ const Run = () => {
               
               <div className="flex items-center space-x-3">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  viewOnly ? 'bg-gray-100' : 'bg-green-100'
+                  viewOnly ? 'theme-bg-tertiary' : 'bg-green-100'
                 }`}>
                   {viewOnly ? (
-                    <FaEye className="w-4 h-4 text-gray-600" />
+                    <FaEye className="w-4 h-4 theme-text-secondary" />
                   ) : (
                     <FaPlay className="w-4 h-4 text-green-600" />
                   )}
                 </div>
                 <div>
-                  <h1 className="text-lg font-semibold text-gray-900">
+                  <h1 className="text-lg font-semibold theme-text-primary">
                     {viewOnly ? 'Viewing' : 'Running'} Checklist
                   </h1>
-                  <p className="text-sm text-gray-500">{survey.name}</p>
+                  <p className="text-sm theme-text-secondary">{survey.name}</p>
                 </div>
               </div>
             </div>
 
-            {/* Right side - Additional actions */}
+            {/* Right side - MOVED THEME SELECTOR HERE */}
             <div className="flex items-center space-x-4">
               {userId !== "noname" && (
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <div className="flex items-center space-x-2 text-sm theme-text-secondary">
                   <FaUser className="w-4 h-4" />
                   <span>{userId}</span>
                 </div>
               )}
+
+              {/* SurveyJS Theme Selector - NOW ON THE RIGHT */}
+              <button
+                onClick={() => setShowThemeSelector(!showThemeSelector)}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium theme-text-secondary theme-bg-secondary theme-border-light border rounded-md hover:theme-bg-tertiary transition-colors duration-200"
+                title="Change Survey Theme"
+              >
+                <FaCog className="w-4 h-4 mr-2" />
+                Survey Theme
+              </button>
               
               <button
                 onClick={() => window.print()}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium theme-text-secondary theme-bg-secondary theme-border-light border rounded-md hover:theme-bg-tertiary transition-colors duration-200"
               >
                 <FaFilePdf className="w-4 h-4 mr-2" />
                 Save PDF
@@ -347,21 +511,37 @@ const Run = () => {
         </div>
       </div>
 
+      {/* Theme Selector Panel - RIGHT ALIGNED */}
+      {showThemeSelector && (
+        <div className="theme-bg-secondary theme-border-light border-b px-4 py-4">
+          <div className="max-w-7xl mx-auto flex justify-end">
+            <div className="w-80">
+              <ThemeSelector
+                currentTheme={currentSurveyTheme}
+                onThemeChange={applyThemeToModel}
+                compact={true}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Survey Container */}
       <div className="max-w-6xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="theme-bg-secondary rounded-lg theme-shadow theme-border-light border overflow-hidden">
           {/* Survey Info Bar */}
-          <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+          <div className="theme-bg-tertiary px-6 py-3 theme-border-light border-b">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center space-x-4">
-                <span className="text-gray-600">Survey ID: {id}</span>
+                <span className="theme-text-secondary">Survey ID: {id}</span>
                 {result_id && (
-                  <span className="text-gray-600">Result ID: {result_id}</span>
+                  <span className="theme-text-secondary">Result ID: {result_id}</span>
                 )}
+                <span className="theme-text-secondary">Theme: {currentSurveyTheme}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <FaCalendarAlt className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-600">
+                <FaCalendarAlt className="w-4 h-4 theme-text-secondary" />
+                <span className="theme-text-secondary">
                   {new Date().toLocaleDateString()}
                 </span>
               </div>
@@ -370,7 +550,7 @@ const Run = () => {
 
           {/* Survey Content */}
           <div className="p-6">
-            <Survey model={model} />
+            <Survey key={renderKey} model={surveyModel} />
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { ReactElement } from "react";
 import { NavBar } from "../routes";
-import ThemeSelector from "./ThemeSelector";
+import DarkModeToggle from "./DarkModeToggle";
 import LogoutButton from "./LogoutButton";
 // Import the logo image
 import navlogo from "../OneUCT_Logo.png";
@@ -34,7 +34,7 @@ function Layout({ children }: { children: ReactElement }) {
 
             {/* Right side - Theme and Logout */}
             <div className="flex items-center space-x-4">
-              <ThemeSelector />
+              <DarkModeToggle />
               <LogoutButton />
             </div>
           </div>
