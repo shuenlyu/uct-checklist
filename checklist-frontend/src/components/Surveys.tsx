@@ -313,33 +313,31 @@ const Surveys = (): React.ReactElement => {
 
   return (
     <div className="p-6">
-    
-
-{/* Header Section with Right-Aligned Buttons */}
-<div className="mb-8 flex items-center justify-between">
-  <div>
-    <h1 className="text-3xl font-bold text-gray-900 mb-2">My Checklists</h1>
-    <p className="text-gray-600">Manage your checklists and folders</p>
-  </div>
-  
-  {/* Action Buttons - Right Aligned */}
-  <div className="flex gap-3">
-    <button
-      onClick={openAddModal}
-      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
-    >
-      <FaPlus className="w-4 h-4 mr-2" />
-      Add Checklist
-    </button>
-    <button
-      onClick={openFolderModal}
-      className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
-    >
-      <FaPlus className="w-4 h-4 mr-2" />
-      Add Folder
-    </button>
-  </div>
-</div>
+      {/* Header Section with Right-Aligned Buttons */}
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold theme-text-primary mb-2">My Checklists</h1>
+          <p className="theme-text-secondary">Manage your checklists and folders</p>
+        </div>
+        
+        {/* Action Buttons - Right Aligned */}
+        <div className="flex gap-3">
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center px-4 py-2 theme-btn-blue text-sm font-medium rounded-lg shadow-sm"
+          >
+            <FaPlus className="w-4 h-4 mr-2" />
+            Add Checklist
+          </button>
+          <button
+            onClick={openFolderModal}
+            className="inline-flex items-center px-4 py-2 theme-btn-green text-sm font-medium rounded-lg shadow-sm"
+          >
+            <FaPlus className="w-4 h-4 mr-2" />
+            Add Folder
+          </button>
+        </div>
+      </div>
 
       {/* Folders Section */}
       <DragDropContext onDragEnd={onDragEnd}>
@@ -350,29 +348,29 @@ const Surveys = (): React.ReactElement => {
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`bg-white rounded-lg border border-gray-200 shadow-sm transition-all duration-200 ${
-                    snapshot.isDraggingOver ? 'border-blue-300 bg-blue-50' : ''
+                  className={`theme-bg-secondary rounded-lg theme-border-light border theme-shadow transition-all duration-200 ${
+                    snapshot.isDraggingOver ? 'theme-drag-hover' : ''
                   }`}
                 >
                   {/* Folder Header */}
-                  <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                  <div className="flex items-center justify-between p-4 theme-border-light border-b">
                     <button
                       onClick={() => toggleFolder(folder.id)}
-                      className="flex items-center space-x-3 text-left flex-1 hover:text-blue-600 transition-colors duration-200"
+                      className="flex items-center space-x-3 text-left flex-1 theme-hover-blue transition-colors duration-200"
                     >
                       {folderStates[folder.id] ? (
-                        <FaFolderOpen className="w-5 h-5 text-blue-500" />
+                        <FaFolderOpen className="w-5 h-5 theme-icon-folder-open" />
                       ) : (
-                        <FaFolder className="w-5 h-5 text-gray-500" />
+                        <FaFolder className="w-5 h-5 theme-icon-folder" />
                       )}
-                      <span className="text-lg font-semibold text-gray-900">{folder.name}</span>
+                      <span className="text-lg font-semibold theme-text-primary">{folder.name}</span>
                       {folderStates[folder.id] ? (
-                        <FaChevronDown className="w-4 h-4 text-gray-400" />
+                        <FaChevronDown className="w-4 h-4 theme-icon-secondary" />
                       ) : (
-                        <FaChevronRight className="w-4 h-4 text-gray-400" />
+                        <FaChevronRight className="w-4 h-4 theme-icon-secondary" />
                       )}
                       {folder.files && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium theme-badge">
                           {folder.files.length}
                         </span>
                       )}
@@ -381,7 +379,7 @@ const Surveys = (): React.ReactElement => {
                     {userGroup === "ALL_SITES" && (
                       <button
                         onClick={() => deleteFolder(folder.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                        className="p-2 theme-icon-secondary hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
                         title="Delete Folder"
                       >
                         <FaTrash className="w-4 h-4" />
@@ -405,11 +403,11 @@ const Surveys = (): React.ReactElement => {
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   className={`transition-all duration-200 ${
-                                    snapshot.isDragging ? 'shadow-lg' : ''
+                                    snapshot.isDragging ? 'theme-shadow-lg' : ''
                                   }`}
                                 >
                                   <div className="flex items-center">
-                                    <div {...provided.dragHandleProps} className="p-2 text-gray-400 hover:text-gray-600">
+                                    <div {...provided.dragHandleProps} className="p-2 theme-icon-secondary hover:text-gray-600">
                                       <FaGripVertical className="w-4 h-4" />
                                     </div>
                                     <div className="flex-1">
@@ -428,11 +426,11 @@ const Surveys = (): React.ReactElement => {
                         </div>
                       ) : (
                         <div className="text-center py-8">
-                          <FaFolder className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500 text-sm">This folder is empty</p>
+                          <FaFolder className="w-12 h-12 theme-icon-folder mx-auto mb-3" />
+                          <p className="theme-text-secondary text-sm">This folder is empty</p>
                           <button
                             onClick={openAddModal}
-                            className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                            className="mt-2 theme-hover-blue text-sm font-medium"
                           >
                             Add your first checklist
                           </button>
@@ -451,12 +449,12 @@ const Surveys = (): React.ReactElement => {
       {/* Empty State */}
       {folders.length === 0 && (
         <div className="text-center py-12">
-          <FaFolder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No folders yet</h3>
-          <p className="text-gray-500 mb-4">Get started by creating your first folder</p>
+          <FaFolder className="w-16 h-16 theme-icon-folder mx-auto mb-4" />
+          <h3 className="text-lg font-medium theme-text-primary mb-2">No folders yet</h3>
+          <p className="theme-text-secondary mb-4">Get started by creating your first folder</p>
           <button
             onClick={openFolderModal}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+            className="inline-flex items-center px-4 py-2 theme-btn-blue text-sm font-medium rounded-lg"
           >
             <FaPlus className="w-4 h-4 mr-2" />
             Create Folder
