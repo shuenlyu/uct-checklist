@@ -1,7 +1,14 @@
-import { group } from 'console';
 import React, { useEffect, useState } from 'react';
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
-import { FaTrash } from 'react-icons/fa';
+import { 
+  FaTrash, 
+  FaPlus, 
+  FaFolderOpen, 
+  FaFolder, 
+  FaChevronDown, 
+  FaChevronRight,
+  FaGripVertical 
+} from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { customers } from '../models/customer';
 import { products } from '../models/product';
@@ -13,7 +20,6 @@ import EditModal from './EditModal';
 import Loading from './Loading';
 import RemoveModal from './RemoveModal';
 import SurveyItem from './SurveyItem';
-import './Surveys.css';
 
 interface Folder {
   id: number;
@@ -22,10 +28,9 @@ interface Folder {
 }
 
 const Surveys = (): React.ReactElement => {
-  // set edit modal state 
+  // State management
   const [isModalOpen, setModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
-
   const [selectedId, setSelectedId] = useState('');
   const [isRemoveModalOpen, setRemoveModalOpen] = useState(false);
   const [surveyToRemove, setSurveyToRemove] = useState<Survey | null>(null);
@@ -42,12 +47,9 @@ const Surveys = (): React.ReactElement => {
   } | null>(null);
 
   const { fetchData, postData, deleteData, putData } = useApi();
-
   const { userGroup } = useAuth();
-  // get the group from the user
-  // Convert the JSON string into an array
 
-
+  // Initialize folders
   useEffect(() => {
     getFolders();
   }, []);
@@ -310,109 +312,184 @@ const Surveys = (): React.ReactElement => {
   };
 
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      {folders.map((folder) => (
-        <Droppable key={folder.id} droppableId={folder.id.toString()}>
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              style={{
-                marginBottom: "20px",
-                padding: "10px",
-                borderTop: "1px solid #ddd",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3
-                  style={{ cursor: "pointer", margin: 0 }}
-                  onClick={() => toggleFolder(folder.id)}
+    <div className="p-6">
+    
+
+{/* Header Section with Right-Aligned Buttons */}
+<div className="mb-8 flex items-center justify-between">
+  <div>
+    <h1 className="text-3xl font-bold text-gray-900 mb-2">My Checklists</h1>
+    <p className="text-gray-600">Manage your checklists and folders</p>
+  </div>
+  
+  {/* Action Buttons - Right Aligned */}
+  <div className="flex gap-3">
+    <button
+      onClick={openAddModal}
+      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
+    >
+      <FaPlus className="w-4 h-4 mr-2" />
+      Add Checklist
+    </button>
+    <button
+      onClick={openFolderModal}
+      className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
+    >
+      <FaPlus className="w-4 h-4 mr-2" />
+      Add Folder
+    </button>
+  </div>
+</div>
+
+      {/* Folders Section */}
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="space-y-4">
+          {folders.map((folder) => (
+            <Droppable key={folder.id} droppableId={folder.id.toString()}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={`bg-white rounded-lg border border-gray-200 shadow-sm transition-all duration-200 ${
+                    snapshot.isDraggingOver ? 'border-blue-300 bg-blue-50' : ''
+                  }`}
                 >
-                  {folder.name} <span>{folderStates[folder.id] ? "▼" : "▶"}</span>
-                </h3>
-                {userGroup === "ALL_SITES" && <div>
-                  <button
-                    onClick={() => deleteFolder(folder.id)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: "20px",
-                      color: "gray",
-                    }}
-                    title="Delete Folder"
-                  >
-                    <FaTrash />
-                  </button>
-                </div>}
-              </div>
-              {folderStates[folder.id] && (isLoading[folder.id] ? <Loading /> : (
-                folder.files.length > 0 ? (
-                  folder.files.map((survey, index) => (
-                    <Draggable key={survey.id} draggableId={survey.id.toString()} index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                        >
-                          <SurveyItem
-                            key={survey.id}
-                            survey={survey}
-                            onEdit={openEditModal}
-                            onCopy={duplicateSurvey}
-                            onRemove={confirmRemoveSurvey}
-                          />
+                  {/* Folder Header */}
+                  <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                    <button
+                      onClick={() => toggleFolder(folder.id)}
+                      className="flex items-center space-x-3 text-left flex-1 hover:text-blue-600 transition-colors duration-200"
+                    >
+                      {folderStates[folder.id] ? (
+                        <FaFolderOpen className="w-5 h-5 text-blue-500" />
+                      ) : (
+                        <FaFolder className="w-5 h-5 text-gray-500" />
+                      )}
+                      <span className="text-lg font-semibold text-gray-900">{folder.name}</span>
+                      {folderStates[folder.id] ? (
+                        <FaChevronDown className="w-4 h-4 text-gray-400" />
+                      ) : (
+                        <FaChevronRight className="w-4 h-4 text-gray-400" />
+                      )}
+                      {folder.files && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {folder.files.length}
+                        </span>
+                      )}
+                    </button>
+                    
+                    {userGroup === "ALL_SITES" && (
+                      <button
+                        onClick={() => deleteFolder(folder.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                        title="Delete Folder"
+                      >
+                        <FaTrash className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Folder Content */}
+                  {folderStates[folder.id] && (
+                    <div className="p-4">
+                      {isLoading[folder.id] ? (
+                        <div className="flex justify-center py-8">
+                          <Loading />
+                        </div>
+                      ) : folder.files && folder.files.length > 0 ? (
+                        <div className="space-y-2">
+                          {folder.files.map((survey, index) => (
+                            <Draggable key={survey.id} draggableId={survey.id.toString()} index={index}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={`transition-all duration-200 ${
+                                    snapshot.isDragging ? 'shadow-lg' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center">
+                                    <div {...provided.dragHandleProps} className="p-2 text-gray-400 hover:text-gray-600">
+                                      <FaGripVertical className="w-4 h-4" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <SurveyItem
+                                        survey={survey}
+                                        onEdit={openEditModal}
+                                        onCopy={duplicateSurvey}
+                                        onRemove={confirmRemoveSurvey}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <FaFolder className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500 text-sm">This folder is empty</p>
+                          <button
+                            onClick={openAddModal}
+                            className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                          >
+                            Add your first checklist
+                          </button>
                         </div>
                       )}
-                    </Draggable>
-                  ))
-                ) : (<div style={{ marginTop: '20px' }}> Folder is empty !</div>)))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      ))}
-      <div className="sjs-surveys-list__footer">
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <span
-            className="sjs-button sjs-add-btn"
-            title="Add"
-            onClick={openAddModal}
-          >
-            Add Checklist
-          </span>
-          <span className='sjs-button sjs-add-btn'
-            title='addfolder'
-            onClick={openFolderModal}
-          >
-            Add Folder
-          </span>
+                    </div>
+                  )}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          ))}
         </div>
-        <EditModal
-          isOpen={isModalOpen || isEditModalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setEditModalOpen(false);
-          }}
-          onSubmit={handleModalSubmit}
-          initialData={modalData || undefined}
-          title={isEditModalOpen ? 'Edit Checklist' : 'Enter New Checklist'}
-          folders={folders}
-        />
-        <RemoveModal
-          surveyName={surveyToRemove?.name || ''}
-          isOpen={isRemoveModalOpen}
-          onClose={() => setRemoveModalOpen(false)}
-          onConfirm={removeSurvey}
-        />
-        <AddFolderModal
-          isOpen={isFolderModalOpen}
-          onClose={() => setFolderModalOpen(false)}
-          onSubmit={addFolder}
-        />
-      </div>
-    </DragDropContext>
+      </DragDropContext>
+
+      {/* Empty State */}
+      {folders.length === 0 && (
+        <div className="text-center py-12">
+          <FaFolder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No folders yet</h3>
+          <p className="text-gray-500 mb-4">Get started by creating your first folder</p>
+          <button
+            onClick={openFolderModal}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          >
+            <FaPlus className="w-4 h-4 mr-2" />
+            Create Folder
+          </button>
+        </div>
+      )}
+
+      {/* Modals */}
+      <EditModal
+        isOpen={isModalOpen || isEditModalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setEditModalOpen(false);
+        }}
+        onSubmit={handleModalSubmit}
+        initialData={modalData || undefined}
+        title={isEditModalOpen ? 'Edit Checklist' : 'Create New Checklist'}
+        folders={folders}
+      />
+      
+      <RemoveModal
+        surveyName={surveyToRemove?.name || ''}
+        isOpen={isRemoveModalOpen}
+        onClose={() => setRemoveModalOpen(false)}
+        onConfirm={removeSurvey}
+      />
+      
+      <AddFolderModal
+        isOpen={isFolderModalOpen}
+        onClose={() => setFolderModalOpen(false)}
+        onSubmit={addFolder}
+      />
+    </div>
   );
 };
 

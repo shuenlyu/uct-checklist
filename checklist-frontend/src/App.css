@@ -1,193 +1,38 @@
-.sjs-client-app {
-  color: #404040;
-  font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-}
-
-.sjs-client-app__logo {
-  vertical-align: middle;
-}
-
-.sjs-client-app__header {
-  background-color: #19b394;
-  padding: 5px;
-  /* padding-bottom: 0; */
-}
-
-.sjs-nav-button {
-  display: inline-block;
-  margin-left: 24px;
-  font-weight: bold;
-  font-size: 22px;
-  text-decoration: none;
-  line-height: 40px;
-  color: white;
-}
-
-.sjs-nav-button:hover,
-.sjs-nav-button.active {
-  text-decoration: underline;
-}
-
-.sjs-client-app__content {
-  position: fixed;
-  top: 64px;
-  width: 100%;
-  left: 0;
-  bottom: 0;
-  overflow: auto;
-  user-select: none;
-}
-
-h1 {
-  padding-left: 24px;
-}
-
-.sjs-client-app__content--about h1,
-.sjs-client-app__content--surveys-list h1 {
-  padding: 0;
-}
-
-.sjs-client-app__content--surveys-list,
-.sjs-client-app__content--about {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.sjs-client-app__footer {
-}
-
-.sjs-editor-container {
-  height: calc(100% - 2px);
-}
-
-.sjs-results-container {
-  height: calc(100% - 88px);
-}
-
-.sjs-results-content {
-  height: 100%;
-}
-
-.sjs-results-placeholder {
-  line-height: 200px;
-  text-align: center;
-  border: 1px dotted lightgray;
-}
-
-#save {
-  padding: 20px 25px 18px 25px !important;
-  color: white !important;
-  font-weight: bold !important;
-  border: none !important;
-  border-radius: 5px !important;
-  font-size: 16px !important;
-}
-
-.sd-page {
-  padding-top: 0 !important;
-}
-
-.sjs-client-app__content {
-  background-color: #f3f3f3 !important;
-}
-
-header {
-  height: 54px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.sjs-client-app__login {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #f3f3f3;
-}
-
-.sjs-client-app__login-button {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-around;
-  align-items: center;
-  background-color: #19b394;
-  border-radius: 10px;
-  border-width: 0;
-  padding: 5px 45px;
-  cursor: pointer;
-}
-
-.sjs-client-app__login-button:hover {
-  background-color: #169f85;
-  box-shadow: #404040;
-}
-
-.sjs-client-app__login-button-content {
-  color: #f3f3f3;
-}
-
-.sjs-client-app__loading-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 30vh;
-  background-color: #f3f3f3;
-}
-.sjs-client-app__loading {
-  display: inline-block;
-  width: 75px;
-  height: 75px;
-  border: 5px solid rgba(25, 179, 148, 0.3);
-  border-radius: 50%;
-  border-top-color: #19b394;
-  animation: spin 1s ease-in-out infinite;
-  -webkit-animation: spin 1s ease-in-out infinite;
-}
-
-@keyframes spin {
-  to {
-    -webkit-transform: rotate(360deg);
+/*@tailwind base;
+@tailwind components;
+@tailwind utilities;
+*/
+/* Custom component classes */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors duration-200;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg border border-gray-200 shadow-sm;
+  }
+  
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 transition-opacity z-50;
+  }
+  
+  .modal-content {
+    @apply relative bg-white rounded-lg shadow-xl max-w-md w-full;
   }
 }
 
-@-webkit-keyframes spin {
-  to {
-    -webkit-transform: rotate(360deg);
-  }
+/* Ensure SurveyJS styles don't conflict */
+.sv_main {
+  font-family: inherit;
 }
 
-button,
-button:focus {
-  outline: none;
-  background: transparent;
-  border: 1px solid transparent;
-}
-
-button:active {
-  outline: none;
-  background: transparent;
-  border: 1px solid grey;
-}
-
-.sjs-client-app__logout {
-  border-radius: 9999px;
-  padding-left: 5px;
-  padding-top: 3px;
-  padding-bottom: 3px;
-  margin-top: 4px;
-}
-
-.sjs-client-app__logout-button {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-}
-
-.sjs-client-app__logout:hover {
-  background-color: #169f85;
-  box-shadow: #404040;
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  .sticky { position: relative !important; }
+  .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; }
 }

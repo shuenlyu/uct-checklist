@@ -6,7 +6,7 @@ const About = () => (
       <h1>About</h1>
       <p>
         This Admin app is used by ME's to generate checklists for different
-        product lines and link with MES.
+        product lines and can be linked with MES (optional).
       </p>
     </div>
   </Layout>
