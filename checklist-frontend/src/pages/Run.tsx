@@ -255,46 +255,83 @@ const Run = () => {
   const [surveyModel, setSurveyModel] = useState<Model | null>(null); // Track model state
   const [renderKey, setRenderKey] = useState(0); // Force re-render key
 
+  // Helper function to format survey data for display
+  const formatSurveyDataForDisplay = (data: any) => {
+    let html = '<div class="mt-8 text-left max-w-4xl mx-auto">';
+    html += '<h3 class="text-xl font-bold text-gray-900 mb-4 text-center">Survey Responses</h3>';
+    html += '<div class="bg-gray-50 rounded-lg p-6">';
+    
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== null && value !== undefined && value !== '') {
+        html += '<div class="mb-4 border-b border-gray-200 pb-3">';
+        html += `<div class="font-semibold text-gray-700 mb-1">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</div>`;
+        
+        if (typeof value === 'object' && value !== null) {
+          if (Array.isArray(value)) {
+            html += `<div class="text-gray-600">${value.join(', ')}</div>`;
+          } else {
+            html += `<div class="text-gray-600">${JSON.stringify(value, null, 2).replace(/[{}"\[\]]/g, '').replace(/,/g, ', ')}</div>`;
+          }
+        } else {
+          html += `<div class="text-gray-600">${value}</div>`;
+        }
+        html += '</div>';
+      }
+    }
+    
+    html += '</div></div>';
+    return html;
+  };
+
+  // Helper function to create print-only survey report
+  const createPrintOnlyReport = (data: any) => {
+    let html = '<div class="print-only-report" style="display: none;">';
+    html += `<div class="print-header-content">`;
+    html += `<h1 class="text-2xl font-bold text-gray-900 mb-2">${survey.name}</h1>`;
+    html += `<div class="text-sm text-gray-600 mb-6">`;
+    html += `<p>Survey ID: ${id}</p>`;
+    html += `<p>Date: ${new Date().toLocaleDateString()}</p>`;
+    if (userId !== "noname") html += `<p>User: ${userId}</p>`;
+    html += `</div>`;
+    html += `</div>`;
+    
+    html += '<div class="survey-responses-print">';
+    html += '<h2 class="text-xl font-bold text-gray-900 mb-4">Survey Responses</h2>';
+    
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== null && value !== undefined && value !== '') {
+        html += '<div class="mb-4 border-b border-gray-200 pb-3">';
+        html += `<div class="font-semibold text-gray-700 mb-1">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</div>`;
+        
+        if (typeof value === 'object' && value !== null) {
+          if (Array.isArray(value)) {
+            html += `<div class="text-gray-600">${value.join(', ')}</div>`;
+          } else {
+            html += `<div class="text-gray-600">${JSON.stringify(value, null, 2).replace(/[{}"\[\]]/g, '').replace(/,/g, ', ')}</div>`;
+          }
+        } else {
+          html += `<div class="text-gray-600">${value}</div>`;
+        }
+        html += '</div>';
+      }
+    }
+    
+    html += '</div></div>';
+    return html;
+  };
+
   // Initialize model when survey data is available
   useEffect(() => {
     if (survey.json) {
       const model = initializeModelFromURL(window.location.search, survey.json);
       
-      // Set up completion message
-      model.completedHtml =
-        `<div class="bg-white rounded-lg p-8 text-center">
-          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
-          <h2 class="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
-          <p class="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
-          <button class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200" id="rerun" onclick="rerunSurvey()">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-            Run Survey Again
-          </button>
-        </div>`;
-
-      // Set up rerun function
-      const rerunSurvey = () => {
+      // Set up rerun function (only declaration in entire file)
+      window.rerunSurvey = () => {
         model.clear(false);
       };
-      window.rerunSurvey = rerunSurvey;
 
       // Configure serialization
       Serializer.getProperty("survey", "clearInvisibleValues").defaultValue = "none";
-
-      // Add PDF button
-      model.addNavigationItem({
-        id: "survey_save_as_file",
-        title: "Save as PDF",
-        action: () => {
-          window.print();
-        },
-      });
 
       // Set view mode
       if (viewOnly) {
@@ -304,6 +341,44 @@ const Run = () => {
       // Set up completion handler
       model.onComplete.add(async (sender: Model) => {
         Logger.debug("onComplete Survey data:", sender.data);
+        
+        // Generate completion HTML with survey data for screen display
+        const surveyDataHtml = formatSurveyDataForDisplay(sender.data);
+        
+        // Generate print-only report
+        const printOnlyReport = createPrintOnlyReport(sender.data);
+        
+        sender.completedHtml = `
+          <div class="bg-white rounded-lg p-8 text-center screen-only">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
+            <p class="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
+            
+            ${surveyDataHtml}
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+              <button class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.rerunSurvey()">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Run Survey Again
+              </button>
+              <button class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.print()">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                </svg>
+                Save as PDF
+              </button>
+            </div>
+          </div>
+          ${printOnlyReport}
+        `;
+        
+        // Save survey data
         await postData(
           "/post",
           {
@@ -447,8 +522,64 @@ const Run = () => {
 
   return (
     <div className="min-h-screen theme-bg-primary">
+      {/* Print Styles */}
+      <style>{`
+        @media print {
+          .no-print, .screen-only {
+            display: none !important;
+          }
+          .print-only-report {
+            display: block !important;
+          }
+          body, * {
+            visibility: hidden;
+          }
+          .survey-container, 
+          .survey-container *,
+          .print-only-report,
+          .print-only-report *,
+          .print-header-content,
+          .print-header-content *,
+          .survey-responses-print,
+          .survey-responses-print * {
+            visibility: visible;
+          }
+          .survey-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+          }
+          .print-only-report {
+            position: relative !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+          }
+          .print-header-content {
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 15px;
+          }
+          .survey-responses-print {
+            line-height: 1.6;
+          }
+          .survey-responses-print .mb-4 {
+            margin-bottom: 15px;
+          }
+          .survey-responses-print .border-b {
+            border-bottom: 1px solid #d1d5db;
+            padding-bottom: 8px;
+          }
+          @page {
+            margin: 1in;
+            size: A4;
+          }
+        }
+      `}</style>
+
       {/* Header with Back Button */}
-      <div className="theme-bg-secondary theme-border-light border-b sticky top-0 z-10 theme-shadow">
+      <div className="theme-bg-secondary theme-border-light border-b sticky top-0 z-10 theme-shadow no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Left side - Back button and title */}
@@ -498,14 +629,6 @@ const Run = () => {
                 <FaCog className="w-4 h-4 mr-2" />
                 Survey Theme
               </button>
-              
-              <button
-                onClick={() => window.print()}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium theme-text-secondary theme-bg-secondary theme-border-light border rounded-md hover:theme-bg-tertiary transition-colors duration-200"
-              >
-                <FaFilePdf className="w-4 h-4 mr-2" />
-                Save PDF
-              </button>
             </div>
           </div>
         </div>
@@ -513,7 +636,7 @@ const Run = () => {
 
       {/* Theme Selector Panel - RIGHT ALIGNED */}
       {showThemeSelector && (
-        <div className="theme-bg-secondary theme-border-light border-b px-4 py-4">
+        <div className="theme-bg-secondary theme-border-light border-b px-4 py-4 no-print">
           <div className="max-w-7xl mx-auto flex justify-end">
             <div className="w-80">
               <ThemeSelector
@@ -527,10 +650,10 @@ const Run = () => {
       )}
 
       {/* Survey Container */}
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-6 survey-container">
         <div className="theme-bg-secondary rounded-lg theme-shadow theme-border-light border overflow-hidden">
           {/* Survey Info Bar */}
-          <div className="theme-bg-tertiary px-6 py-3 theme-border-light border-b">
+          <div className="theme-bg-tertiary px-6 py-3 theme-border-light border-b no-print">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center space-x-4">
                 <span className="theme-text-secondary">Survey ID: {id}</span>
