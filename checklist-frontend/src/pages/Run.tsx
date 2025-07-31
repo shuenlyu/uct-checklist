@@ -296,7 +296,6 @@ const Run = () => {
     html += `</div>`;
     
     html += '<div class="survey-responses-print">';
-    html += '<h2 class="text-xl font-bold text-gray-900 mb-4">Survey Responses</h2>';
     
     for (const [key, value] of Object.entries(data)) {
       if (value !== null && value !== undefined && value !== '') {
