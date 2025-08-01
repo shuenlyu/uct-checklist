@@ -1,4 +1,4 @@
-// src/pages/Run.tsx - Fixed Theme Position & Application
+// src/pages/Run.tsx - Enhanced Print Styling for Professional PDF Output
 import { useParams } from "react-router";
 import {
   ITheme,
@@ -12,7 +12,7 @@ import "survey-core/defaultV2.css";
 import { Survey } from "survey-react-ui";
 
 import { useApi } from "../utils/api";
-import { themes } from "../utils/themeOptions"; // Your existing themes
+import { themes } from "../utils/themeOptions";
 import Logger from "../utils/logger";
 
 import { useLocation } from "react-router-dom";
@@ -22,7 +22,7 @@ import Loading from "../components/Loading";
 // SurveyJS Theme Selector Component
 import ThemeSelector from "../components/ThemeSelector";
 
-// ADD THESE IMPORTS FOR BACK BUTTON
+// Icons
 import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaFilePdf, FaUser, FaCalendarAlt, FaEye, FaPlay, FaCog } from 'react-icons/fa';
 
@@ -252,8 +252,8 @@ const Run = () => {
   const [theme, setTheme] = useState<ITheme>(themes[0]);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [currentSurveyTheme, setCurrentSurveyTheme] = useState("default");
-  const [surveyModel, setSurveyModel] = useState<Model | null>(null); // Track model state
-  const [renderKey, setRenderKey] = useState(0); // Force re-render key
+  const [surveyModel, setSurveyModel] = useState<Model | null>(null);
+  const [renderKey, setRenderKey] = useState(0);
 
   // Helper function to format survey data for display
   const formatSurveyDataForDisplay = (data: any) => {
@@ -283,39 +283,82 @@ const Run = () => {
     return html;
   };
 
-  // Helper function to create print-only survey report
-  const createPrintOnlyReport = (data: any) => {
+  // Create professional print-ready report
+  const createPrintOnlyReport = (data: any, surveyTitle: string) => {
     let html = '<div class="print-only-report" style="display: none;">';
-    html += `<div class="print-header-content">`;
-    html += `<h1 class="text-2xl font-bold text-gray-900 mb-2">${survey.name}</h1>`;
-    html += `<div class="text-sm text-gray-600 mb-6">`;
-    html += `<p>Survey ID: ${id}</p>`;
-    html += `<p>Date: ${new Date().toLocaleDateString()}</p>`;
-    if (userId !== "noname") html += `<p>User: ${userId}</p>`;
+    
+    // Professional Header
+    html += `<div class="print-header">`;
+    html += `<div class="print-header-top">`;
+    html += `<div class="print-logo">`;
+    html += `<div class="uct-logo">UCT</div>`;
+    html += `</div>`;
+    html += `<div class="print-title">`;
+    html += `<h1>Final Integration Checklist</h1>`;
     html += `</div>`;
     html += `</div>`;
     
-    html += '<div class="survey-responses-print">';
+    // Survey Info Section
+    html += `<div class="print-info-section">`;
+    html += `<div class="print-survey-name">${surveyTitle}</div>`;
+    html += `<div class="print-metadata">`;
+    html += `<div class="metadata-row">`;
+    html += `<span class="metadata-label">Survey ID:</span> <span class="metadata-value">${id}</span>`;
+    html += `<span class="metadata-label">Date:</span> <span class="metadata-value">${new Date().toLocaleDateString()}</span>`;
+    html += `</div>`;
+    if (userId !== "noname") {
+      html += `<div class="metadata-row">`;
+      html += `<span class="metadata-label">User:</span> <span class="metadata-value">${userId}</span>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+    html += `</div>`;
+    html += `</div>`; // Close print-header
     
-    for (const [key, value] of Object.entries(data)) {
+    // Survey Content
+    html += '<div class="print-content">';
+    
+    // Group data by sections for better organization
+    const groupedData: { [key: string]: any } = {};
+    Object.entries(data).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
-        html += '<div class="mb-4 border-b border-gray-200 pb-3">';
-        html += `<div class="font-semibold text-gray-700 mb-1">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</div>`;
+        const section = key.includes('_header') ? 'Header Information' : 
+                      key.includes('_content') ? 'Content Details' :
+                      key.includes('checklist') ? 'Checklist Items' : 'General Information';
+        
+        if (!groupedData[section]) {
+          groupedData[section] = {};
+        }
+        groupedData[section][key] = value;
+      }
+    });
+    
+    // Render grouped sections
+    Object.entries(groupedData).forEach(([sectionName, sectionData]) => {
+      html += `<div class="print-section">`;
+      html += `<h3 class="print-section-title">${sectionName}</h3>`;
+      html += `<div class="print-section-content">`;
+      
+      Object.entries(sectionData).forEach(([key, value]) => {
+        html += '<div class="print-field">';
+        html += `<div class="print-field-label">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</div>`;
         
         if (typeof value === 'object' && value !== null) {
           if (Array.isArray(value)) {
-            html += `<div class="text-gray-600">${value.join(', ')}</div>`;
+            html += `<div class="print-field-value">${value.join(', ')}</div>`;
           } else {
-            html += `<div class="text-gray-600">${JSON.stringify(value, null, 2).replace(/[{}"\[\]]/g, '').replace(/,/g, ', ')}</div>`;
+            html += `<div class="print-field-value">${JSON.stringify(value, null, 2).replace(/[{}"\[\]]/g, '').replace(/,/g, ', ')}</div>`;
           }
         } else {
-          html += `<div class="text-gray-600">${value}</div>`;
+          html += `<div class="print-field-value">${value}</div>`;
         }
         html += '</div>';
-      }
-    }
+      });
+      
+      html += `</div></div>`; // Close section content and section
+    });
     
-    html += '</div></div>';
+    html += '</div></div>'; // Close print-content and print-only-report
     return html;
   };
 
@@ -324,7 +367,7 @@ const Run = () => {
     if (survey.json) {
       const model = initializeModelFromURL(window.location.search, survey.json);
       
-      // Set up rerun function (only declaration in entire file)
+      // Set up rerun function
       window.rerunSurvey = () => {
         model.clear(false);
       };
@@ -344,8 +387,8 @@ const Run = () => {
         // Generate completion HTML with survey data for screen display
         const surveyDataHtml = formatSurveyDataForDisplay(sender.data);
         
-        // Generate print-only report
-        const printOnlyReport = createPrintOnlyReport(sender.data);
+        // Generate professional print-only report
+        const printOnlyReport = createPrintOnlyReport(sender.data, survey.name);
         
         sender.completedHtml = `
           <div class="bg-white rounded-lg p-8 text-center screen-only">
@@ -368,7 +411,7 @@ const Run = () => {
               </button>
               <button class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.print()">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
                 Save as PDF
               </button>
@@ -521,58 +564,186 @@ const Run = () => {
 
   return (
     <div className="min-h-screen theme-bg-primary">
-      {/* Print Styles */}
+      {/* Enhanced Print Styles */}
       <style>{`
         @media print {
+          /* Hide screen elements */
           .no-print, .screen-only {
             display: none !important;
           }
+          
+          /* Show print elements */
           .print-only-report {
             display: block !important;
           }
+          
+          /* Reset visibility */
           body, * {
             visibility: hidden;
           }
+          
+          /* Make print content visible */
           .survey-container, 
           .survey-container *,
           .print-only-report,
-          .print-only-report *,
-          .print-header-content,
-          .print-header-content *,
-          .survey-responses-print,
-          .survey-responses-print * {
+          .print-only-report * {
             visibility: visible;
           }
+          
+          /* Position print content */
           .survey-container {
             position: absolute;
             left: 0;
             top: 0;
             width: 100%;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
           }
-          .print-only-report {
-            position: relative !important;
-            max-width: 100% !important;
-            padding: 0 !important;
+          
+          /* Professional Print Header */
+          .print-header {
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #2563eb;
           }
-          .print-header-content {
+          
+          .print-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 20px;
+          }
+          
+          .uct-logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2563eb;
+            background: linear-gradient(45deg, #2563eb, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+          
+          .print-title h1 {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 0;
+            text-align: center;
+            flex-grow: 1;
+          }
+          
+          .print-info-section {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+          }
+          
+          .print-survey-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+            text-align: center;
+          }
+          
+          .print-metadata {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          
+          .metadata-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+          
+          .metadata-label {
+            font-weight: 600;
+            color: #4b5563;
+          }
+          
+          .metadata-value {
+            color: #1f2937;
+          }
+          
+          /* Content Sections */
+          .print-content {
+            padding-top: 20px;
+          }
+          
+          .print-section {
+            margin-bottom: 25px;
+            break-inside: avoid;
+          }
+          
+          .print-section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
             border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 15px;
           }
-          .survey-responses-print {
-            line-height: 1.6;
+          
+          .print-section-content {
+            display: grid;
+            gap: 12px;
           }
-          .survey-responses-print .mb-4 {
-            margin-bottom: 15px;
+          
+          .print-field {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            padding: 8px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
           }
-          .survey-responses-print .border-b {
-            border-bottom: 1px solid #d1d5db;
-            padding-bottom: 8px;
+          
+          .print-field-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 12px;
           }
+          
+          .print-field-value {
+            color: #1f2937;
+            font-size: 12px;
+            word-break: break-word;
+          }
+          
+          /* Page settings */
           @page {
-            margin: 1in;
+            margin: 0.75in;
             size: A4;
+          }
+          
+          /* Page breaks */
+          .print-section {
+            page-break-inside: avoid;
+          }
+          
+          /* Table styling for better readability */
+          table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+          }
+          
+          th, td {
+            border: 1px solid #d1d5db;
+            padding: 8px;
+            text-align: left;
+            font-size: 11px;
+          }
+          
+          th {
+            background-color: #f3f4f6;
+            font-weight: 600;
           }
         }
       `}</style>
@@ -610,7 +781,7 @@ const Run = () => {
               </div>
             </div>
 
-            {/* Right side - MOVED THEME SELECTOR HERE */}
+            {/* Right side - Theme selector and PDF button */}
             <div className="flex items-center space-x-4">
               {userId !== "noname" && (
                 <div className="flex items-center space-x-2 text-sm theme-text-secondary">
@@ -619,21 +790,31 @@ const Run = () => {
                 </div>
               )}
 
-              {/* SurveyJS Theme Selector - NOW ON THE RIGHT */}
+              {/* PDF Generation Button */}
+              <button
+                onClick={() => window.print()}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 border border-red-600 rounded-md transition-colors duration-200"
+                title="Generate PDF"
+              >
+                <FaFilePdf className="w-4 h-4 mr-2" />
+                PDF
+              </button>
+
+              {/* Theme Selector */}
               <button
                 onClick={() => setShowThemeSelector(!showThemeSelector)}
                 className="inline-flex items-center px-3 py-2 text-sm font-medium theme-text-secondary theme-bg-secondary theme-border-light border rounded-md hover:theme-bg-tertiary transition-colors duration-200"
                 title="Change Survey Theme"
               >
                 <FaCog className="w-4 h-4 mr-2" />
-                Survey Theme
+                Theme
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Theme Selector Panel - RIGHT ALIGNED */}
+      {/* Theme Selector Panel */}
       {showThemeSelector && (
         <div className="theme-bg-secondary theme-border-light border-b px-4 py-4 no-print">
           <div className="max-w-7xl mx-auto flex justify-end">
