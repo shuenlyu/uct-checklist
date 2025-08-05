@@ -1,4 +1,4 @@
-// src/pages/Run.tsx - Enhanced Print Styling for Professional PDF Output
+// src/pages/Run.tsx - SurveyJS PDF Generator - Universal Solution
 import { useParams } from "react-router";
 import {
   ITheme,
@@ -10,6 +10,9 @@ import {
 import { useEffect, useState } from "react";
 import "survey-core/defaultV2.css";
 import { Survey } from "survey-react-ui";
+
+// SurveyJS PDF Generator - Correct Import
+import { SurveyPDF } from "survey-pdf";
 
 import { useApi } from "../utils/api";
 import { themes } from "../utils/themeOptions";
@@ -254,6 +257,7 @@ const Run = () => {
   const [currentSurveyTheme, setCurrentSurveyTheme] = useState("default");
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [renderKey, setRenderKey] = useState(0);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Helper function to format survey data for display
   const formatSurveyDataForDisplay = (data: any) => {
@@ -283,83 +287,120 @@ const Run = () => {
     return html;
   };
 
-  // Create professional print-ready report
-  const createPrintOnlyReport = (data: any, surveyTitle: string) => {
-    let html = '<div class="print-only-report" style="display: none;">';
-    
-    // Professional Header
-    html += `<div class="print-header">`;
-    html += `<div class="print-header-top">`;
-    html += `<div class="print-logo">`;
-    html += `<div class="uct-logo">UCT</div>`;
-    html += `</div>`;
-    html += `<div class="print-title">`;
-    html += `<h1>Final Integration Checklist</h1>`;
-    html += `</div>`;
-    html += `</div>`;
-    
-    // Survey Info Section
-    html += `<div class="print-info-section">`;
-    html += `<div class="print-survey-name">${surveyTitle}</div>`;
-    html += `<div class="print-metadata">`;
-    html += `<div class="metadata-row">`;
-    html += `<span class="metadata-label">Survey ID:</span> <span class="metadata-value">${id}</span>`;
-    html += `<span class="metadata-label">Date:</span> <span class="metadata-value">${new Date().toLocaleDateString()}</span>`;
-    html += `</div>`;
-    if (userId !== "noname") {
-      html += `<div class="metadata-row">`;
-      html += `<span class="metadata-label">User:</span> <span class="metadata-value">${userId}</span>`;
-      html += `</div>`;
+  // SurveyJS PDF Generator - Correct API Implementation
+  const generateSurveyPDF = async (model: Model) => {
+    if (isGeneratingPDF) {
+      Logger.info("PDF generation already in progress, skipping...");
+      return;
     }
-    html += `</div>`;
-    html += `</div>`;
-    html += `</div>`; // Close print-header
+
+    // Get survey JSON and clean it (moved outside try block for scope)
+    const surveyJSON = JSON.parse(JSON.stringify(model.toJSON()));
     
-    // Survey Content
-    html += '<div class="print-content">';
+    // Add professional title and description
+    if (!surveyJSON.title || surveyJSON.title.trim() === '') {
+      surveyJSON.title = "Final Integration Checklist";
+    }
     
-    // Group data by sections for better organization
-    const groupedData: { [key: string]: any } = {};
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        const section = key.includes('_header') ? 'Header Information' : 
-                      key.includes('_content') ? 'Content Details' :
-                      key.includes('checklist') ? 'Checklist Items' : 'General Information';
-        
-        if (!groupedData[section]) {
-          groupedData[section] = {};
+    // Add header info to description
+    const headerInfo = `UCT Survey | ID: ${id || 'N/A'} | Date: ${new Date().toLocaleDateString()} | User: ${userId !== "noname" ? userId : 'N/A'}`;
+    if (!surveyJSON.description || surveyJSON.description.trim() === '') {
+      surveyJSON.description = headerInfo;
+    } else {
+      surveyJSON.description = headerInfo + "\n" + surveyJSON.description;
+    }
+
+    try {
+      setIsGeneratingPDF(true);
+      Logger.info("Starting SurveyJS PDF generation...");
+
+      Logger.info("Creating SurveyPDF instance...");
+      
+      // Create SurveyPDF with working configuration
+      const options = {
+        format: [210, 297], // A4 format
+        fontSize: 12,
+        margins: {
+          left: 20,
+          right: 20,
+          top: 20,
+          bot: 20
         }
-        groupedData[section][key] = value;
+      };
+      
+      const surveyPdf = new SurveyPDF(surveyJSON, options);
+      
+      // Set the survey data
+      const surveyData = model.data || {};
+      Logger.info("Setting survey data:", surveyData);
+      surveyPdf.data = surveyData;
+
+      // Generate filename
+      const timestamp = new Date().toISOString().split('T')[0];
+      const timeString = new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
+      const surveyId = id ? id.substring(0, 8) : 'survey';
+      const filename = `UCT_Checklist_${surveyId}_${timestamp}_${timeString}`;
+      
+      Logger.info("Saving PDF with filename:", filename);
+      
+      // Use the correct SurveyJS PDF save method
+      surveyPdf.save(filename);
+      
+      Logger.info("PDF save method called");
+      
+      // Give browser time to process the download
+      setTimeout(() => {
+        Logger.info("PDF generation completed");
+        alert(
+          `✅ PDF "${filename}.pdf" has been generated!\n\n` +
+          `📁 Location: Check your Downloads folder\n` +
+          `📱 Browser: Look for download notification\n` +
+          `📄 Filename: ${filename}.pdf\n\n` +
+          `If you don't see it:\n` +
+          `• Press Ctrl+J (Chrome) or Ctrl+Shift+Y (Firefox)\n` +
+          `• Check browser download settings\n` +
+          `• Look for popup blocker notifications`
+        );
+      }, 2000);
+      
+      Logger.info("SurveyJS PDF generation process completed");
+      
+    } catch (error) {
+      Logger.error("SurveyJS PDF generation failed:", error);
+      
+      // User-friendly error message with fallback option
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Try alternative approach if main method fails
+      try {
+        Logger.info("Trying fallback PDF generation...");
+        
+        // Create simpler PDF instance
+        const fallbackPdf = new SurveyPDF(surveyJSON);
+        fallbackPdf.data = model.data || {};
+        
+        const fallbackFilename = `UCT_PDF_${Date.now()}`;
+        fallbackPdf.save(fallbackFilename);
+        
+        setTimeout(() => {
+          alert(`Fallback PDF saved as: ${fallbackFilename}.pdf`);
+        }, 1500);
+        
+        Logger.info("Fallback PDF generation completed");
+        
+      } catch (fallbackError) {
+        Logger.error("Fallback PDF generation also failed:", fallbackError);
+        
+        const fullMessage = `PDF generation failed: ${errorMessage}\n\nWould you like to try the browser print option instead?`;
+        
+        if (window.confirm(fullMessage)) {
+          // Fallback to browser print
+          window.print();
+        }
       }
-    });
-    
-    // Render grouped sections
-    Object.entries(groupedData).forEach(([sectionName, sectionData]) => {
-      html += `<div class="print-section">`;
-      html += `<h3 class="print-section-title">${sectionName}</h3>`;
-      html += `<div class="print-section-content">`;
-      
-      Object.entries(sectionData).forEach(([key, value]) => {
-        html += '<div class="print-field">';
-        html += `<div class="print-field-label">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</div>`;
-        
-        if (typeof value === 'object' && value !== null) {
-          if (Array.isArray(value)) {
-            html += `<div class="print-field-value">${value.join(', ')}</div>`;
-          } else {
-            html += `<div class="print-field-value">${JSON.stringify(value, null, 2).replace(/[{}"\[\]]/g, '').replace(/,/g, ', ')}</div>`;
-          }
-        } else {
-          html += `<div class="print-field-value">${value}</div>`;
-        }
-        html += '</div>';
-      });
-      
-      html += `</div></div>`; // Close section content and section
-    });
-    
-    html += '</div></div>'; // Close print-content and print-only-report
-    return html;
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   // Initialize model when survey data is available
@@ -387,11 +428,8 @@ const Run = () => {
         // Generate completion HTML with survey data for screen display
         const surveyDataHtml = formatSurveyDataForDisplay(sender.data);
         
-        // Generate professional print-only report
-        const printOnlyReport = createPrintOnlyReport(sender.data, survey.name);
-        
         sender.completedHtml = `
-          <div class="bg-white rounded-lg p-8 text-center screen-only">
+          <div class="bg-white rounded-lg p-8 text-center">
             <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -409,16 +447,32 @@ const Run = () => {
                 </svg>
                 Run Survey Again
               </button>
-              <button class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.print()">
+              <button id="completionPdfBtn" class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="generateCompletionPDF()">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
-                Save as PDF
+                <span>Download PDF</span>
               </button>
             </div>
           </div>
-          ${printOnlyReport}
         `;
+        
+        // Make PDF generation available from completion page
+        (window as any).generateCompletionPDF = async () => {
+          Logger.info("PDF generation triggered from completion page");
+          const btn = document.getElementById('completionPdfBtn');
+          if (btn) {
+            btn.innerHTML = '<span class="inline-flex items-center"><svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Generating PDF...</span>';
+            btn.setAttribute('disabled', 'true');
+          }
+          
+          await generateSurveyPDF(sender);
+          
+          if (btn) {
+            btn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span>Download PDF</span>';
+            btn.removeAttribute('disabled');
+          }
+        };
         
         // Save survey data
         await postData(
@@ -551,6 +605,17 @@ const Run = () => {
     }
   }, [result, surveyModel, result_id, shouldGetResults]);
 
+  // Handle PDF generation from toolbar
+  const handleGeneratePDF = async () => {
+    if (!surveyModel) {
+      alert("Survey is not ready. Please wait for the survey to load completely.");
+      return;
+    }
+
+    Logger.info("PDF generation triggered from toolbar");
+    await generateSurveyPDF(surveyModel);
+  };
+
   if (survey.json === "" || !surveyModel) {
     return (
       <div className="min-h-screen theme-bg-primary flex items-center justify-center">
@@ -564,190 +629,6 @@ const Run = () => {
 
   return (
     <div className="min-h-screen theme-bg-primary">
-      {/* Enhanced Print Styles */}
-      <style>{`
-        @media print {
-          /* Hide screen elements */
-          .no-print, .screen-only {
-            display: none !important;
-          }
-          
-          /* Show print elements */
-          .print-only-report {
-            display: block !important;
-          }
-          
-          /* Reset visibility */
-          body, * {
-            visibility: hidden;
-          }
-          
-          /* Make print content visible */
-          .survey-container, 
-          .survey-container *,
-          .print-only-report,
-          .print-only-report * {
-            visibility: visible;
-          }
-          
-          /* Position print content */
-          .survey-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 0;
-            margin: 0;
-          }
-          
-          /* Professional Print Header */
-          .print-header {
-            padding: 20px 0;
-            margin-bottom: 30px;
-            border-bottom: 3px solid #2563eb;
-          }
-          
-          .print-header-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-          }
-          
-          .uct-logo {
-            font-size: 32px;
-            font-weight: bold;
-            color: #2563eb;
-            background: linear-gradient(45deg, #2563eb, #06b6d4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-          
-          .print-title h1 {
-            font-size: 28px;
-            font-weight: bold;
-            color: #1f2937;
-            margin: 0;
-            text-align: center;
-            flex-grow: 1;
-          }
-          
-          .print-info-section {
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-          }
-          
-          .print-survey-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 10px;
-            text-align: center;
-          }
-          
-          .print-metadata {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-          
-          .metadata-row {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-          }
-          
-          .metadata-label {
-            font-weight: 600;
-            color: #4b5563;
-          }
-          
-          .metadata-value {
-            color: #1f2937;
-          }
-          
-          /* Content Sections */
-          .print-content {
-            padding-top: 20px;
-          }
-          
-          .print-section {
-            margin-bottom: 25px;
-            break-inside: avoid;
-          }
-          
-          .print-section-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #2563eb;
-            margin-bottom: 12px;
-            padding-bottom: 5px;
-            border-bottom: 2px solid #e5e7eb;
-          }
-          
-          .print-section-content {
-            display: grid;
-            gap: 12px;
-          }
-          
-          .print-field {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 10px;
-            padding: 8px;
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-          }
-          
-          .print-field-label {
-            font-weight: 600;
-            color: #374151;
-            font-size: 12px;
-          }
-          
-          .print-field-value {
-            color: #1f2937;
-            font-size: 12px;
-            word-break: break-word;
-          }
-          
-          /* Page settings */
-          @page {
-            margin: 0.75in;
-            size: A4;
-          }
-          
-          /* Page breaks */
-          .print-section {
-            page-break-inside: avoid;
-          }
-          
-          /* Table styling for better readability */
-          table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 10px 0;
-          }
-          
-          th, td {
-            border: 1px solid #d1d5db;
-            padding: 8px;
-            text-align: left;
-            font-size: 11px;
-          }
-          
-          th {
-            background-color: #f3f4f6;
-            font-weight: 600;
-          }
-        }
-      `}</style>
-
       {/* Header with Back Button */}
       <div className="theme-bg-secondary theme-border-light border-b sticky top-0 z-10 theme-shadow no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -792,12 +673,29 @@ const Run = () => {
 
               {/* PDF Generation Button */}
               <button
-                onClick={() => window.print()}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 border border-red-600 rounded-md transition-colors duration-200"
-                title="Generate PDF"
+                onClick={handleGeneratePDF}
+                disabled={isGeneratingPDF}
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium text-white border rounded-md transition-colors duration-200 ${
+                  isGeneratingPDF 
+                    ? 'bg-gray-400 border-gray-400 cursor-not-allowed' 
+                    : 'bg-red-600 hover:bg-red-700 border-red-600'
+                }`}
+                title="Generate PDF using SurveyJS"
               >
-                <FaFilePdf className="w-4 h-4 mr-2" />
-                PDF
+                {isGeneratingPDF ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FaFilePdf className="w-4 h-4 mr-2" />
+                    PDF
+                  </>
+                )}
               </button>
 
               {/* Theme Selector */}

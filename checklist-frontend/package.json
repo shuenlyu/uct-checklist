@@ -35,6 +35,7 @@
     "survey-core": "^1.12.9",
     "survey-creator-core": "^1.12.9",
     "survey-creator-react": "^1.12.9",
+    "survey-pdf": "^2.3.0",
     "survey-react-ui": "^1.12.9",
     "web-vitals": "^2.1.4"
   },
