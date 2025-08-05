@@ -1,32 +1,69 @@
-// src/pages/Run.tsx - SurveyJS PDF Generator - Universal Solution
+  // Test function that exactly mirrors your working example
+  const testSurveyPDF = () => {
+    try {
+      Logger.info("Testing PDF with exact working example pattern...");
+      
+      // Use simple test JSON like your working example
+      const testJson = {
+        "pages": [{
+          "elements": [{
+            "type": "text",
+            "name": "test",
+            "title": "Test Question"
+          }]
+        }]
+      };
+      
+      // Use exact same function pattern as your working code
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      const options = {
+        fontSize: 14,
+        margins: {
+          left: 10,
+          right: 10,
+          top: 10,
+          bot: 10
+        },
+        format: [pdfWidth, pdfHeight]
+      };
+      
+      Logger.info("Creating SurveyPDF instance...");
+      const surveyPDF = new SurveyPDF.SurveyPDF(testJson, options);
+      
+      Logger.info("Calling save method...");
+      surveyPDF.save("test_download");
+      
+      Logger.info("Save method called successfully");
+      
+      setTimeout(() => {
+        alert("Test PDF generation completed! Check your Downloads folder for 'test_download.pdf'");
+      }, 1000);
+      
+    } catch (error) {
+      Logger.error("Test PDF failed:", error);
+      alert(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };// src/pages/Run.tsx - SurveyJS PDF Generator - Universal Solution
 import { useParams } from "react-router";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Link } from 'react-router-dom';
 import {
   ITheme,
   matrixDropdownColumnTypes,
   Model,
   Serializer,
 } from "survey-core";
-
-import { useEffect, useState } from "react";
 import "survey-core/defaultV2.css";
 import { Survey } from "survey-react-ui";
-
-// SurveyJS PDF Generator - Correct Import
-import { SurveyPDF } from "survey-pdf";
-
+import { SurveyQuestionEditorDefinition } from "survey-creator-core";
+import * as SurveyPDF from "survey-pdf";
 import { useApi } from "../utils/api";
 import { themes } from "../utils/themeOptions";
 import Logger from "../utils/logger";
-
-import { useLocation } from "react-router-dom";
-import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 import Loading from "../components/Loading";
-
-// SurveyJS Theme Selector Component
 import ThemeSelector from "../components/ThemeSelector";
-
-// Icons
-import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaFilePdf, FaUser, FaCalendarAlt, FaEye, FaPlay, FaCog } from 'react-icons/fa';
 
 // Global window interface
@@ -287,117 +324,117 @@ const Run = () => {
     return html;
   };
 
-  // SurveyJS PDF Generator - Correct API Implementation
+  // Test function that exactly mirrors your working example
+  const testSurveyPDF = () => {
+    try {
+      Logger.info("Testing PDF with exact working example pattern...");
+      
+      // Use simple test JSON like your working example
+      const testJson = {
+        "pages": [{
+          "elements": [{
+            "type": "text",
+            "name": "test",
+            "title": "Test Question"
+          }]
+        }]
+      };
+      
+      // Use exact same function pattern as your working code
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      const options = {
+        fontSize: 14,
+        margins: {
+          left: 10,
+          right: 10,
+          top: 10,
+          bot: 10
+        },
+        format: [pdfWidth, pdfHeight]
+      };
+      
+      Logger.info("Creating SurveyPDF instance...");
+      const surveyPDF = new SurveyPDF.SurveyPDF(testJson, options);
+      
+      Logger.info("Calling save method...");
+      surveyPDF.save("test_download");
+      
+      Logger.info("Save method called successfully");
+      
+      setTimeout(() => {
+        alert("Test PDF generation completed! Check your Downloads folder for 'test_download.pdf'");
+      }, 1000);
+      
+    } catch (error) {
+      Logger.error("Test PDF failed:", error);
+      alert(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // SurveyJS PDF Generator - Simplified to match working example exactly
   const generateSurveyPDF = async (model: Model) => {
     if (isGeneratingPDF) {
       Logger.info("PDF generation already in progress, skipping...");
       return;
     }
 
-    // Get survey JSON and clean it (moved outside try block for scope)
-    const surveyJSON = JSON.parse(JSON.stringify(model.toJSON()));
-    
-    // Add professional title and description
-    if (!surveyJSON.title || surveyJSON.title.trim() === '') {
-      surveyJSON.title = "Final Integration Checklist";
-    }
-    
-    // Add header info to description
-    const headerInfo = `UCT Survey | ID: ${id || 'N/A'} | Date: ${new Date().toLocaleDateString()} | User: ${userId !== "noname" ? userId : 'N/A'}`;
-    if (!surveyJSON.description || surveyJSON.description.trim() === '') {
-      surveyJSON.description = headerInfo;
-    } else {
-      surveyJSON.description = headerInfo + "\n" + surveyJSON.description;
-    }
-
     try {
       setIsGeneratingPDF(true);
       Logger.info("Starting SurveyJS PDF generation...");
 
-      Logger.info("Creating SurveyPDF instance...");
+      // Get survey JSON
+      const surveyJSON = model.toJSON();
       
-      // Create SurveyPDF with working configuration
+      // Add title if missing
+      if (!surveyJSON.title || surveyJSON.title.trim() === '') {
+        surveyJSON.title = "Final Integration Checklist";
+      }
+
+      // Create PDF with exact same pattern as working example
+      const pdfWidth = 210;
+      const pdfHeight = 297;
       const options = {
-        format: [210, 297], // A4 format
-        fontSize: 12,
+        fontSize: 14,
         margins: {
-          left: 20,
-          right: 20,
-          top: 20,
-          bot: 20
-        }
+          left: 10,
+          right: 10,
+          top: 10,
+          bot: 10
+        },
+        format: [pdfWidth, pdfHeight]
       };
       
-      const surveyPdf = new SurveyPDF(surveyJSON, options);
+      Logger.info("Creating SurveyPDF instance for actual survey...");
+      const surveyPdf = new SurveyPDF.SurveyPDF(surveyJSON, options);
       
-      // Set the survey data
-      const surveyData = model.data || {};
-      Logger.info("Setting survey data:", surveyData);
-      surveyPdf.data = surveyData;
+      // Set data if available
+      if (model.data && Object.keys(model.data).length > 0) {
+        surveyPdf.data = model.data;
+        Logger.info("Survey data set");
+      }
+      
+      // Set locale if available
+      if (model.locale) {
+        surveyPdf.locale = model.locale;
+      }
 
       // Generate filename
-      const timestamp = new Date().toISOString().split('T')[0];
-      const timeString = new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
-      const surveyId = id ? id.substring(0, 8) : 'survey';
-      const filename = `UCT_Checklist_${surveyId}_${timestamp}_${timeString}`;
+      const timestamp = Date.now();
+      const filename = `UCT_Survey_${timestamp}`;
       
-      Logger.info("Saving PDF with filename:", filename);
-      
-      // Use the correct SurveyJS PDF save method
+      Logger.info("Calling save for actual survey:", filename);
       surveyPdf.save(filename);
       
-      Logger.info("PDF save method called");
+      Logger.info("Save method called successfully");
       
-      // Give browser time to process the download
       setTimeout(() => {
-        Logger.info("PDF generation completed");
-        alert(
-          `✅ PDF "${filename}.pdf" has been generated!\n\n` +
-          `📁 Location: Check your Downloads folder\n` +
-          `📱 Browser: Look for download notification\n` +
-          `📄 Filename: ${filename}.pdf\n\n` +
-          `If you don't see it:\n` +
-          `• Press Ctrl+J (Chrome) or Ctrl+Shift+Y (Firefox)\n` +
-          `• Check browser download settings\n` +
-          `• Look for popup blocker notifications`
-        );
-      }, 2000);
-      
-      Logger.info("SurveyJS PDF generation process completed");
-      
+        alert(`Survey PDF should be downloading as: ${filename}.pdf`);
+      }, 1000);
+          
     } catch (error) {
       Logger.error("SurveyJS PDF generation failed:", error);
-      
-      // User-friendly error message with fallback option
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      // Try alternative approach if main method fails
-      try {
-        Logger.info("Trying fallback PDF generation...");
-        
-        // Create simpler PDF instance
-        const fallbackPdf = new SurveyPDF(surveyJSON);
-        fallbackPdf.data = model.data || {};
-        
-        const fallbackFilename = `UCT_PDF_${Date.now()}`;
-        fallbackPdf.save(fallbackFilename);
-        
-        setTimeout(() => {
-          alert(`Fallback PDF saved as: ${fallbackFilename}.pdf`);
-        }, 1500);
-        
-        Logger.info("Fallback PDF generation completed");
-        
-      } catch (fallbackError) {
-        Logger.error("Fallback PDF generation also failed:", fallbackError);
-        
-        const fullMessage = `PDF generation failed: ${errorMessage}\n\nWould you like to try the browser print option instead?`;
-        
-        if (window.confirm(fullMessage)) {
-          // Fallback to browser print
-          window.print();
-        }
-      }
+      alert(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -605,6 +642,12 @@ const Run = () => {
     }
   }, [result, surveyModel, result_id, shouldGetResults]);
 
+  // Handle test PDF generation
+  const handleTestPDF = () => {
+    Logger.info("Test PDF triggered from toolbar");
+    testSurveyPDF();
+  };
+
   // Handle PDF generation from toolbar
   const handleGeneratePDF = async () => {
     if (!surveyModel) {
@@ -671,7 +714,16 @@ const Run = () => {
                 </div>
               )}
 
-              {/* PDF Generation Button */}
+              {/* PDF Generation Buttons - with Test Button */}
+              <button
+                onClick={handleTestPDF}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 border border-yellow-600 rounded-md transition-colors duration-200"
+                title="Test Basic PDF Functionality"
+              >
+                <FaFilePdf className="w-4 h-4 mr-2" />
+                Test PDF
+              </button>
+
               <button
                 onClick={handleGeneratePDF}
                 disabled={isGeneratingPDF}
@@ -680,7 +732,7 @@ const Run = () => {
                     ? 'bg-gray-400 border-gray-400 cursor-not-allowed' 
                     : 'bg-red-600 hover:bg-red-700 border-red-600'
                 }`}
-                title="Generate PDF using SurveyJS"
+                title="Generate Survey PDF"
               >
                 {isGeneratingPDF ? (
                   <>
