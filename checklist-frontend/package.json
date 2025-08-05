@@ -23,6 +23,10 @@
     "history": "^5.3.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
+<<<<<<< HEAD
+=======
+    "jspdf-autotable": "^5.0.2",
+>>>>>>> c30dc09 (using jspdf with autotable function)
     "query-string": "^8.1.0",
     "react": "^17.0.2",
     "react-beautiful-dnd": "^13.1.1",
@@ -36,7 +40,6 @@
     "survey-core": "^1.12.9",
     "survey-creator-core": "^1.12.9",
     "survey-creator-react": "^1.12.9",
-    "survey-pdf": "^2.3.0",
     "survey-react-ui": "^1.12.9",
     "web-vitals": "^2.1.4"
   },
