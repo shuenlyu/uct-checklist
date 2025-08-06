@@ -17,20 +17,21 @@ const Results = () => {
   useEffect(() => {
     getSurvey();
   }, []);
+  
   return (
-    <Layout>
-      <>
+    <Layout fullWidth={true}>
+      <div style={{ padding: '20px' }}>
         {survey.name !== "" ? (
-          <h1 style={{ textAlign: "center" }}>
+          <h1 style={{ textAlign: "center", marginBottom: '20px' }}>
             {"'" + survey.name + "' results"}
           </h1>
         ) : (
           <h1>{""}</h1>
         )}
-        <div className="sjs-results-container">
+        <div className="sjs-results-container" style={{ width: '100%' }}>
           <Viewer id={id as string} />
         </div>
-      </>
+      </div>
     </Layout>
   );
 };

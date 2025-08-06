@@ -15,6 +15,7 @@ import { dc_predefined_json } from "./custom_questions/datacollection";
 import { datacollectionFPY_json } from "./custom_questions/datacollectionFPY";
 import { universal_content_json } from "./custom_questions/universalContent";
 import { universal_header_json } from "./custom_questions/universalHeader";
+import { weld3202_json } from "./custom_questions/weld-3202";
 
 // Enable the File Upload type for use in matrix columns
 matrixDropdownColumnTypes.file = {};
@@ -26,6 +27,7 @@ ComponentCollection.Instance.add(checklistContentFI_json);
 ComponentCollection.Instance.add(datacollectionFPY_json);
 ComponentCollection.Instance.add(universal_header_json);
 ComponentCollection.Instance.add(universal_content_json);
+ComponentCollection.Instance.add(weld3202_json);
 
 const Editor = (params: { id: string }): React.ReactElement => {
   const { fetchData, postData } = useApi();
@@ -138,6 +140,14 @@ const Editor = (params: { id: string }): React.ReactElement => {
     "checklist_content_fi",
     "Text Input Questions"
   );
+
+   creator.toolbox.changeCategory(
+    "weldment_header",
+    "Text Input Questions"
+  );
+
+
+
   creator.toolbox.changeCategory("datacollection_fpy", "Text Input Questions");
   creator.toolbox.changeCategory("universal_header", "Text Input Questions");
   creator.toolbox.changeCategory("universal_content", "Text Input Questions");
