@@ -197,6 +197,10 @@ const Editor = (params: { id: string }): React.ReactElement => {
     } else if (opt.getType() === "universal_header") {
       opt.titleLocation = "hidden";
       opt.name = "universal_header";
+    }
+      else if (opt.getType() === "weldment_header") {
+      opt.titleLocation = "hidden";
+      opt.name = "weldment_header";
     } else if (opt.getType() === "universal_content") {
       opt.titleLocation = "hidden";
       opt.name = "universal_content-" + universal_contnet_count;
