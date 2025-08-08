@@ -83,13 +83,18 @@ export const weld3202_json = {
       elements: [
         {
           type: "text",
-          name: "woNum",
+          name: "wo",
           title: "WO Number",
         },
           {
           type: "text",
           name: "operation",
           title: "Operation",
+        },
+           {
+          type: "text",
+          name: "plant_code",
+          title: "Plant Code",
         },
         {
           type: "comment",
