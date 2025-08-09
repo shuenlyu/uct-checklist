@@ -1,4 +1,4 @@
-// src/pages/Run.tsx - Enhanced with window.print() PDF Generation
+// src/pages/Run.tsx - Updated to launch blank forms by default
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router";
 import { Link } from 'react-router-dom';
@@ -15,17 +15,20 @@ import { useApi } from "../utils/api";
 import { themes } from "../utils/themeOptions";
 import Logger from "../utils/logger";
 import Loading from "../components/Loading";
-import { FaFilePdf, FaArrowLeft } from 'react-icons/fa';
+import { FaFilePdf, FaSpinner, FaEnvelope, FaShareAlt } from 'react-icons/fa';
 import navlogo from "../OneUCT_Logo.png";
 
 // Global window interface
 declare global {
   interface Window {
     rerunSurvey: () => void;
+    generateUniversalPDF: () => Promise<void>;
+    emailPDF: () => Promise<void>;
+    saveToSharePoint: () => Promise<void>;
   }
 }
 
-// SurveyJS matrix dropdown extensions
+// SurveyJS matrix dropdown extensions and signature support
 matrixDropdownColumnTypes.signaturepad = {};
 SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@signaturepad"] = {};
 matrixDropdownColumnTypes.image = {};
@@ -37,6 +40,18 @@ interface ResultItem {
   json: string;
   postid: string;
   submittedBy: string;
+}
+
+interface PDFMetadata {
+  title: string;
+  systemName: string;
+  organizationName: string;
+  logo?: string;
+  fields: Array<{
+    label: string;
+    value: string;
+  }>;
+  additionalInfo?: string;
 }
 
 function initializeModelFromURL(search: string, modelData: any) {
@@ -94,6 +109,360 @@ function mergeDeep(target: any, source: any) {
   return target;
 }
 
+// Universal PDF generation function
+async function generateUniversalPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+  try {
+    Logger.info("Starting Universal PDF generation...");
+    
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://localhost:3001';
+    
+    const surveyJson = surveyModel.toJSON();
+    const surveyData = surveyModel.data;
+    
+    const metadata: PDFMetadata = {
+      title: surveyJson.title || surveyName || 'Survey Results',
+      systemName: 'Checklist Manager System',
+      organizationName: 'UCT',
+      logo: '',
+      fields: [],
+      additionalInfo: ''
+    };
+    
+    const requestData = {
+      surveyJson: surveyJson,
+      surveyData: surveyData,
+      metadata: metadata,
+      fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
+    };
+    
+    const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      Logger.error("PDF server response error:", errorData);
+      throw new Error(`Universal PDF generation failed: ${errorData.error || 'Unknown error'}`);
+    }
+    
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = requestData.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    Logger.info("Universal PDF downloaded successfully:", requestData.fileName);
+    return true;
+    
+  } catch (error) {
+    Logger.error("Universal PDF generation failed:", error);
+    throw error;
+  }
+}
+
+// Email PDF function
+async function emailPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+  try {
+    Logger.info("Starting Email PDF...");
+    
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://localhost:3001';
+    
+    const surveyJson = surveyModel.toJSON();
+    const surveyData = surveyModel.data;
+    
+    const metadata: PDFMetadata = {
+      title: surveyJson.title || surveyName || 'Survey Results',
+      systemName: 'Checklist Manager System',
+      organizationName: 'UCT',
+      logo: '',
+      fields: [],
+      additionalInfo: ''
+    };
+    
+    // Get recipient email from user input
+    const recipientEmail = window.prompt('Enter recipient email address:');
+    if (!recipientEmail) {
+      Logger.info("Email cancelled by user");
+      return;
+    }
+    
+    const requestData = {
+      surveyJson: surveyJson,
+      surveyData: surveyData,
+      metadata: metadata,
+      fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
+      recipientEmail: recipientEmail,
+      senderName: userId,
+      subject: `Inspection Report: ${surveyName}`
+    };
+    
+    const response = await fetch(`${PDF_SERVER_URL}/email-pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      Logger.error("Email PDF server response error:", errorData);
+      throw new Error(`Email PDF failed: ${errorData.error || 'Unknown error'}`);
+    }
+    
+    const result = await response.json();
+    Logger.info("Email sent successfully:", result);
+    window.alert(`PDF emailed successfully to ${recipientEmail}!`);
+    
+    return true;
+    
+  } catch (error) {
+    Logger.error("Email PDF failed:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    window.alert(`Email failed: ${errorMessage}`);
+    throw error;
+  }
+}
+
+// Save to SharePoint function
+async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+  try {
+    Logger.info("Starting Save to SharePoint...");
+    
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://localhost:3001';
+    
+    const surveyJson = surveyModel.toJSON();
+    const surveyData = surveyModel.data;
+    
+    const metadata: PDFMetadata = {
+      title: surveyJson.title || surveyName || 'Survey Results',
+      systemName: 'Checklist Manager System',
+      organizationName: 'UCT',
+      logo: '',
+      fields: [],
+      additionalInfo: ''
+    };
+    
+    const requestData = {
+      surveyJson: surveyJson,
+      surveyData: surveyData,
+      metadata: metadata,
+      fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
+      userId: userId,
+      folderPath: '/Shared Documents/Inspection Reports'
+    };
+    
+    const response = await fetch(`${PDF_SERVER_URL}/save-to-sharepoint`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      Logger.error("SharePoint save server response error:", errorData);
+      throw new Error(`SharePoint save failed: ${errorData.error || 'Unknown error'}`);
+    }
+    
+    const result = await response.json();
+    Logger.info("SharePoint save successful:", result);
+    window.alert(`PDF saved successfully to SharePoint: ${result.sharePointUrl || 'Success'}`);
+    
+    return true;
+    
+  } catch (error) {
+    Logger.error("SharePoint save failed:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    window.alert(`SharePoint save failed: ${errorMessage}`);
+    throw error;
+  }
+}
+
+// Enhanced fallback to window.print with better styling
+function enhancedPrintFallback() {
+  Logger.info("Using enhanced print fallback");
+  
+  const printStyles = `
+    <style id="universal-print-styles">
+      @media print {
+        * {
+          -webkit-print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+        
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          font-family: Arial, sans-serif !important;
+          font-size: 12px !important;
+          line-height: 1.4 !important;
+        }
+        
+        body * {
+          visibility: hidden;
+        }
+        
+        .sv-root,
+        .sv-root *,
+        .sv_main,
+        .sv_main *,
+        .sv-container,
+        .sv-container *,
+        .sv_body,
+        .sv_body *,
+        .sv_page,
+        .sv_page *,
+        .sv_qstn,
+        .sv_qstn *,
+        .sv_q,
+        .sv_q * {
+          visibility: visible !important;
+        }
+        
+        .sv-root {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 15mm !important;
+          box-sizing: border-box !important;
+        }
+        
+        .no-print,
+        header,
+        .theme-bg-header,
+        nav,
+        button:not(.sv_btn),
+        .sv_nav,
+        .sv_progress,
+        .sv_complete_btn,
+        .sv_btn {
+          display: none !important;
+          visibility: hidden !important;
+        }
+        
+        .sv_qstn {
+          margin-bottom: 15px !important;
+          page-break-inside: avoid !important;
+        }
+        
+        .sv_q_title {
+          font-weight: bold !important;
+          margin-bottom: 8px !important;
+          color: #000 !important;
+        }
+        
+        .sv_q_input,
+        .sv_q_text_root,
+        .sv_q_textarea,
+        .sv_q_dropdown,
+        .sv_q_checkbox,
+        .sv_q_radiogroup {
+          margin-bottom: 10px !important;
+        }
+        
+        img {
+          max-width: 100% !important;
+          height: auto !important;
+          -webkit-print-color-adjust: exact !important;
+        }
+        
+        table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+          margin-bottom: 15px !important;
+        }
+        
+        th, td {
+          border: 1px solid #000 !important;
+          padding: 6px !important;
+          text-align: left !important;
+          font-size: 11px !important;
+        }
+        
+        th {
+          background-color: #f0f0f0 !important;
+          font-weight: bold !important;
+        }
+        
+        .sv_page {
+          page-break-before: auto !important;
+          page-break-after: auto !important;
+        }
+        
+        .sv_p_container,
+        .sv_panel {
+          border: 1px solid #ddd !important;
+          margin-bottom: 15px !important;
+          padding: 10px !important;
+        }
+        
+        .sv_p_title {
+          font-weight: bold !important;
+          font-size: 14px !important;
+          margin-bottom: 10px !important;
+          border-bottom: 1px solid #ccc !important;
+          padding-bottom: 5px !important;
+        }
+      }
+      
+      @page {
+        margin: 15mm;
+        size: A4;
+      }
+    </style>
+  `;
+  
+  const existingStyles = document.getElementById('universal-print-styles');
+  if (existingStyles) {
+    existingStyles.remove();
+  }
+  
+  document.head.insertAdjacentHTML('beforeend', printStyles);
+  
+  window.alert('Using browser print dialog. Please select "Save as PDF" or "Print to PDF" when the dialog opens.');
+  
+  setTimeout(() => {
+    window.print();
+    
+    setTimeout(() => {
+      const stylesToRemove = document.getElementById('universal-print-styles');
+      if (stylesToRemove) {
+        stylesToRemove.remove();
+      }
+    }, 1000);
+  }, 100);
+}
+
 const Run = () => {
   const { id } = useParams();
   const location = useLocation();
@@ -102,9 +471,9 @@ const Run = () => {
   Logger.info("Run state: result_id", result_id);
 
   const queryParams = new URLSearchParams(window.location.search);
-  const userId = queryParams.get("inspectedby")
-    ? queryParams.get("inspectedby")
-    : (queryParams.get("userid") ? queryParams.get("userid") : "noname");
+  const userId: string = queryParams.get("inspectedby")
+    ? queryParams.get("inspectedby")!
+    : (queryParams.get("userid") ? queryParams.get("userid")! : "noname");
 
   result_id = queryParams.get("id") || result_id;
   let viewOnly = false;
@@ -112,16 +481,28 @@ const Run = () => {
     viewOnly = true;
   }
 
+  // NEW: Check if we should load existing data
+  const loadExisting = queryParams.get("load_existing") === "true" || 
+                      result_id !== undefined || 
+                      queryParams.get("edit") === "true";
+
   const { fetchData, postData } = useApi();
   const [survey, setSurvey] = useState({ json: "", name: " " });
   const [result, setResult] = useState({});
   const [theme, setTheme] = useState<ITheme>(themes[0]);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isEmailingPDF, setIsEmailingPDF] = useState(false);
+  const [isSavingToSharePoint, setIsSavingToSharePoint] = useState(false);
 
   // Initialize model when survey data is available
   useEffect(() => {
     if (survey.json) {
       const model = initializeModelFromURL(window.location.search, survey.json);
+      
+      Logger.info("=== Model Initialized ===");
+      Logger.info("Model getAllQuestions():", model.getAllQuestions().length);
+      Logger.info("Load existing data:", loadExisting);
       
       // Set up rerun function
       const rerunSurvey = () => {
@@ -129,10 +510,85 @@ const Run = () => {
       };
       window.rerunSurvey = rerunSurvey;
 
+      // Set up Universal PDF generation function
+      const generateUniversalPDFWrapper = async () => {
+        if (isGeneratingPDF) {
+          Logger.warn("PDF generation already in progress");
+          return;
+        }
+        
+        setIsGeneratingPDF(true);
+        
+        try {
+          const hasData = model.data && Object.keys(model.data).length > 0;
+          Logger.info("Model has data:", hasData);
+          
+          if (!hasData) {
+            Logger.warn("Survey has no data - generating PDF with empty responses");
+          }
+          
+          await generateUniversalPDF(model, userId, survey.name || 'Survey');
+          
+        } catch (error) {
+          Logger.error("Universal PDF generation failed:", error);
+          
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          
+          const usesFallback = window.confirm(
+            `PDF generation failed: ${errorMessage}\n\nWould you like to use the browser print dialog as a fallback?`
+          );
+          
+          if (usesFallback) {
+            enhancedPrintFallback();
+          }
+        } finally {
+          setIsGeneratingPDF(false);
+        }
+      };
+      window.generateUniversalPDF = generateUniversalPDFWrapper;
+
+      // Set up Email PDF function
+      const emailPDFWrapper = async () => {
+        if (isEmailingPDF) {
+          Logger.warn("Email PDF already in progress");
+          return;
+        }
+        
+        setIsEmailingPDF(true);
+        
+        try {
+          await emailPDF(model, userId, survey.name || 'Survey');
+        } catch (error) {
+          Logger.error("Email PDF failed:", error);
+        } finally {
+          setIsEmailingPDF(false);
+        }
+      };
+      window.emailPDF = emailPDFWrapper;
+
+      // Set up Save to SharePoint function
+      const saveToSharePointWrapper = async () => {
+        if (isSavingToSharePoint) {
+          Logger.warn("SharePoint save already in progress");
+          return;
+        }
+        
+        setIsSavingToSharePoint(true);
+        
+        try {
+          await saveToSharePoint(model, userId, survey.name || 'Survey');
+        } catch (error) {
+          Logger.error("SharePoint save failed:", error);
+        } finally {
+          setIsSavingToSharePoint(false);
+        }
+      };
+      window.saveToSharePoint = saveToSharePointWrapper;
+
       // Configure serialization
       Serializer.getProperty("survey", "clearInvisibleValues").defaultValue = "none";
 
-      // Set up completion handler with enhanced HTML
+      // Set up completion handler with PDF download option
       model.completedHtml = `
         <div class="bg-white rounded-lg p-8 text-center">
           <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -150,18 +606,27 @@ const Run = () => {
               </svg>
               Run Survey Again
             </button>
+            <button class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.generateUniversalPDF()">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              Download PDF
+            </button>
+            <button class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.emailPDF()">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+              Email PDF
+            </button>
+            <button class="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.saveToSharePoint()">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+              </svg>
+              Save to SharePoint
+            </button>
           </div>
         </div>
       `;
-
-      // Add Save as PDF navigation item (using window.print)
-      model.addNavigationItem({
-        id: "survey_save_as_file",
-        title: "Save as PDF",
-        action: () => {
-          window.print();
-        },
-      });
 
       // Set view mode
       if (viewOnly) {
@@ -186,11 +651,12 @@ const Run = () => {
 
       setSurveyModel(model);
     }
-  }, [survey.json, id, userId, viewOnly, postData]);
+  }, [survey.json, id, userId, viewOnly, postData, isGeneratingPDF, isEmailingPDF, isSavingToSharePoint, loadExisting]);
 
   const getSurvey = async () => {
     try {
       const response = await fetchData("/getSurvey?surveyId=" + id, false);
+      Logger.info("Survey data received:", response.data);
       setSurvey(response.data);
     } catch (error) {
       Logger.error("Error getting survey:", error);
@@ -231,13 +697,17 @@ const Run = () => {
     }
   };
 
-  const shouldGetResults = surveyModel && (!surveyModel
+  // UPDATED: Only load existing data when specifically requested
+  const shouldGetResults = loadExisting && surveyModel && (!surveyModel
     .getAllQuestions()
     .some((question) => question.name === "datacollection_header") || result_id);
 
   useEffect(() => {
     if (shouldGetResults) {
+      Logger.info("Loading existing data based on query parameters");
       getResults();
+    } else {
+      Logger.info("Starting with blank form - no existing data loaded");
     }
   }, [result_id, shouldGetResults]);
 
@@ -264,7 +734,7 @@ const Run = () => {
     }
   }, [surveyModel]);
 
-  // Apply result data to model
+  // Apply result data to model ONLY when we should load existing data
   useEffect(() => {
     if (Object.keys(result).length > 0 && shouldGetResults && surveyModel) {
       Logger.debug("Run: applying result data to model", result);
@@ -275,107 +745,6 @@ const Run = () => {
       }
     }
   }, [result, surveyModel, result_id, shouldGetResults]);
-
-  // Handle PDF generation from toolbar (using window.print)
-  const handleGeneratePDF = () => {
-    Logger.info("PDF generation triggered from toolbar - using window.print()");
-    window.print();
-  };
-
-  // Add global CSS override when component mounts
-  useEffect(() => {
-    // Inject CSS directly into document head to override everything
-    const style = document.createElement('style');
-    style.id = 'survey-fullwidth-override';
-    style.innerHTML = `
-      html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100vw !important;
-        max-width: none !important;
-        overflow-x: auto !important;
-      }
-      
-      #root, 
-      #root > *,
-      #root > * > *,
-      #root > * > * > * {
-        width: 100vw !important;
-        max-width: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      
-      /* Target all possible container classes */
-      .container,
-      .max-w-7xl,
-      .max-w-6xl,
-      .max-w-5xl,
-      .max-w-4xl,
-      .mx-auto,
-      [class*="container"],
-      [class*="max-w"],
-      [class*="mx-auto"] {
-        max-width: none !important;
-        width: 100vw !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      
-      /* SurveyJS specific overrides */
-      .sv-root,
-      .sv_main,
-      .svc-creator,
-      .svc-creator__area,
-      .survey-container,
-      [class*="sv-"],
-      [class*="svc-"] {
-        width: 100vw !important;
-        max-width: none !important;
-        margin: 0 !important;
-      }
-    `;
-    
-    document.head.appendChild(style);
-    
-    // JavaScript DOM manipulation to force width
-    const forceFullWidth = () => {
-      // Target all possible parent elements
-      const elementsToModify = [
-        document.documentElement,
-        document.body,
-        document.getElementById('root'),
-        ...Array.from(document.querySelectorAll('[class*="container"]')),
-        ...Array.from(document.querySelectorAll('[class*="max-w"]')),
-        ...Array.from(document.querySelectorAll('[class*="mx-auto"]')),
-        ...Array.from(document.querySelectorAll('.sv-root')),
-        ...Array.from(document.querySelectorAll('.svc-creator'))
-      ];
-      
-      elementsToModify.forEach(element => {
-        if (element && element instanceof HTMLElement) {
-          element.style.width = '100vw';
-          element.style.maxWidth = 'none';
-          element.style.margin = '0';
-          element.style.padding = '0';
-        }
-      });
-    };
-    
-    // Apply immediately and on DOM changes
-    forceFullWidth();
-    const observer = new MutationObserver(forceFullWidth);
-    observer.observe(document.body, { childList: true, subtree: true });
-    
-    // Cleanup function
-    return () => {
-      const existingStyle = document.getElementById('survey-fullwidth-override');
-      if (existingStyle) {
-        document.head.removeChild(existingStyle);
-      }
-      observer.disconnect();
-    };
-  }, []);
 
   return survey.json === "" || !surveyModel ? (
     <div className="min-h-screen flex items-center justify-center">
@@ -421,16 +790,12 @@ const Run = () => {
               </nav>
             </div>
 
-            {/* Right side - PDF button */}
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleGeneratePDF}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 border border-red-600 rounded-md transition-colors duration-200"
-                title="Print/Save as PDF"
-              >
-                <FaFilePdf className="w-4 h-4 mr-2" />
-                PDF
-              </button>
+            {/* Right side - Status indicator */}
+            <div className="text-white text-sm">
+              {loadExisting ? 
+                `📄 Loaded existing data` : 
+                `📝 Blank form`
+              }
             </div>
           </div>
         </div>

@@ -43,33 +43,6 @@ export const weld3202_json = {
           },
         },
         {
-          type: "radiogroup",
-          name: "shipTo",
-          title: "Shipt To",
-          choices: [
-            {
-              value: "assembly",
-              text: "To Assembly",
-            },
-            {
-              value: "transfer",
-              text: "To Intersite Transfer",
-            },
-            {
-              value: "spareParts",
-              text: "Ship along/Spare parts",
-            },
-            {
-              value: "fastTrack",
-              text: "Fast Track",
-            },
-            {
-              value: "hardCap",
-              text: "Hard Cap/Plug Required",
-            },
-          ],
-        },
-        {
           type: "boolean",
           name: "fairRequires",
           title: "If requires FAIR",
@@ -91,11 +64,17 @@ export const weld3202_json = {
           name: "operation",
           title: "Operation",
         },
-           {
+        {
           type: "text",
           name: "plant_code",
           title: "Plant Code",
         },
+        {
+          type: "text",
+          name: "station",
+          title: "Station",
+        },
+        
         {
           type: "comment",
           name: "customer",
