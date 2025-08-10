@@ -171,11 +171,11 @@ const createSurveyTheme = (themeName: string): ITheme => {
 const generateProfessionalPDF = (model: Model, id?: string | null, userId?: string | null) => {
   try {
     Logger.info("Generating professional PDF...");
-    
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     let yPosition = 30;
-    
+
     // Helper function to add text with word wrapping
     const addWrappedText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 12) => {
       doc.setFontSize(fontSize);
@@ -183,35 +183,35 @@ const generateProfessionalPDF = (model: Model, id?: string | null, userId?: stri
       doc.text(lines, x, y);
       return y + (lines.length * fontSize * 0.35); // Return new Y position
     };
-    
+
     // Header
     doc.setFontSize(22);
     doc.setTextColor(44, 62, 80);
     doc.text('Survey Report', pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 20;
-    
+
     // Survey metadata
     doc.setFontSize(12);
     doc.setTextColor(100, 100, 100);
     doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 10;
-    
+
     if (userId && userId !== "noname") {
       doc.text(`Completed by: ${userId}`, pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 15;
     } else {
       yPosition += 10;
     }
-    
+
     // Line separator
     doc.setDrawColor(200, 200, 200);
     doc.line(20, yPosition, pageWidth - 20, yPosition);
     yPosition += 20;
-    
+
     // Get survey data
     const surveyData = model.data;
     const questions = model.getAllQuestions();
-    
+
     if (Object.keys(surveyData).length === 0) {
       doc.setFontSize(14);
       doc.setTextColor(150, 150, 150);
@@ -219,16 +219,16 @@ const generateProfessionalPDF = (model: Model, id?: string | null, userId?: stri
     } else {
       // Prepare data for table
       const tableData: any[] = [];
-      
+
       // Process each question and its answer
       for (const [key, value] of Object.entries(surveyData)) {
         if (value !== null && value !== undefined && value !== '') {
           // Find the corresponding question to get the title
           const question = questions.find(q => q.name === key);
           const questionTitle = question?.title || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          
+
           let displayValue = '';
-          
+
           if (typeof value === 'object' && value !== null) {
             if (Array.isArray(value)) {
               displayValue = value.join(', ');
@@ -242,23 +242,23 @@ const generateProfessionalPDF = (model: Model, id?: string | null, userId?: stri
           } else {
             displayValue = String(value);
           }
-          
+
           // Limit the display value length for better formatting
           if (displayValue.length > 100) {
             displayValue = displayValue.substring(0, 97) + '...';
           }
-          
+
           tableData.push([questionTitle, displayValue]);
         }
       }
-      
+
       if (tableData.length > 0) {
         // Add survey responses table
         doc.setFontSize(16);
         doc.setTextColor(44, 62, 80);
         doc.text('Survey Responses', 20, yPosition);
         yPosition += 10;
-        
+
         autoTable(doc, {
           head: [['Question', 'Response']],
           body: tableData,
@@ -294,7 +294,7 @@ const generateProfessionalPDF = (model: Model, id?: string | null, userId?: stri
         doc.text('No valid survey responses found', pageWidth / 2, yPosition, { align: 'center' });
       }
     }
-    
+
     // Footer
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
@@ -308,15 +308,15 @@ const generateProfessionalPDF = (model: Model, id?: string | null, userId?: stri
         { align: 'center' }
       );
     }
-    
+
     // Generate filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
     const filename = `survey-report-${id || 'unknown'}-${timestamp}.pdf`;
-    
+
     // Save the PDF
     doc.save(filename);
     Logger.info(`Professional PDF generated successfully: ${filename}`);
-    
+
   } catch (error) {
     Logger.error("Professional PDF generation failed:", error);
     throw error;
@@ -378,6 +378,360 @@ function mergeDeep(target: any, source: any) {
   return target;
 }
 
+// Universal PDF generation function
+async function generateUniversalPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+  try {
+    Logger.info("Starting Universal PDF generation...");
+
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://DC-ANALYTICS01:3001';
+
+    const surveyJson = surveyModel.toJSON();
+    const surveyData = surveyModel.data;
+
+    const metadata: PDFMetadata = {
+      title: surveyJson.title || surveyName || 'Survey Results',
+      systemName: 'Checklist Manager System',
+      organizationName: 'UCT',
+      logo: '',
+      fields: [],
+      additionalInfo: ''
+    };
+
+    const requestData = {
+      surveyJson: surveyJson,
+      surveyData: surveyData,
+      metadata: metadata,
+      fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
+    };
+
+    const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      Logger.error("PDF server response error:", errorData);
+      throw new Error(`Universal PDF generation failed: ${errorData.error || 'Unknown error'}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = requestData.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    Logger.info("Universal PDF downloaded successfully:", requestData.fileName);
+    return true;
+
+  } catch (error) {
+    Logger.error("Universal PDF generation failed:", error);
+    throw error;
+  }
+}
+
+// Email PDF function
+async function emailPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+  try {
+    Logger.info("Starting Email PDF...");
+
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://DC-ANALYTICS01:3001';
+
+    const surveyJson = surveyModel.toJSON();
+    const surveyData = surveyModel.data;
+
+    const metadata: PDFMetadata = {
+      title: surveyJson.title || surveyName || 'Survey Results',
+      systemName: 'Checklist Manager System',
+      organizationName: 'UCT',
+      logo: '',
+      fields: [],
+      additionalInfo: ''
+    };
+
+    // Get recipient email from user input
+    const recipientEmail = window.prompt('Enter recipient email address:');
+    if (!recipientEmail) {
+      Logger.info("Email cancelled by user");
+      return;
+    }
+
+    const requestData = {
+      surveyJson: surveyJson,
+      surveyData: surveyData,
+      metadata: metadata,
+      fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
+      recipientEmail: recipientEmail,
+      senderName: userId,
+      subject: `Inspection Report: ${surveyName}`
+    };
+
+    const response = await fetch(`${PDF_SERVER_URL}/email-pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      Logger.error("Email PDF server response error:", errorData);
+      throw new Error(`Email PDF failed: ${errorData.error || 'Unknown error'}`);
+    }
+
+    const result = await response.json();
+    Logger.info("Email sent successfully:", result);
+    window.alert(`PDF emailed successfully to ${recipientEmail}!`);
+
+    return true;
+
+  } catch (error) {
+    Logger.error("Email PDF failed:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    window.alert(`Email failed: ${errorMessage}`);
+    throw error;
+  }
+}
+
+// Save to SharePoint function
+async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+  try {
+    Logger.info("Starting Save to SharePoint...");
+
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://DC-ANALYTICS01:3001';
+
+    const surveyJson = surveyModel.toJSON();
+    const surveyData = surveyModel.data;
+
+    const metadata: PDFMetadata = {
+      title: surveyJson.title || surveyName || 'Survey Results',
+      systemName: 'Checklist Manager System',
+      organizationName: 'UCT',
+      logo: '',
+      fields: [],
+      additionalInfo: ''
+    };
+
+    const requestData = {
+      surveyJson: surveyJson,
+      surveyData: surveyData,
+      metadata: metadata,
+      fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
+      userId: userId,
+      folderPath: '/Shared Documents/Inspection Reports'
+    };
+
+    const response = await fetch(`${PDF_SERVER_URL}/save-to-sharepoint`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      Logger.error("SharePoint save server response error:", errorData);
+      throw new Error(`SharePoint save failed: ${errorData.error || 'Unknown error'}`);
+    }
+
+    const result = await response.json();
+    Logger.info("SharePoint save successful:", result);
+    window.alert(`PDF saved successfully to SharePoint: ${result.sharePointUrl || 'Success'}`);
+
+    return true;
+
+  } catch (error) {
+    Logger.error("SharePoint save failed:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    window.alert(`SharePoint save failed: ${errorMessage}`);
+    throw error;
+  }
+}
+
+// Enhanced fallback to window.print with better styling
+function enhancedPrintFallback() {
+  Logger.info("Using enhanced print fallback");
+
+  const printStyles = `
+    <style id="universal-print-styles">
+      @media print {
+        * {
+          -webkit-print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          font-family: Arial, sans-serif !important;
+          font-size: 12px !important;
+          line-height: 1.4 !important;
+        }
+
+        body * {
+          visibility: hidden;
+        }
+
+        .sv-root,
+        .sv-root *,
+        .sv_main,
+        .sv_main *,
+        .sv-container,
+        .sv-container *,
+        .sv_body,
+        .sv_body *,
+        .sv_page,
+        .sv_page *,
+        .sv_qstn,
+        .sv_qstn *,
+        .sv_q,
+        .sv_q * {
+          visibility: visible !important;
+        }
+
+        .sv-root {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 15mm !important;
+          box-sizing: border-box !important;
+        }
+
+        .no-print,
+        header,
+        .theme-bg-header,
+        nav,
+        button:not(.sv_btn),
+        .sv_nav,
+        .sv_progress,
+        .sv_complete_btn,
+        .sv_btn {
+          display: none !important;
+          visibility: hidden !important;
+        }
+
+        .sv_qstn {
+          margin-bottom: 15px !important;
+          page-break-inside: avoid !important;
+        }
+
+        .sv_q_title {
+          font-weight: bold !important;
+          margin-bottom: 8px !important;
+          color: #000 !important;
+        }
+
+        .sv_q_input,
+        .sv_q_text_root,
+        .sv_q_textarea,
+        .sv_q_dropdown,
+        .sv_q_checkbox,
+        .sv_q_radiogroup {
+          margin-bottom: 10px !important;
+        }
+
+        img {
+          max-width: 100% !important;
+          height: auto !important;
+          -webkit-print-color-adjust: exact !important;
+        }
+
+        table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+          margin-bottom: 15px !important;
+        }
+
+        th, td {
+          border: 1px solid #000 !important;
+          padding: 6px !important;
+          text-align: left !important;
+          font-size: 11px !important;
+        }
+
+        th {
+          background-color: #f0f0f0 !important;
+          font-weight: bold !important;
+        }
+
+        .sv_page {
+          page-break-before: auto !important;
+          page-break-after: auto !important;
+        }
+
+        .sv_p_container,
+        .sv_panel {
+          border: 1px solid #ddd !important;
+          margin-bottom: 15px !important;
+          padding: 10px !important;
+        }
+
+        .sv_p_title {
+          font-weight: bold !important;
+          font-size: 14px !important;
+          margin-bottom: 10px !important;
+          border-bottom: 1px solid #ccc !important;
+          padding-bottom: 5px !important;
+        }
+      }
+
+      @page {
+        margin: 15mm;
+        size: A4;
+      }
+    </style>
+  `;
+
+  const existingStyles = document.getElementById('universal-print-styles');
+  if (existingStyles) {
+    existingStyles.remove();
+  }
+
+  document.head.insertAdjacentHTML('beforeend', printStyles);
+
+  window.alert('Using browser print dialog. Please select "Save as PDF" or "Print to PDF" when the dialog opens.');
+
+  setTimeout(() => {
+    window.print();
+
+    setTimeout(() => {
+      const stylesToRemove = document.getElementById('universal-print-styles');
+      if (stylesToRemove) {
+        stylesToRemove.remove();
+      }
+    }, 1000);
+  }, 100);
+}
+
 const Run = () => {
   const { id } = useParams();
   const location = useLocation();
@@ -411,12 +765,12 @@ const Run = () => {
     let html = '<div class="mt-8 text-left max-w-4xl mx-auto">';
     html += '<h3 class="text-xl font-bold text-gray-900 mb-4 text-center">Survey Responses</h3>';
     html += '<div class="bg-gray-50 rounded-lg p-6">';
-    
+
     for (const [key, value] of Object.entries(data)) {
       if (value !== null && value !== undefined && value !== '') {
         html += '<div class="mb-4 border-b border-gray-200 pb-3">';
         html += `<div class="font-semibold text-gray-700 mb-1">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</div>`;
-        
+
         if (typeof value === 'object' && value !== null) {
           if (Array.isArray(value)) {
             html += `<div class="text-gray-600">${value.join(', ')}</div>`;
@@ -429,7 +783,7 @@ const Run = () => {
         html += '</div>';
       }
     }
-    
+
     html += '</div></div>';
     return html;
   };
@@ -444,10 +798,10 @@ const Run = () => {
     try {
       setIsGeneratingPDF(true);
       Logger.info("Starting jsPDF survey PDF generation...");
-      
+
       // Use the new jsPDF implementation
       generateProfessionalPDF(model, id, userId);
-      
+
     } catch (error) {
       Logger.error("Survey PDF generation failed:", error);
       alert(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -460,7 +814,7 @@ const Run = () => {
   useEffect(() => {
     if (survey.json) {
       const model = initializeModelFromURL(window.location.search, survey.json);
-      
+
       // Set up rerun function
       window.rerunSurvey = () => {
         model.clear(false);
@@ -477,10 +831,10 @@ const Run = () => {
       // Set up completion handler
       model.onComplete.add(async (sender: Model) => {
         Logger.debug("onComplete Survey data:", sender.data);
-        
+
         // Generate completion HTML with survey data for screen display
         const surveyDataHtml = formatSurveyDataForDisplay(sender.data);
-        
+
         sender.completedHtml = `
           <div class="bg-white rounded-lg p-8 text-center">
             <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -490,9 +844,9 @@ const Run = () => {
             </div>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
             <p class="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
-            
+
             ${surveyDataHtml}
-            
+
             <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
               <button class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.rerunSurvey()">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -509,7 +863,7 @@ const Run = () => {
             </div>
           </div>
         `;
-        
+
         // Make PDF generation available from completion page
         (window as any).generateCompletionPDF = async () => {
           Logger.info("jsPDF generation triggered from completion page");
@@ -518,20 +872,20 @@ const Run = () => {
             btn.innerHTML = '<span class="inline-flex items-center"><svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Generating PDF...</span>';
             btn.setAttribute('disabled', 'true');
           }
-          
+
           try {
             generateProfessionalPDF(sender, id, userId);
           } catch (error) {
             Logger.error("Completion PDF generation failed:", error);
             alert("PDF generation failed. Please try the PDF button in the toolbar instead.");
           }
-          
+
           if (btn) {
             btn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span>Download PDF</span>';
             btn.removeAttribute('disabled');
           }
         };
-        
+
         // Save survey data
         await postData(
           "/post",
@@ -554,14 +908,14 @@ const Run = () => {
     if (surveyModel) {
       const selectedTheme = createSurveyTheme(themeName);
       Logger.info("Applying theme:", themeName, selectedTheme);
-      
+
       try {
         surveyModel.applyTheme(selectedTheme);
         setCurrentSurveyTheme(themeName);
-        
+
         // Force re-render by incrementing render key
         setRenderKey(prev => prev + 1);
-        
+
         Logger.info("Theme applied successfully:", themeName);
       } catch (error) {
         Logger.error("Error applying theme:", error);
@@ -693,14 +1047,14 @@ const Run = () => {
           <div className="flex items-center justify-between h-16">
             {/* Left side - Back button and title */}
             <div className="flex items-center space-x-4">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="inline-flex items-center px-4 py-2 text-sm font-medium theme-text-secondary theme-bg-secondary theme-border-light border rounded-md hover:theme-bg-tertiary theme-hover-blue transition-colors duration-200 theme-shadow"
               >
                 <FaArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home
               </Link>
-              
+
               <div className="flex items-center space-x-3">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                   viewOnly ? 'theme-bg-tertiary' : 'bg-green-100'
@@ -734,8 +1088,8 @@ const Run = () => {
                 onClick={handleGeneratePDF}
                 disabled={isGeneratingPDF}
                 className={`inline-flex items-center px-3 py-2 text-sm font-medium text-white border rounded-md transition-colors duration-200 ${
-                  isGeneratingPDF 
-                    ? 'bg-gray-400 border-gray-400 cursor-not-allowed' 
+                  isGeneratingPDF
+                    ? 'bg-gray-400 border-gray-400 cursor-not-allowed'
                     : 'bg-red-600 hover:bg-red-700 border-red-600'
                 }`}
                 title="Generate Professional PDF with jsPDF"
