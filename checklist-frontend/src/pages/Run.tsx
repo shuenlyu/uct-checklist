@@ -114,7 +114,7 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
   try {
     Logger.info("Starting Universal PDF generation...");
     
-    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://DC-ANALYTICS01:3001';
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
@@ -179,7 +179,7 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
   try {
     Logger.info("Starting Email PDF...");
     
-    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://DC-ANALYTICS01:3001';
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
@@ -249,7 +249,7 @@ async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: 
   try {
     Logger.info("Starting Save to SharePoint...");
     
-    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://DC-ANALYTICS01:3001';
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
