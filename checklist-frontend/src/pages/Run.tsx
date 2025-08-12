@@ -382,9 +382,15 @@ function mergeDeep(target: any, source: any) {
 async function generateUniversalPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
     Logger.info("Starting Universal PDF generation...");
+<<<<<<< HEAD
 
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://DC-ANALYTICS01:3001';
 
+=======
+    
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
+    
+>>>>>>> 16e027a (updated pdf server url)
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
 
@@ -447,9 +453,15 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
 async function emailPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
     Logger.info("Starting Email PDF...");
+<<<<<<< HEAD
 
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://DC-ANALYTICS01:3001';
 
+=======
+    
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
+    
+>>>>>>> 16e027a (updated pdf server url)
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
 
@@ -517,9 +529,15 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
 async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
     Logger.info("Starting Save to SharePoint...");
+<<<<<<< HEAD
 
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'http://DC-ANALYTICS01:3001';
 
+=======
+    
+    const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
+    
+>>>>>>> 16e027a (updated pdf server url)
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
 
