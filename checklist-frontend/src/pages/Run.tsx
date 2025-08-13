@@ -247,37 +247,20 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     Logger.info("   Enhanced data keys:", Object.keys(enhancedSurveyData));
     
     // Check if we found myImageLink anywhere
+    
     if (enhancedSurveyData.myImageLink) {
       Logger.info("   ✅ SUCCESS! myImageLink found:", enhancedSurveyData.myImageLink.substring(0, 50) + '...');
     } else {
       Logger.warn("   ❌ FAILED! myImageLink not found anywhere!");
-      Logger.warn("   This means myImageLink might not be a survey question or might be stored differently.");
+      Logger.warn("   Adding TEST PHOTO for PDF generation verification...");
       
-      // MANUAL FIX: If you can see myImageLink in your browser dev tools, 
-      // we can manually add it here for testing
-      Logger.warn("   🔧 MANUAL FIX ATTEMPT:");
+      // TEMPORARY: Add a test image (small blue square)
+      const testImageBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJYSURBVHic7dlLaxNRGMbx/yRpm7RJE1tbxUsVi4iKuHDhQhe6cOHChQsXLly4cOHChQsXLly4cOHChQsXLly4cOHChQsXLly4cOHChQsXLly4cOHChQsXLlzoQr/A3+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzgEAAA";
       
-      // Try to access it from DOM or other sources
-      try {
-        // Check if there's a file input or image element with myImageLink
-        const imageElements = document.querySelectorAll('input[type="file"], img, canvas');
-        Logger.info("     Found image-related elements:", imageElements.length);
-        
-        imageElements.forEach((element: Element, index: number) => {
-          Logger.info(`     Element ${index + 1}:`, element.tagName, (element as any).id, element.className);
-          
-          // If it's a file input, check its files
-          if (element.tagName === 'INPUT' && (element as HTMLInputElement).files) {
-            const files = (element as HTMLInputElement).files;
-            if (files && files.length > 0) {
-              Logger.info(`       Has ${files.length} files`);
-              // This would need additional processing to convert to base64
-            }
-          }
-        });
-      } catch (e) {
-        Logger.info("     ❌ Could not search DOM elements");
-      }
+      // Add test photo for verification
+      enhancedSurveyData.myImageLink = testImageBase64;
+      enhancedSurveyData.testPhoto = testImageBase64;
+      Logger.info("   🧪 Added test photo for PDF verification");
     }
     
     // FOR TESTING: If myImageLink is still not found, add a placeholder
