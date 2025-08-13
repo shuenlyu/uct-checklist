@@ -119,12 +119,15 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
+    // ENHANCED: Extract header fields from survey data
+    const headerFields = extractHeaderFields(surveyData, surveyJson);
+    
     const metadata: PDFMetadata = {
       title: surveyJson.title || surveyName || 'Survey Results',
       systemName: 'Checklist Manager System',
       organizationName: 'UCT',
-      logo: '',
-      fields: [],
+      logo: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', // Add your UCT logo base64 here
+      fields: headerFields, // Now populated with actual header data
       additionalInfo: ''
     };
     
@@ -134,6 +137,14 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
     };
+    
+    // Debug logging
+    Logger.info("PDF Request Data:", {
+      surveyJsonPages: surveyJson.pages?.length || 0,
+      surveyDataKeys: Object.keys(surveyData || {}),
+      headerFields: headerFields,
+      fileName: requestData.fileName
+    });
     
     const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
       method: 'POST',
@@ -174,6 +185,156 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
   }
 }
 
+// NEW: Function to extract header fields from survey data
+function extractHeaderFields(surveyData: any, surveyJson: any): Array<{label: string, value: string, required?: boolean}> {
+  const headerFields: Array<{label: string, value: string, required?: boolean}> = [];
+  
+  if (!surveyData) {
+    Logger.warn("No survey data available for header extraction");
+    return headerFields;
+  }
+  
+  Logger.info("Extracting header fields from survey data:", surveyData);
+  
+  // Strategy 1: Look for common header field patterns in survey data
+  const commonHeaderMappings = [
+    { key: 'station', label: 'Station', required: true },
+    { key: 'wo', label: 'Work Order', required: true },
+    { key: 'workorder', label: 'Work Order', required: true },
+    { key: 'toolid', label: 'Tool ID', required: true },
+    { key: 'tool_id', label: 'Tool ID', required: true },
+    { key: 'date', label: 'Date', required: true },
+    { key: 'inspector', label: 'Inspector', required: false },
+    { key: 'inspectedby', label: 'Inspected By', required: false },
+    { key: 'checkedby', label: 'Checked By', required: false },
+    { key: 'operator', label: 'Operator', required: false },
+    { key: 'shift', label: 'Shift', required: false },
+    { key: 'line', label: 'Line', required: false }
+  ];
+  
+  // Strategy 2: Look for header data in nested objects (like panel data)
+  for (const [dataKey, dataValue] of Object.entries(surveyData)) {
+    Logger.info(`Checking data key: ${dataKey}`, dataValue);
+    
+    // Check if this key contains header-like data
+    if (typeof dataValue === 'object' && dataValue !== null && !Array.isArray(dataValue)) {
+      // Check for common header field names in this object
+      for (const mapping of commonHeaderMappings) {
+        const fieldValue = (dataValue as any)[mapping.key];
+        if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+          const stringValue = typeof fieldValue === 'string' ? fieldValue : String(fieldValue);
+          
+          // Avoid duplicates
+          if (!headerFields.some(field => field.label === mapping.label)) {
+            headerFields.push({
+              label: mapping.label,
+              value: stringValue,
+              required: mapping.required
+            });
+            Logger.info(`Found header field: ${mapping.label} = ${stringValue}`);
+          }
+        }
+      }
+    }
+    
+    // Also check top-level keys
+    for (const mapping of commonHeaderMappings) {
+      if (dataKey.toLowerCase() === mapping.key.toLowerCase()) {
+        const stringValue = typeof dataValue === 'string' ? dataValue : String(dataValue);
+        if (stringValue && stringValue !== 'null' && stringValue !== 'undefined') {
+          // Avoid duplicates
+          if (!headerFields.some(field => field.label === mapping.label)) {
+            headerFields.push({
+              label: mapping.label,
+              value: stringValue,
+              required: mapping.required
+            });
+            Logger.info(`Found top-level header field: ${mapping.label} = ${stringValue}`);
+          }
+        }
+      }
+    }
+  }
+  
+  // Strategy 3: Look for specific patterns in survey JSON structure
+  if (surveyJson && surveyJson.pages) {
+    for (const page of surveyJson.pages) {
+      if (page.elements) {
+        for (const element of page.elements) {
+          // Check for header panels
+          if (element.type === 'panel' && 
+              (element.name?.toLowerCase().includes('header') || 
+               element.title?.toLowerCase().includes('header'))) {
+            
+            Logger.info("Found header panel:", element.name);
+            
+            // Extract field definitions from panel elements
+            if (element.elements) {
+              for (const panelElement of element.elements) {
+                const elementName = panelElement.name?.toLowerCase() || '';
+                const elementTitle = panelElement.title || panelElement.name || '';
+                
+                // Look for matching data
+                const dataValue = surveyData[element.name]?.[panelElement.name] || 
+                                surveyData[panelElement.name];
+                
+                if (dataValue !== undefined && dataValue !== null && dataValue !== '') {
+                  const stringValue = typeof dataValue === 'string' ? dataValue : String(dataValue);
+                  
+                  // Avoid duplicates
+                  if (!headerFields.some(field => field.label === elementTitle)) {
+                    headerFields.push({
+                      label: elementTitle,
+                      value: stringValue,
+                      required: panelElement.isRequired || false
+                    });
+                    Logger.info(`Found panel header field: ${elementTitle} = ${stringValue}`);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Strategy 4: If no specific headers found, use some default fields from query params
+  if (headerFields.length === 0) {
+    const queryParams = new URLSearchParams(window.location.search);
+    const defaultMappings = [
+      { param: 'station', label: 'Station' },
+      { param: 'wo', label: 'Work Order' },
+      { param: 'toolid', label: 'Tool ID' },
+      { param: 'inspectedby', label: 'Inspector' }
+    ];
+    
+    for (const mapping of defaultMappings) {
+      const value = queryParams.get(mapping.param);
+      if (value) {
+        headerFields.push({
+          label: mapping.label,
+          value: value,
+          required: true
+        });
+      }
+    }
+  }
+  
+  // Add current date if no date field found
+  if (!headerFields.some(field => field.label.toLowerCase().includes('date'))) {
+    headerFields.push({
+      label: 'Date',
+      value: new Date().toLocaleString(),
+      required: false
+    });
+  }
+  
+  Logger.info("Final extracted header fields:", headerFields);
+  return headerFields;
+}
+
+
 // Email PDF function
 async function emailPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
@@ -184,16 +345,18 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
+    // Extract header fields
+    const headerFields = extractHeaderFields(surveyData, surveyJson);
+    
     const metadata: PDFMetadata = {
       title: surveyJson.title || surveyName || 'Survey Results',
       systemName: 'Checklist Manager System',
       organizationName: 'UCT',
       logo: '',
-      fields: [],
+      fields: headerFields,
       additionalInfo: ''
     };
     
-    // Get recipient email from user input
     const recipientEmail = window.prompt('Enter recipient email address:');
     if (!recipientEmail) {
       Logger.info("Email cancelled by user");
@@ -243,7 +406,6 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
     throw error;
   }
 }
-
 // Save to SharePoint function
 async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
@@ -254,12 +416,15 @@ async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: 
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
+    // Extract header fields
+    const headerFields = extractHeaderFields(surveyData, surveyJson);
+    
     const metadata: PDFMetadata = {
       title: surveyJson.title || surveyName || 'Survey Results',
       systemName: 'Checklist Manager System',
       organizationName: 'UCT',
       logo: '',
-      fields: [],
+      fields: headerFields,
       additionalInfo: ''
     };
     
