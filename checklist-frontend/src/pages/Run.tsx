@@ -1,4 +1,4 @@
-// src/pages/Run.tsx - jsPDF Implementation for Universal PDF Generation
+// src/pages/Run.tsx - Fixed to prevent page refresh on PDF download
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router";
 import { Link } from 'react-router-dom';
@@ -24,6 +24,9 @@ import { FaArrowLeft, FaFilePdf, FaUser, FaCalendarAlt, FaEye, FaPlay, FaCog } f
 declare global {
   interface Window {
     rerunSurvey: () => void;
+    generateUniversalPDF: () => Promise<void>;
+    emailPDF: () => Promise<void>;
+    saveToSharedFolder: () => Promise<void>;
   }
 }
 
@@ -379,7 +382,6 @@ function mergeDeep(target: any, source: any) {
 }
 
 // Universal PDF generation function
-// Replace generateUniversalPDF function in Run.tsx with this TypeScript-safe version:
 async function generateUniversalPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
     Logger.info("Starting Universal PDF generation...");
@@ -405,33 +407,27 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
       const questionValue = question.value;
 
 =======
-    
-    Logger.info("=== COMPLETE DEBUGGING SESSION ===");
-    Logger.info("1. Basic survey data:", surveyData);
-    Logger.info("2. Survey data keys:", Object.keys(surveyData));
-    
-    // Enhanced data collection
+
+    // Enhanced data collection - capture all question values
     const enhancedSurveyData = { ...surveyData };
-    
-    // COMPREHENSIVE: Get ALL possible data from survey model
-    Logger.info("3. Getting all questions...");
+
     const allQuestions = surveyModel.getAllQuestions();
-    Logger.info("   All questions count:", allQuestions.length);
-    
-    allQuestions.forEach((question: any, index: number) => {
-      const questionName = question.name;
+    allQuestions.forEach((question: any) => {
       const questionValue = question.value;
+<<<<<<< HEAD
       const questionType = question.getType();
-      
-      Logger.info(`   Question ${index + 1}: "${questionName}" (${questionType}) =`, 
-        typeof questionValue === 'string' && questionValue.length > 50 
-          ? `${typeof questionValue} (${questionValue.length} chars) "${questionValue.substring(0, 50)}..."` 
+
+      Logger.info(`   Question ${index + 1}: "${questionName}" (${questionType}) =`,
+        typeof questionValue === 'string' && questionValue.length > 50
+          ? `${typeof questionValue} (${questionValue.length} chars) "${questionValue.substring(0, 50)}..."`
           : questionValue
       );
-      
+
 >>>>>>> 32df370 (added debugging)
+=======
+>>>>>>> 67611de (added save to shared folder)
       if (questionValue !== undefined && questionValue !== null) {
-        enhancedSurveyData[questionName] = questionValue;
+        enhancedSurveyData[question.name] = questionValue;
       }
     });
 <<<<<<< HEAD
@@ -449,10 +445,11 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
 
     // Strategy 3: Specifically look for myImageLink
 =======
-    
+
+<<<<<<< HEAD
     // DIRECT: Try to access myImageLink directly from survey model
     Logger.info("4. Direct myImageLink access attempts:");
-    
+
     // Method 1: Direct question lookup
 >>>>>>> 32df370 (added debugging)
     const myImageLinkQuestion = surveyModel.getQuestionByName('myImageLink');
@@ -489,7 +486,7 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
       } else {
         Logger.info(`${key}:`, typeof value, value);
 =======
-    
+
     // Method 2: Check survey model internal data
     Logger.info("   Method 2 - surveyModel internal data:");
     try {
@@ -502,7 +499,7 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     } catch (e) {
       Logger.info("     ❌ Could not access internal data");
     }
-    
+
     // Method 3: Check all pages and elements (FIXED TypeScript)
     Logger.info("   Method 3 - Searching survey JSON structure:");
     if (surveyJson.pages) {
@@ -511,7 +508,7 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
         if (page.elements) {
           page.elements.forEach((element: any, elementIndex: number) => {
             Logger.info(`       Element ${elementIndex + 1}: "${element.name}" (${element.type})`);
-            
+
             // If it's myImageLink element, try to get its value
             if (element.name === 'myImageLink') {
               const question = surveyModel.getQuestionByName(element.name);
@@ -520,7 +517,7 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
                 Logger.info("       ✅ Found myImageLink via page element!");
               }
             }
-            
+
             // Check panel elements
             if (element.type === 'panel' && element.elements) {
               element.elements.forEach((panelElement: any, panelIndex: number) => {
@@ -538,26 +535,29 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
         }
       });
     }
-    
+
     // Method 4: Plain data
     Logger.info("   Method 4 - Plain data:");
     const plainData = surveyModel.getPlainData({ includeEmpty: true });
     Logger.info("     Plain data count:", plainData.length);
     plainData.forEach((item: any, index: number) => {
-      Logger.info(`     Plain item ${index + 1}: "${item.name}" =`, 
-        typeof item.value === 'string' && item.value.length > 50 
-          ? `${typeof item.value} (${item.value.length} chars) "${item.value.substring(0, 50)}..."` 
+      Logger.info(`     Plain item ${index + 1}: "${item.name}" =`,
+        typeof item.value === 'string' && item.value.length > 50
+          ? `${typeof item.value} (${item.value.length} chars) "${item.value.substring(0, 50)}..."`
           : item.value
       );
-      
+
+=======
+    // Also include plain data to ensure nothing is missed
+    const plainData = surveyModel.getPlainData({ includeEmpty: false });
+    plainData.forEach((item: any) => {
+>>>>>>> 67611de (added save to shared folder)
       if (item.name && item.value !== undefined && item.value !== null) {
         enhancedSurveyData[item.name] = item.value;
-        if (item.name === 'myImageLink') {
-          Logger.info("     ✅ Found myImageLink in plain data!");
-        }
       }
     });
-    
+
+<<<<<<< HEAD
     // Method 5: Global window search (last resort)
     Logger.info("   Method 5 - Global window search:");
     try {
@@ -574,31 +574,31 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     } catch (e) {
       Logger.info("     ❌ No window.survey found");
     }
-    
+
     // FINAL: Manual addition for testing (if you know the field exists)
     Logger.info("5. Final check - what we have so far:");
     Logger.info("   Enhanced data keys:", Object.keys(enhancedSurveyData));
-    
+
     // Check if we found myImageLink anywhere
     if (enhancedSurveyData.myImageLink) {
       Logger.info("   ✅ SUCCESS! myImageLink found:", enhancedSurveyData.myImageLink.substring(0, 50) + '...');
     } else {
       Logger.warn("   ❌ FAILED! myImageLink not found anywhere!");
       Logger.warn("   This means myImageLink might not be a survey question or might be stored differently.");
-      
-      // MANUAL FIX: If you can see myImageLink in your browser dev tools, 
+
+      // MANUAL FIX: If you can see myImageLink in your browser dev tools,
       // we can manually add it here for testing
       Logger.warn("   🔧 MANUAL FIX ATTEMPT:");
-      
+
       // Try to access it from DOM or other sources
       try {
         // Check if there's a file input or image element with myImageLink
         const imageElements = document.querySelectorAll('input[type="file"], img, canvas');
         Logger.info("     Found image-related elements:", imageElements.length);
-        
+
         imageElements.forEach((element: Element, index: number) => {
           Logger.info(`     Element ${index + 1}:`, element.tagName, (element as any).id, element.className);
-          
+
           // If it's a file input, check its files
           if (element.tagName === 'INPUT' && (element as HTMLInputElement).files) {
             const files = (element as HTMLInputElement).files;
@@ -612,13 +612,15 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
         Logger.info("     ❌ Could not search DOM elements");
       }
     }
-    
+
     // FOR TESTING: If myImageLink is still not found, add a placeholder
     if (!enhancedSurveyData.myImageLink) {
       Logger.warn("   🚨 TESTING MODE: Adding placeholder message");
       enhancedSurveyData.myImageLink = "PLACEHOLDER - myImageLink not captured from survey model";
     }
 
+=======
+>>>>>>> 67611de (added save to shared folder)
     // Extract header fields
     const headerFields = extractHeaderFields(enhancedSurveyData, surveyJson);
 
@@ -642,7 +644,8 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     Logger.info("Sending to PDF server - surveyData keys:", Object.keys(requestData.surveyData));
 
 =======
-    
+
+<<<<<<< HEAD
     Logger.info("=== FINAL REQUEST DATA ===");
     Logger.info("Survey data being sent to PDF server:");
     for (const [key, value] of Object.entries(requestData.surveyData)) {
@@ -654,8 +657,10 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
         Logger.info(`  ${key}:`, typeof value, value);
       }
     }
-    
+
 >>>>>>> 32df370 (added debugging)
+=======
+>>>>>>> 67611de (added save to shared folder)
     const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
       method: 'POST',
       headers: {
@@ -695,6 +700,158 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
   }
 }
 
+<<<<<<< HEAD
+=======
+// Function to extract header fields from survey data
+function extractHeaderFields(surveyData: any, surveyJson: any): Array<{label: string, value: string, required?: boolean}> {
+  const headerFields: Array<{label: string, value: string, required?: boolean}> = [];
+
+  if (!surveyData) {
+    Logger.warn("No survey data available for header extraction");
+    return headerFields;
+  }
+
+  Logger.info("Extracting header fields from survey data:", surveyData);
+
+  // Strategy 1: Look for common header field patterns in survey data
+  const commonHeaderMappings = [
+    { key: 'station', label: 'Station', required: true },
+    { key: 'wo', label: 'Work Order', required: true },
+    { key: 'workorder', label: 'Work Order', required: true },
+    { key: 'toolid', label: 'Tool ID', required: true },
+    { key: 'tool_id', label: 'Tool ID', required: true },
+    { key: 'date', label: 'Date', required: true },
+    { key: 'inspector', label: 'Inspector', required: false },
+    { key: 'inspectedby', label: 'Inspected By', required: false },
+    { key: 'checkedby', label: 'Checked By', required: false },
+    { key: 'operator', label: 'Operator', required: false },
+    { key: 'shift', label: 'Shift', required: false },
+    { key: 'line', label: 'Line', required: false }
+  ];
+
+  // Strategy 2: Look for header data in nested objects (like panel data)
+  for (const [dataKey, dataValue] of Object.entries(surveyData)) {
+    Logger.info(`Checking data key: ${dataKey}`, dataValue);
+
+    // Check if this key contains header-like data
+    if (typeof dataValue === 'object' && dataValue !== null && !Array.isArray(dataValue)) {
+      // Check for common header field names in this object
+      for (const mapping of commonHeaderMappings) {
+        const fieldValue = (dataValue as any)[mapping.key];
+        if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+          const stringValue = typeof fieldValue === 'string' ? fieldValue : String(fieldValue);
+
+          // Avoid duplicates
+          if (!headerFields.some(field => field.label === mapping.label)) {
+            headerFields.push({
+              label: mapping.label,
+              value: stringValue,
+              required: mapping.required
+            });
+            Logger.info(`Found header field: ${mapping.label} = ${stringValue}`);
+          }
+        }
+      }
+    }
+
+    // Also check top-level keys
+    for (const mapping of commonHeaderMappings) {
+      if (dataKey.toLowerCase() === mapping.key.toLowerCase()) {
+        const stringValue = typeof dataValue === 'string' ? dataValue : String(dataValue);
+        if (stringValue && stringValue !== 'null' && stringValue !== 'undefined') {
+          // Avoid duplicates
+          if (!headerFields.some(field => field.label === mapping.label)) {
+            headerFields.push({
+              label: mapping.label,
+              value: stringValue,
+              required: mapping.required
+            });
+            Logger.info(`Found top-level header field: ${mapping.label} = ${stringValue}`);
+          }
+        }
+      }
+    }
+  }
+
+  // Strategy 3: Look for specific patterns in survey JSON structure
+  if (surveyJson && surveyJson.pages) {
+    for (const page of surveyJson.pages) {
+      if (page.elements) {
+        for (const element of page.elements) {
+          // Check for header panels
+          if (element.type === 'panel' &&
+              (element.name?.toLowerCase().includes('header') ||
+               element.title?.toLowerCase().includes('header'))) {
+
+            Logger.info("Found header panel:", element.name);
+
+            // Extract field definitions from panel elements
+            if (element.elements) {
+              for (const panelElement of element.elements) {
+                const elementName = panelElement.name?.toLowerCase() || '';
+                const elementTitle = panelElement.title || panelElement.name || '';
+
+                // Look for matching data
+                const dataValue = surveyData[element.name]?.[panelElement.name] ||
+                                surveyData[panelElement.name];
+
+                if (dataValue !== undefined && dataValue !== null && dataValue !== '') {
+                  const stringValue = typeof dataValue === 'string' ? dataValue : String(dataValue);
+
+                  // Avoid duplicates
+                  if (!headerFields.some(field => field.label === elementTitle)) {
+                    headerFields.push({
+                      label: elementTitle,
+                      value: stringValue,
+                      required: panelElement.isRequired || false
+                    });
+                    Logger.info(`Found panel header field: ${elementTitle} = ${stringValue}`);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Strategy 4: If no specific headers found, use some default fields from query params
+  if (headerFields.length === 0) {
+    const queryParams = new URLSearchParams(window.location.search);
+    const defaultMappings = [
+      { param: 'station', label: 'Station' },
+      { param: 'wo', label: 'Work Order' },
+      { param: 'toolid', label: 'Tool ID' },
+      { param: 'inspectedby', label: 'Inspector' }
+    ];
+
+    for (const mapping of defaultMappings) {
+      const value = queryParams.get(mapping.param);
+      if (value) {
+        headerFields.push({
+          label: mapping.label,
+          value: value,
+          required: true
+        });
+      }
+    }
+  }
+
+  // Add current date if no date field found
+  if (!headerFields.some(field => field.label.toLowerCase().includes('date'))) {
+    headerFields.push({
+      label: 'Date',
+      value: new Date().toLocaleString(),
+      required: false
+    });
+  }
+
+  Logger.info("Final extracted header fields:", headerFields);
+  return headerFields;
+}
+
+>>>>>>> 67611de (added save to shared folder)
 // Email PDF function
 async function emailPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
@@ -704,12 +861,21 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
 
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
+<<<<<<< HEAD
 
     // Use the same enhanced data collection
     const enhancedSurveyData = { ...surveyData };
     const allQuestions = surveyModel.getAllQuestions();
 
     allQuestions.forEach(question => {
+=======
+
+    // Enhanced data collection
+    const enhancedSurveyData = { ...surveyData };
+    const allQuestions = surveyModel.getAllQuestions();
+
+    allQuestions.forEach((question: any) => {
+>>>>>>> 67611de (added save to shared folder)
       const questionValue = question.value;
       if (questionValue !== undefined && questionValue !== null) {
         enhancedSurveyData[question.name] = questionValue;
@@ -736,7 +902,7 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
 
     const requestData = {
       surveyJson: surveyJson,
-      surveyData: enhancedSurveyData, // Use enhanced data
+      surveyData: enhancedSurveyData,
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
       recipientEmail: recipientEmail,
@@ -778,16 +944,40 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
   }
 }
 
+<<<<<<< HEAD
 // Save to SharePoint function
 async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
     Logger.info("Starting Save to SharePoint...");
 
+=======
+async function saveToSharedFolder(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+  try {
+    Logger.info("Starting Save to Shared Folder...");
+
+>>>>>>> 67611de (added save to shared folder)
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
 
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
+<<<<<<< HEAD
 
+=======
+
+    // Enhanced data collection
+    const enhancedSurveyData = { ...surveyData };
+    const allQuestions = surveyModel.getAllQuestions();
+
+    allQuestions.forEach((question: any) => {
+      const questionValue = question.value;
+      if (questionValue !== undefined && questionValue !== null) {
+        enhancedSurveyData[question.name] = questionValue;
+      }
+    });
+
+    const headerFields = extractHeaderFields(enhancedSurveyData, surveyJson);
+
+>>>>>>> 67611de (added save to shared folder)
     const metadata: PDFMetadata = {
       title: surveyJson.title || surveyName || 'Survey Results',
       systemName: 'Checklist Manager System',
@@ -799,14 +989,18 @@ async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: 
 
     const requestData = {
       surveyJson: surveyJson,
-      surveyData: surveyData,
+      surveyData: enhancedSurveyData,
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
-      userId: userId,
-      folderPath: '/Shared Documents/Inspection Reports'
+      userId: userId
     };
+<<<<<<< HEAD
 
     const response = await fetch(`${PDF_SERVER_URL}/save-to-sharepoint`, {
+=======
+
+    const response = await fetch(`${PDF_SERVER_URL}/save-to-shared-folder`, {
+>>>>>>> 67611de (added save to shared folder)
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -822,20 +1016,26 @@ async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: 
       } catch {
         errorData = { error: errorText };
       }
-      Logger.error("SharePoint save server response error:", errorData);
-      throw new Error(`SharePoint save failed: ${errorData.error || 'Unknown error'}`);
+      Logger.error("Shared folder save server response error:", errorData);
+      throw new Error(`Shared folder save failed: ${errorData.error || 'Unknown error'}`);
     }
 
     const result = await response.json();
+<<<<<<< HEAD
     Logger.info("SharePoint save successful:", result);
     window.alert(`PDF saved successfully to SharePoint: ${result.sharePointUrl || 'Success'}`);
 
+=======
+    Logger.info("Shared folder save successful:", result);
+    window.alert(`PDF saved successfully to shared folder: ${result.filePath || 'Success'}`);
+
+>>>>>>> 67611de (added save to shared folder)
     return true;
 
   } catch (error) {
-    Logger.error("SharePoint save failed:", error);
+    Logger.error("Shared folder save failed:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    window.alert(`SharePoint save failed: ${errorMessage}`);
+    window.alert(`Shared folder save failed: ${errorMessage}`);
     throw error;
   }
 }
@@ -1015,6 +1215,14 @@ const Run = () => {
     viewOnly = true;
   }
 
+<<<<<<< HEAD
+=======
+  // Check if we should load existing data
+  const loadExisting = queryParams.get("load_existing") === "true" ||
+                      result_id !== undefined ||
+                      queryParams.get("edit") === "true";
+
+>>>>>>> 67611de (added save to shared folder)
   const { fetchData, postData } = useApi();
   const [survey, setSurvey] = useState({ json: "", name: " " });
   const [result, setResult] = useState({});
@@ -1024,6 +1232,7 @@ const Run = () => {
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [renderKey, setRenderKey] = useState(0);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+<<<<<<< HEAD
 
   // Helper function to format survey data for display
   const formatSurveyDataForDisplay = (data: any) => {
@@ -1074,28 +1283,190 @@ const Run = () => {
       setIsGeneratingPDF(false);
     }
   };
+=======
+  const [isEmailingPDF, setIsEmailingPDF] = useState(false);
+  const [isSavingToSharedFolder, setIsSavingToSharedFolder] = useState(false);
+
+  // NEW: Add state to track completion and preserve survey data
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [completedSurveyData, setCompletedSurveyData] = useState<any>(null);
+>>>>>>> 67611de (added save to shared folder)
 
   // Initialize model when survey data is available
   useEffect(() => {
     if (survey.json) {
       const model = initializeModelFromURL(window.location.search, survey.json);
+<<<<<<< HEAD
 
       // Set up rerun function
       window.rerunSurvey = () => {
+=======
+
+      Logger.info("=== Model Initialized ===");
+      Logger.info("Model getAllQuestions():", model.getAllQuestions().length);
+      Logger.info("Load existing data:", loadExisting);
+
+      // Set up rerun function - ONLY clear completion state, not the entire model
+      const rerunSurvey = () => {
+        Logger.info("Rerunning survey - clearing completion state");
+        setIsCompleted(false);
+        setCompletedSurveyData(null);
+>>>>>>> 67611de (added save to shared folder)
         model.clear(false);
+        // Force re-render by resetting the model state
+        model.mode = "edit";
       };
+<<<<<<< HEAD
+=======
+      window.rerunSurvey = rerunSurvey;
+
+      // Set up Universal PDF generation function - PRESERVE completion state
+      const generateUniversalPDFWrapper = async () => {
+        if (isGeneratingPDF) {
+          Logger.warn("PDF generation already in progress");
+          return;
+        }
+
+        setIsGeneratingPDF(true);
+
+        try {
+          // Use completed survey data if available, otherwise use current model data
+          const dataToUse = completedSurveyData || model.data;
+          const hasData = dataToUse && Object.keys(dataToUse).length > 0;
+          Logger.info("Model has data:", hasData);
+
+          if (!hasData) {
+            Logger.warn("Survey has no data - generating PDF with empty responses");
+          }
+
+          // Create a temporary model copy with the data for PDF generation
+          const tempModel = new Model(model.toJSON());
+          tempModel.data = dataToUse;
+
+          await generateUniversalPDF(tempModel, userId, survey.name || 'Survey');
+
+        } catch (error) {
+          Logger.error("Universal PDF generation failed:", error);
+
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+          const usesFallback = window.confirm(
+            `PDF generation failed: ${errorMessage}\n\nWould you like to use the browser print dialog as a fallback?`
+          );
+
+          if (usesFallback) {
+            enhancedPrintFallback();
+          }
+        } finally {
+          setIsGeneratingPDF(false);
+        }
+      };
+      window.generateUniversalPDF = generateUniversalPDFWrapper;
+
+      // Set up Email PDF function - PRESERVE completion state
+      const emailPDFWrapper = async () => {
+        if (isEmailingPDF) {
+          Logger.warn("Email PDF already in progress");
+          return;
+        }
+
+        setIsEmailingPDF(true);
+
+        try {
+          // Use completed survey data if available
+          const dataToUse = completedSurveyData || model.data;
+          const tempModel = new Model(model.toJSON());
+          tempModel.data = dataToUse;
+
+          await emailPDF(tempModel, userId, survey.name || 'Survey');
+        } catch (error) {
+          Logger.error("Email PDF failed:", error);
+        } finally {
+          setIsEmailingPDF(false);
+        }
+      };
+      window.emailPDF = emailPDFWrapper;
+
+      // Set up Save to Shared Folder function - PRESERVE completion state
+      const saveToSharedFolderWrapper = async () => {
+        if (isSavingToSharedFolder) {
+          Logger.warn("Shared folder save already in progress");
+          return;
+        }
+
+        setIsSavingToSharedFolder(true);
+
+        try {
+          // Use completed survey data if available
+          const dataToUse = completedSurveyData || model.data;
+          const tempModel = new Model(model.toJSON());
+          tempModel.data = dataToUse;
+
+          await saveToSharedFolder(tempModel, userId, survey.name || 'Survey');
+        } catch (error) {
+          Logger.error("Shared folder save failed:", error);
+        } finally {
+          setIsSavingToSharedFolder(false);
+        }
+      };
+      window.saveToSharedFolder = saveToSharedFolderWrapper;
+>>>>>>> 67611de (added save to shared folder)
 
       // Configure serialization
       Serializer.getProperty("survey", "clearInvisibleValues").defaultValue = "none";
 
+<<<<<<< HEAD
+=======
+      // Set up completion handler with PDF download option
+      model.completedHtml = `
+        <div class="bg-white rounded-lg p-8 text-center">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
+          <p class="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
+
+          <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+            <button class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.rerunSurvey()">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Run Survey Again
+            </button>
+            <button class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 ${isGeneratingPDF ? 'opacity-50 cursor-not-allowed' : ''}" onclick="window.generateUniversalPDF()" ${isGeneratingPDF ? 'disabled' : ''}>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              ${isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+            </button>
+            <button class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 ${isEmailingPDF ? 'opacity-50 cursor-not-allowed' : ''}" onclick="window.emailPDF()" ${isEmailingPDF ? 'disabled' : ''}>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+              ${isEmailingPDF ? 'Sending...' : 'Email PDF'}
+            </button>
+            <button class="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 ${isSavingToSharedFolder ? 'opacity-50 cursor-not-allowed' : ''}" onclick="window.saveToSharedFolder()" ${isSavingToSharedFolder ? 'disabled' : ''}>
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
+              </svg>
+              ${isSavingToSharedFolder ? 'Saving...' : 'Save to Shared Folder'}
+            </button>
+          </div>
+        </div>
+      `;
+
+>>>>>>> 67611de (added save to shared folder)
       // Set view mode
       if (viewOnly) {
         model.mode = "display";
       }
 
-      // Set up completion handler
+      // Set up completion handler - PRESERVE survey data and set completion state
       model.onComplete.add(async (sender: Model) => {
         Logger.debug("onComplete Survey data:", sender.data);
+<<<<<<< HEAD
 
         // Generate completion HTML with survey data for screen display
         const surveyDataHtml = formatSurveyDataForDisplay(sender.data);
@@ -1152,6 +1523,14 @@ const Run = () => {
         };
 
         // Save survey data
+=======
+
+        // Save the completed survey data to prevent loss
+        setCompletedSurveyData({ ...sender.data });
+        setIsCompleted(true);
+
+        // Post data to server
+>>>>>>> 67611de (added save to shared folder)
         await postData(
           "/post",
           {
@@ -1162,10 +1541,13 @@ const Run = () => {
           },
           false
         );
+
+        Logger.info("Survey completed and data preserved");
       });
 
       setSurveyModel(model);
     }
+<<<<<<< HEAD
   }, [survey.json, id, userId, viewOnly, postData]);
 
   // Apply theme to model when theme changes
@@ -1206,6 +1588,9 @@ const Run = () => {
       applyThemeToModel("default");
     }
   };
+=======
+  }, [survey.json, id, userId, viewOnly, postData, isGeneratingPDF, isEmailingPDF, isSavingToSharedFolder, loadExisting]);
+>>>>>>> 67611de (added save to shared folder)
 
   const getSurvey = async () => {
     try {
@@ -1250,7 +1635,12 @@ const Run = () => {
     }
   };
 
+<<<<<<< HEAD
   const shouldGetResults = surveyModel && (!surveyModel
+=======
+  // Only load existing data when specifically requested
+  const shouldGetResults = loadExisting && surveyModel && (!surveyModel
+>>>>>>> 67611de (added save to shared folder)
     .getAllQuestions()
     .some((question) => question.name === "datacollection_header") || result_id);
 
@@ -1272,7 +1662,7 @@ const Run = () => {
 
   // Apply result data to model
   useEffect(() => {
-    if (Object.keys(result).length > 0 && shouldGetResults && surveyModel) {
+    if (Object.keys(result).length > 0 && shouldGetResults && surveyModel && !isCompleted) {
       Logger.debug("Run: applying result data to model", result);
       if (!result_id) {
         surveyModel.data = mergeDeep(surveyModel.data, result);
@@ -1280,7 +1670,112 @@ const Run = () => {
         surveyModel.data = result;
       }
     }
-  }, [result, surveyModel, result_id, shouldGetResults]);
+  }, [result, surveyModel, result_id, shouldGetResults, isCompleted]);
+
+  // NEW: Render completion page manually if completed
+  if (isCompleted && surveyModel) {
+    return (
+      <div className="min-h-screen theme-bg-primary">
+        {/* Navigation Header */}
+        <header className="theme-bg-header shadow-lg no-print">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              {/* Left side - Logo and Navigation */}
+              <div className="flex items-center space-x-8">
+                <div className="flex items-center space-x-3">
+                  {/* UCT Logo */}
+                  <div className="flex items-center">
+                    <img
+                      src={navlogo}
+                      alt="UCT Logo"
+                      className="h-10 w-auto"
+                    />
+                  </div>
+                  <h1 className="text-xl font-semibold theme-text-white">Checklist Manager</h1>
+                </div>
+
+                {/* Navigation Menu */}
+                <nav className="flex space-x-8">
+                  <Link
+                    to="/"
+                    className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                  >
+                    My Checklists
+                  </Link>
+                  <Link
+                    to="/about"
+                    className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                  >
+                    About
+                  </Link>
+                </nav>
+              </div>
+
+              {/* Right side - Status indicator */}
+              <div className="text-white text-sm">
+                ✅ Survey Completed
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Completion Content */}
+        <div className="flex items-center justify-center min-h-screen p-8">
+          <div className="bg-white rounded-lg p-8 text-center max-w-2xl w-full shadow-lg">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
+            <p className="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+              <button
+                className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+                onClick={() => window.rerunSurvey()}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Run Survey Again
+              </button>
+              <button
+                className={`inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 ${isGeneratingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => window.generateUniversalPDF()}
+                disabled={isGeneratingPDF}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+              </button>
+              <button
+                className={`inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 ${isEmailingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => window.emailPDF()}
+                disabled={isEmailingPDF}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+                {isEmailingPDF ? 'Sending...' : 'Email PDF'}
+              </button>
+              <button
+                className={`inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 ${isSavingToSharedFolder ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => window.saveToSharedFolder()}
+                disabled={isSavingToSharedFolder}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
+                </svg>
+                {isSavingToSharedFolder ? 'Saving...' : 'Save to Shared Folder'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Handle PDF generation from toolbar
   const handleGeneratePDF = async () => {
