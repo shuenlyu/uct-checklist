@@ -117,57 +117,69 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
     const surveyJson = surveyModel.toJSON();
-    
-    // ENHANCED: Get ALL survey data including photos and files
     const surveyData = surveyModel.data;
-    const allQuestions = surveyModel.getAllQuestions();
     
-    // Log the complete survey data structure for debugging
-    Logger.info("=== COMPLETE SURVEY DATA DEBUG ===");
-    Logger.info("Survey data keys:", Object.keys(surveyData));
-    Logger.info("All questions count:", allQuestions.length);
+    // ENHANCED: Get ALL survey data including photos
+    Logger.info("=== COMPREHENSIVE DATA COLLECTION ===");
+    Logger.info("Basic survey data:", surveyData);
     
-    // Enhanced data collection - include ALL question values
     const enhancedSurveyData = { ...surveyData };
+    
+    // Strategy 1: Get all questions including template questions
+    const allQuestions = surveyModel.getAllQuestions();
+    Logger.info("All questions count:", allQuestions.length);
     
     allQuestions.forEach(question => {
       const questionName = question.name;
       const questionValue = question.value;
-      const questionType = question.getType();
       
-      Logger.info(`Question: ${questionName}, Type: ${questionType}, Value:`, questionValue);
-      
-      // Ensure the question value is included in our data
       if (questionValue !== undefined && questionValue !== null) {
         enhancedSurveyData[questionName] = questionValue;
-      }
-      
-      // Special handling for file/image questions
-      if (questionType === 'file' || questionType === 'signaturepad' || 
-          questionName.toLowerCase().includes('photo') || 
-          questionName.toLowerCase().includes('image') ||
-          questionName.toLowerCase().includes('myimage')) {
-        Logger.info(`📷 Found potential photo question: ${questionName}`, questionValue);
-        enhancedSurveyData[questionName] = questionValue;
+        Logger.info(`Added question: ${questionName} = ${typeof questionValue === 'string' && questionValue.length > 50 ? questionValue.substring(0, 50) + '...' : questionValue}`);
       }
     });
     
-    // ALSO: Check survey model's plain data
-    const plainData = surveyModel.getPlainData();
-    Logger.info("Plain data:", plainData);
+    // Strategy 2: Get plain data (includes template data)
+    const plainData = surveyModel.getPlainData({ includeEmpty: true });
+    Logger.info("Plain data items:", plainData.length);
     
-    // Merge plain data to ensure we don't miss anything
     plainData.forEach(item => {
-      if (item.name && item.value !== undefined) {
+      if (item.name && item.value !== undefined && item.value !== null) {
         enhancedSurveyData[item.name] = item.value;
-        Logger.info(`Added from plain data: ${item.name}`, item.value);
+        Logger.info(`Added from plain data: ${item.name} = ${typeof item.value === 'string' && item.value.length > 50 ? item.value.substring(0, 50) + '...' : item.value}`);
+      }
+    });
+    
+    // Strategy 3: Specifically look for myImageLink
+    const myImageLinkQuestion = surveyModel.getQuestionByName('myImageLink');
+    if (myImageLinkQuestion && myImageLinkQuestion.value) {
+      enhancedSurveyData.myImageLink = myImageLinkQuestion.value;
+      Logger.info(`📷 FOUND myImageLink: ${myImageLinkQuestion.value.substring(0, 50)}...`);
+    }
+    
+    // Strategy 4: Search all possible image field names
+    const imageFieldNames = [
+      'myImageLink', 'myimagelink', 'MyImageLink',
+      'photo', 'image', 'picture', 'signature',
+      'panel1_photo', 'panel1_image', 'panel1_myImageLink'
+    ];
+    
+    imageFieldNames.forEach(fieldName => {
+      const question = surveyModel.getQuestionByName(fieldName);
+      if (question && question.value) {
+        enhancedSurveyData[fieldName] = question.value;
+        Logger.info(`📷 Added image field ${fieldName}: ${question.value.substring(0, 50)}...`);
       }
     });
     
     Logger.info("=== FINAL ENHANCED SURVEY DATA ===");
     Logger.info("Enhanced survey data keys:", Object.keys(enhancedSurveyData));
+    
+    // Log each field to see what we're sending
     for (const [key, value] of Object.entries(enhancedSurveyData)) {
-      if (typeof value === 'string' && value.length > 100) {
+      if (typeof value === 'string' && value.startsWith('data:image')) {
+        Logger.info(`📷 IMAGE DATA - ${key}: data:image... (${value.length} chars)`);
+      } else if (typeof value === 'string' && value.length > 100) {
         Logger.info(`${key}: ${typeof value} (${value.length} chars) "${value.substring(0, 50)}..."`);
       } else {
         Logger.info(`${key}:`, typeof value, value);
@@ -188,10 +200,12 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     
     const requestData = {
       surveyJson: surveyJson,
-      surveyData: enhancedSurveyData, // Use enhanced data instead of regular data
+      surveyData: enhancedSurveyData,
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
     };
+    
+    Logger.info("Sending to PDF server - surveyData keys:", Object.keys(requestData.surveyData));
     
     const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
       method: 'POST',
