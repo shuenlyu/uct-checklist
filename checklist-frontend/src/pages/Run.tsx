@@ -379,6 +379,7 @@ function mergeDeep(target: any, source: any) {
 }
 
 // Universal PDF generation function
+// Replace generateUniversalPDF function in Run.tsx with this TypeScript-safe version:
 async function generateUniversalPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
     Logger.info("Starting Universal PDF generation...");
@@ -387,6 +388,7 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
 
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
+<<<<<<< HEAD
 
     // ENHANCED: Get ALL survey data including photos
     Logger.info("=== COMPREHENSIVE DATA COLLECTION ===");
@@ -402,11 +404,37 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
       const questionName = question.name;
       const questionValue = question.value;
 
+=======
+    
+    Logger.info("=== COMPLETE DEBUGGING SESSION ===");
+    Logger.info("1. Basic survey data:", surveyData);
+    Logger.info("2. Survey data keys:", Object.keys(surveyData));
+    
+    // Enhanced data collection
+    const enhancedSurveyData = { ...surveyData };
+    
+    // COMPREHENSIVE: Get ALL possible data from survey model
+    Logger.info("3. Getting all questions...");
+    const allQuestions = surveyModel.getAllQuestions();
+    Logger.info("   All questions count:", allQuestions.length);
+    
+    allQuestions.forEach((question: any, index: number) => {
+      const questionName = question.name;
+      const questionValue = question.value;
+      const questionType = question.getType();
+      
+      Logger.info(`   Question ${index + 1}: "${questionName}" (${questionType}) =`, 
+        typeof questionValue === 'string' && questionValue.length > 50 
+          ? `${typeof questionValue} (${questionValue.length} chars) "${questionValue.substring(0, 50)}..."` 
+          : questionValue
+      );
+      
+>>>>>>> 32df370 (added debugging)
       if (questionValue !== undefined && questionValue !== null) {
         enhancedSurveyData[questionName] = questionValue;
-        Logger.info(`Added question: ${questionName} = ${typeof questionValue === 'string' && questionValue.length > 50 ? questionValue.substring(0, 50) + '...' : questionValue}`);
       }
     });
+<<<<<<< HEAD
 
     // Strategy 2: Get plain data (includes template data)
     const plainData = surveyModel.getPlainData({ includeEmpty: true });
@@ -420,11 +448,19 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     });
 
     // Strategy 3: Specifically look for myImageLink
+=======
+    
+    // DIRECT: Try to access myImageLink directly from survey model
+    Logger.info("4. Direct myImageLink access attempts:");
+    
+    // Method 1: Direct question lookup
+>>>>>>> 32df370 (added debugging)
     const myImageLinkQuestion = surveyModel.getQuestionByName('myImageLink');
+    Logger.info("   Method 1 - getQuestionByName('myImageLink'):", myImageLinkQuestion ? myImageLinkQuestion.value : 'NOT FOUND');
     if (myImageLinkQuestion && myImageLinkQuestion.value) {
       enhancedSurveyData.myImageLink = myImageLinkQuestion.value;
-      Logger.info(`📷 FOUND myImageLink: ${myImageLinkQuestion.value.substring(0, 50)}...`);
     }
+<<<<<<< HEAD
 
     // Strategy 4: Search all possible image field names
     const imageFieldNames = [
@@ -452,7 +488,135 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
         Logger.info(`${key}: ${typeof value} (${value.length} chars) "${value.substring(0, 50)}..."`);
       } else {
         Logger.info(`${key}:`, typeof value, value);
+=======
+    
+    // Method 2: Check survey model internal data
+    Logger.info("   Method 2 - surveyModel internal data:");
+    try {
+      const internalData = (surveyModel as any).data || {};
+      Logger.info("     Internal data keys:", Object.keys(internalData));
+      if (internalData.myImageLink) {
+        enhancedSurveyData.myImageLink = internalData.myImageLink;
+        Logger.info("     ✅ Found myImageLink in internal data!");
       }
+    } catch (e) {
+      Logger.info("     ❌ Could not access internal data");
+    }
+    
+    // Method 3: Check all pages and elements (FIXED TypeScript)
+    Logger.info("   Method 3 - Searching survey JSON structure:");
+    if (surveyJson.pages) {
+      surveyJson.pages.forEach((page: any, pageIndex: number) => {
+        Logger.info(`     Page ${pageIndex + 1}:`, page.name || 'unnamed');
+        if (page.elements) {
+          page.elements.forEach((element: any, elementIndex: number) => {
+            Logger.info(`       Element ${elementIndex + 1}: "${element.name}" (${element.type})`);
+            
+            // If it's myImageLink element, try to get its value
+            if (element.name === 'myImageLink') {
+              const question = surveyModel.getQuestionByName(element.name);
+              if (question && question.value) {
+                enhancedSurveyData.myImageLink = question.value;
+                Logger.info("       ✅ Found myImageLink via page element!");
+              }
+            }
+            
+            // Check panel elements
+            if (element.type === 'panel' && element.elements) {
+              element.elements.forEach((panelElement: any, panelIndex: number) => {
+                Logger.info(`         Panel Element ${panelIndex + 1}: "${panelElement.name}" (${panelElement.type})`);
+                if (panelElement.name === 'myImageLink') {
+                  const question = surveyModel.getQuestionByName(panelElement.name);
+                  if (question && question.value) {
+                    enhancedSurveyData.myImageLink = question.value;
+                    Logger.info("         ✅ Found myImageLink via panel element!");
+                  }
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+    
+    // Method 4: Plain data
+    Logger.info("   Method 4 - Plain data:");
+    const plainData = surveyModel.getPlainData({ includeEmpty: true });
+    Logger.info("     Plain data count:", plainData.length);
+    plainData.forEach((item: any, index: number) => {
+      Logger.info(`     Plain item ${index + 1}: "${item.name}" =`, 
+        typeof item.value === 'string' && item.value.length > 50 
+          ? `${typeof item.value} (${item.value.length} chars) "${item.value.substring(0, 50)}..."` 
+          : item.value
+      );
+      
+      if (item.name && item.value !== undefined && item.value !== null) {
+        enhancedSurveyData[item.name] = item.value;
+        if (item.name === 'myImageLink') {
+          Logger.info("     ✅ Found myImageLink in plain data!");
+        }
+      }
+    });
+    
+    // Method 5: Global window search (last resort)
+    Logger.info("   Method 5 - Global window search:");
+    try {
+      const windowSurvey = (window as any).survey;
+      if (windowSurvey) {
+        Logger.info("     Found window.survey");
+        const windowMyImageLink = windowSurvey.getQuestionByName?.('myImageLink');
+        if (windowMyImageLink && windowMyImageLink.value) {
+          enhancedSurveyData.myImageLink = windowMyImageLink.value;
+          Logger.info("     ✅ Found myImageLink via window.survey!");
+        }
+>>>>>>> 32df370 (added debugging)
+      }
+    } catch (e) {
+      Logger.info("     ❌ No window.survey found");
+    }
+    
+    // FINAL: Manual addition for testing (if you know the field exists)
+    Logger.info("5. Final check - what we have so far:");
+    Logger.info("   Enhanced data keys:", Object.keys(enhancedSurveyData));
+    
+    // Check if we found myImageLink anywhere
+    if (enhancedSurveyData.myImageLink) {
+      Logger.info("   ✅ SUCCESS! myImageLink found:", enhancedSurveyData.myImageLink.substring(0, 50) + '...');
+    } else {
+      Logger.warn("   ❌ FAILED! myImageLink not found anywhere!");
+      Logger.warn("   This means myImageLink might not be a survey question or might be stored differently.");
+      
+      // MANUAL FIX: If you can see myImageLink in your browser dev tools, 
+      // we can manually add it here for testing
+      Logger.warn("   🔧 MANUAL FIX ATTEMPT:");
+      
+      // Try to access it from DOM or other sources
+      try {
+        // Check if there's a file input or image element with myImageLink
+        const imageElements = document.querySelectorAll('input[type="file"], img, canvas');
+        Logger.info("     Found image-related elements:", imageElements.length);
+        
+        imageElements.forEach((element: Element, index: number) => {
+          Logger.info(`     Element ${index + 1}:`, element.tagName, (element as any).id, element.className);
+          
+          // If it's a file input, check its files
+          if (element.tagName === 'INPUT' && (element as HTMLInputElement).files) {
+            const files = (element as HTMLInputElement).files;
+            if (files && files.length > 0) {
+              Logger.info(`       Has ${files.length} files`);
+              // This would need additional processing to convert to base64
+            }
+          }
+        });
+      } catch (e) {
+        Logger.info("     ❌ Could not search DOM elements");
+      }
+    }
+    
+    // FOR TESTING: If myImageLink is still not found, add a placeholder
+    if (!enhancedSurveyData.myImageLink) {
+      Logger.warn("   🚨 TESTING MODE: Adding placeholder message");
+      enhancedSurveyData.myImageLink = "PLACEHOLDER - myImageLink not captured from survey model";
     }
 
     // Extract header fields
@@ -473,9 +637,25 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
     };
+<<<<<<< HEAD
 
     Logger.info("Sending to PDF server - surveyData keys:", Object.keys(requestData.surveyData));
 
+=======
+    
+    Logger.info("=== FINAL REQUEST DATA ===");
+    Logger.info("Survey data being sent to PDF server:");
+    for (const [key, value] of Object.entries(requestData.surveyData)) {
+      if (typeof value === 'string' && value.startsWith('data:image')) {
+        Logger.info(`  ${key}: 📷 IMAGE DATA (${value.length} chars)`);
+      } else if (typeof value === 'string' && value.length > 50) {
+        Logger.info(`  ${key}: ${typeof value} (${value.length} chars) "${value.substring(0, 50)}..."`);
+      } else {
+        Logger.info(`  ${key}:`, typeof value, value);
+      }
+    }
+    
+>>>>>>> 32df370 (added debugging)
     const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
       method: 'POST',
       headers: {
