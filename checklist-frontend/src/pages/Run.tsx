@@ -117,34 +117,81 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
     const surveyJson = surveyModel.toJSON();
-    const surveyData = surveyModel.data;
     
-    // ENHANCED: Extract header fields from survey data
-    const headerFields = extractHeaderFields(surveyData, surveyJson);
+    // ENHANCED: Get ALL survey data including photos and files
+    const surveyData = surveyModel.data;
+    const allQuestions = surveyModel.getAllQuestions();
+    
+    // Log the complete survey data structure for debugging
+    Logger.info("=== COMPLETE SURVEY DATA DEBUG ===");
+    Logger.info("Survey data keys:", Object.keys(surveyData));
+    Logger.info("All questions count:", allQuestions.length);
+    
+    // Enhanced data collection - include ALL question values
+    const enhancedSurveyData = { ...surveyData };
+    
+    allQuestions.forEach(question => {
+      const questionName = question.name;
+      const questionValue = question.value;
+      const questionType = question.getType();
+      
+      Logger.info(`Question: ${questionName}, Type: ${questionType}, Value:`, questionValue);
+      
+      // Ensure the question value is included in our data
+      if (questionValue !== undefined && questionValue !== null) {
+        enhancedSurveyData[questionName] = questionValue;
+      }
+      
+      // Special handling for file/image questions
+      if (questionType === 'file' || questionType === 'signaturepad' || 
+          questionName.toLowerCase().includes('photo') || 
+          questionName.toLowerCase().includes('image') ||
+          questionName.toLowerCase().includes('myimage')) {
+        Logger.info(`📷 Found potential photo question: ${questionName}`, questionValue);
+        enhancedSurveyData[questionName] = questionValue;
+      }
+    });
+    
+    // ALSO: Check survey model's plain data
+    const plainData = surveyModel.getPlainData();
+    Logger.info("Plain data:", plainData);
+    
+    // Merge plain data to ensure we don't miss anything
+    plainData.forEach(item => {
+      if (item.name && item.value !== undefined) {
+        enhancedSurveyData[item.name] = item.value;
+        Logger.info(`Added from plain data: ${item.name}`, item.value);
+      }
+    });
+    
+    Logger.info("=== FINAL ENHANCED SURVEY DATA ===");
+    Logger.info("Enhanced survey data keys:", Object.keys(enhancedSurveyData));
+    for (const [key, value] of Object.entries(enhancedSurveyData)) {
+      if (typeof value === 'string' && value.length > 100) {
+        Logger.info(`${key}: ${typeof value} (${value.length} chars) "${value.substring(0, 50)}..."`);
+      } else {
+        Logger.info(`${key}:`, typeof value, value);
+      }
+    }
+    
+    // Extract header fields
+    const headerFields = extractHeaderFields(enhancedSurveyData, surveyJson);
     
     const metadata: PDFMetadata = {
       title: surveyJson.title || surveyName || 'Survey Results',
       systemName: 'Checklist Manager System',
       organizationName: 'UCT',
-      logo: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', // Add your UCT logo base64 here
-      fields: headerFields, // Now populated with actual header data
+      logo: '',
+      fields: headerFields,
       additionalInfo: ''
     };
     
     const requestData = {
       surveyJson: surveyJson,
-      surveyData: surveyData,
+      surveyData: enhancedSurveyData, // Use enhanced data instead of regular data
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
     };
-    
-    // Debug logging
-    Logger.info("PDF Request Data:", {
-      surveyJsonPages: surveyJson.pages?.length || 0,
-      surveyDataKeys: Object.keys(surveyData || {}),
-      headerFields: headerFields,
-      fileName: requestData.fileName
-    });
     
     const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
       method: 'POST',
@@ -345,8 +392,18 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
-    // Extract header fields
-    const headerFields = extractHeaderFields(surveyData, surveyJson);
+    // Use the same enhanced data collection
+    const enhancedSurveyData = { ...surveyData };
+    const allQuestions = surveyModel.getAllQuestions();
+    
+    allQuestions.forEach(question => {
+      const questionValue = question.value;
+      if (questionValue !== undefined && questionValue !== null) {
+        enhancedSurveyData[question.name] = questionValue;
+      }
+    });
+    
+    const headerFields = extractHeaderFields(enhancedSurveyData, surveyJson);
     
     const metadata: PDFMetadata = {
       title: surveyJson.title || surveyName || 'Survey Results',
@@ -365,7 +422,7 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
     
     const requestData = {
       surveyJson: surveyJson,
-      surveyData: surveyData,
+      surveyData: enhancedSurveyData, // Use enhanced data
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
       recipientEmail: recipientEmail,
