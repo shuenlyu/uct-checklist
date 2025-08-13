@@ -1,4 +1,4 @@
-// src/pages/Run.tsx - Updated to launch blank forms by default
+// src/pages/Run.tsx - Fixed to prevent page refresh on PDF download
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router";
 import { Link } from 'react-router-dom';
@@ -24,7 +24,7 @@ declare global {
     rerunSurvey: () => void;
     generateUniversalPDF: () => Promise<void>;
     emailPDF: () => Promise<void>;
-    saveToSharePoint: () => Promise<void>;
+    saveToSharedFolder: () => Promise<void>;
   }
 }
 
@@ -110,7 +110,6 @@ function mergeDeep(target: any, source: any) {
 }
 
 // Universal PDF generation function
-// Replace generateUniversalPDF function in Run.tsx with this TypeScript-safe version:
 async function generateUniversalPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
     Logger.info("Starting Universal PDF generation...");
@@ -120,154 +119,24 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
-    Logger.info("=== COMPLETE DEBUGGING SESSION ===");
-    Logger.info("1. Basic survey data:", surveyData);
-    Logger.info("2. Survey data keys:", Object.keys(surveyData));
-    
-    // Enhanced data collection
+    // Enhanced data collection - capture all question values
     const enhancedSurveyData = { ...surveyData };
     
-    // COMPREHENSIVE: Get ALL possible data from survey model
-    Logger.info("3. Getting all questions...");
     const allQuestions = surveyModel.getAllQuestions();
-    Logger.info("   All questions count:", allQuestions.length);
-    
-    allQuestions.forEach((question: any, index: number) => {
-      const questionName = question.name;
+    allQuestions.forEach((question: any) => {
       const questionValue = question.value;
-      const questionType = question.getType();
-      
-      Logger.info(`   Question ${index + 1}: "${questionName}" (${questionType}) =`, 
-        typeof questionValue === 'string' && questionValue.length > 50 
-          ? `${typeof questionValue} (${questionValue.length} chars) "${questionValue.substring(0, 50)}..."` 
-          : questionValue
-      );
-      
       if (questionValue !== undefined && questionValue !== null) {
-        enhancedSurveyData[questionName] = questionValue;
+        enhancedSurveyData[question.name] = questionValue;
       }
     });
     
-    // DIRECT: Try to access myImageLink directly from survey model
-    Logger.info("4. Direct myImageLink access attempts:");
-    
-    // Method 1: Direct question lookup
-    const myImageLinkQuestion = surveyModel.getQuestionByName('myImageLink');
-    Logger.info("   Method 1 - getQuestionByName('myImageLink'):", myImageLinkQuestion ? myImageLinkQuestion.value : 'NOT FOUND');
-    if (myImageLinkQuestion && myImageLinkQuestion.value) {
-      enhancedSurveyData.myImageLink = myImageLinkQuestion.value;
-    }
-    
-    // Method 2: Check survey model internal data
-    Logger.info("   Method 2 - surveyModel internal data:");
-    try {
-      const internalData = (surveyModel as any).data || {};
-      Logger.info("     Internal data keys:", Object.keys(internalData));
-      if (internalData.myImageLink) {
-        enhancedSurveyData.myImageLink = internalData.myImageLink;
-        Logger.info("     ✅ Found myImageLink in internal data!");
-      }
-    } catch (e) {
-      Logger.info("     ❌ Could not access internal data");
-    }
-    
-    // Method 3: Check all pages and elements (FIXED TypeScript)
-    Logger.info("   Method 3 - Searching survey JSON structure:");
-    if (surveyJson.pages) {
-      surveyJson.pages.forEach((page: any, pageIndex: number) => {
-        Logger.info(`     Page ${pageIndex + 1}:`, page.name || 'unnamed');
-        if (page.elements) {
-          page.elements.forEach((element: any, elementIndex: number) => {
-            Logger.info(`       Element ${elementIndex + 1}: "${element.name}" (${element.type})`);
-            
-            // If it's myImageLink element, try to get its value
-            if (element.name === 'myImageLink') {
-              const question = surveyModel.getQuestionByName(element.name);
-              if (question && question.value) {
-                enhancedSurveyData.myImageLink = question.value;
-                Logger.info("       ✅ Found myImageLink via page element!");
-              }
-            }
-            
-            // Check panel elements
-            if (element.type === 'panel' && element.elements) {
-              element.elements.forEach((panelElement: any, panelIndex: number) => {
-                Logger.info(`         Panel Element ${panelIndex + 1}: "${panelElement.name}" (${panelElement.type})`);
-                if (panelElement.name === 'myImageLink') {
-                  const question = surveyModel.getQuestionByName(panelElement.name);
-                  if (question && question.value) {
-                    enhancedSurveyData.myImageLink = question.value;
-                    Logger.info("         ✅ Found myImageLink via panel element!");
-                  }
-                }
-              });
-            }
-          });
-        }
-      });
-    }
-    
-    // Method 4: Plain data
-    Logger.info("   Method 4 - Plain data:");
-    const plainData = surveyModel.getPlainData({ includeEmpty: true });
-    Logger.info("     Plain data count:", plainData.length);
-    plainData.forEach((item: any, index: number) => {
-      Logger.info(`     Plain item ${index + 1}: "${item.name}" =`, 
-        typeof item.value === 'string' && item.value.length > 50 
-          ? `${typeof item.value} (${item.value.length} chars) "${item.value.substring(0, 50)}..."` 
-          : item.value
-      );
-      
+    // Also include plain data to ensure nothing is missed
+    const plainData = surveyModel.getPlainData({ includeEmpty: false });
+    plainData.forEach((item: any) => {
       if (item.name && item.value !== undefined && item.value !== null) {
         enhancedSurveyData[item.name] = item.value;
-        if (item.name === 'myImageLink') {
-          Logger.info("     ✅ Found myImageLink in plain data!");
-        }
       }
     });
-    
-    // Method 5: Global window search (last resort)
-    Logger.info("   Method 5 - Global window search:");
-    try {
-      const windowSurvey = (window as any).survey;
-      if (windowSurvey) {
-        Logger.info("     Found window.survey");
-        const windowMyImageLink = windowSurvey.getQuestionByName?.('myImageLink');
-        if (windowMyImageLink && windowMyImageLink.value) {
-          enhancedSurveyData.myImageLink = windowMyImageLink.value;
-          Logger.info("     ✅ Found myImageLink via window.survey!");
-        }
-      }
-    } catch (e) {
-      Logger.info("     ❌ No window.survey found");
-    }
-    
-    // FINAL: Manual addition for testing (if you know the field exists)
-    Logger.info("5. Final check - what we have so far:");
-    Logger.info("   Enhanced data keys:", Object.keys(enhancedSurveyData));
-    
-    // Check if we found myImageLink anywhere
-    
-    if (enhancedSurveyData.myImageLink) {
-      Logger.info("   ✅ SUCCESS! myImageLink found:", enhancedSurveyData.myImageLink.substring(0, 50) + '...');
-    } else {
-      Logger.warn("   ❌ FAILED! myImageLink not found anywhere!");
-      Logger.warn("   Adding TEST PHOTO for PDF generation verification...");
-      
-      // TEMPORARY: Add a test image (small blue square)
-      const testImageBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJYSURBVHic7dlLaxNRGMbx/yRpm7RJE1tbxUsVi4iKuHDhQhe6cOHChQsXLly4cOHChQsXLly4cOHChQsXLly4cOHChQsXLly4cOHChQsXLly4cOHChQsXLlzoQr/A3+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzoaz4QA4G86GA+BsOBsOgLPhbDgAzgEAAA";
-      
-      // Add test photo for verification
-      enhancedSurveyData.myImageLink = testImageBase64;
-      enhancedSurveyData.testPhoto = testImageBase64;
-      Logger.info("   🧪 Added test photo for PDF verification");
-    }
-    
-    // FOR TESTING: If myImageLink is still not found, add a placeholder
-    if (!enhancedSurveyData.myImageLink) {
-      Logger.warn("   🚨 TESTING MODE: Adding placeholder message");
-      enhancedSurveyData.myImageLink = "PLACEHOLDER - myImageLink not captured from survey model";
-    }
     
     // Extract header fields
     const headerFields = extractHeaderFields(enhancedSurveyData, surveyJson);
@@ -287,18 +156,6 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
     };
-    
-    Logger.info("=== FINAL REQUEST DATA ===");
-    Logger.info("Survey data being sent to PDF server:");
-    for (const [key, value] of Object.entries(requestData.surveyData)) {
-      if (typeof value === 'string' && value.startsWith('data:image')) {
-        Logger.info(`  ${key}: 📷 IMAGE DATA (${value.length} chars)`);
-      } else if (typeof value === 'string' && value.length > 50) {
-        Logger.info(`  ${key}: ${typeof value} (${value.length} chars) "${value.substring(0, 50)}..."`);
-      } else {
-        Logger.info(`  ${key}:`, typeof value, value);
-      }
-    }
     
     const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
       method: 'POST',
@@ -339,7 +196,7 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
   }
 }
 
-// NEW: Function to extract header fields from survey data
+// Function to extract header fields from survey data
 function extractHeaderFields(surveyData: any, surveyJson: any): Array<{label: string, value: string, required?: boolean}> {
   const headerFields: Array<{label: string, value: string, required?: boolean}> = [];
   
@@ -488,7 +345,6 @@ function extractHeaderFields(surveyData: any, surveyJson: any): Array<{label: st
   return headerFields;
 }
 
-
 // Email PDF function
 async function emailPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
@@ -499,11 +355,11 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
-    // Use the same enhanced data collection
+    // Enhanced data collection
     const enhancedSurveyData = { ...surveyData };
     const allQuestions = surveyModel.getAllQuestions();
     
-    allQuestions.forEach(question => {
+    allQuestions.forEach((question: any) => {
       const questionValue = question.value;
       if (questionValue !== undefined && questionValue !== null) {
         enhancedSurveyData[question.name] = questionValue;
@@ -529,7 +385,7 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
     
     const requestData = {
       surveyJson: surveyJson,
-      surveyData: enhancedSurveyData, // Use enhanced data
+      surveyData: enhancedSurveyData,
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
       recipientEmail: recipientEmail,
@@ -570,18 +426,28 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
     throw error;
   }
 }
-// Save to SharePoint function
-async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+
+async function saveToSharedFolder(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
   try {
-    Logger.info("Starting Save to SharePoint...");
+    Logger.info("Starting Save to Shared Folder...");
     
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
-    // Extract header fields
-    const headerFields = extractHeaderFields(surveyData, surveyJson);
+    // Enhanced data collection
+    const enhancedSurveyData = { ...surveyData };
+    const allQuestions = surveyModel.getAllQuestions();
+    
+    allQuestions.forEach((question: any) => {
+      const questionValue = question.value;
+      if (questionValue !== undefined && questionValue !== null) {
+        enhancedSurveyData[question.name] = questionValue;
+      }
+    });
+    
+    const headerFields = extractHeaderFields(enhancedSurveyData, surveyJson);
     
     const metadata: PDFMetadata = {
       title: surveyJson.title || surveyName || 'Survey Results',
@@ -594,14 +460,13 @@ async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: 
     
     const requestData = {
       surveyJson: surveyJson,
-      surveyData: surveyData,
+      surveyData: enhancedSurveyData,
       metadata: metadata,
       fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
-      userId: userId,
-      folderPath: '/Shared Documents/Inspection Reports'
+      userId: userId
     };
     
-    const response = await fetch(`${PDF_SERVER_URL}/save-to-sharepoint`, {
+    const response = await fetch(`${PDF_SERVER_URL}/save-to-shared-folder`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -617,20 +482,20 @@ async function saveToSharePoint(surveyModel: Model, userId: string, surveyName: 
       } catch {
         errorData = { error: errorText };
       }
-      Logger.error("SharePoint save server response error:", errorData);
-      throw new Error(`SharePoint save failed: ${errorData.error || 'Unknown error'}`);
+      Logger.error("Shared folder save server response error:", errorData);
+      throw new Error(`Shared folder save failed: ${errorData.error || 'Unknown error'}`);
     }
     
     const result = await response.json();
-    Logger.info("SharePoint save successful:", result);
-    window.alert(`PDF saved successfully to SharePoint: ${result.sharePointUrl || 'Success'}`);
+    Logger.info("Shared folder save successful:", result);
+    window.alert(`PDF saved successfully to shared folder: ${result.filePath || 'Success'}`);
     
     return true;
     
   } catch (error) {
-    Logger.error("SharePoint save failed:", error);
+    Logger.error("Shared folder save failed:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    window.alert(`SharePoint save failed: ${errorMessage}`);
+    window.alert(`Shared folder save failed: ${errorMessage}`);
     throw error;
   }
 }
@@ -810,7 +675,7 @@ const Run = () => {
     viewOnly = true;
   }
 
-  // NEW: Check if we should load existing data
+  // Check if we should load existing data
   const loadExisting = queryParams.get("load_existing") === "true" || 
                       result_id !== undefined || 
                       queryParams.get("edit") === "true";
@@ -822,7 +687,11 @@ const Run = () => {
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isEmailingPDF, setIsEmailingPDF] = useState(false);
-  const [isSavingToSharePoint, setIsSavingToSharePoint] = useState(false);
+  const [isSavingToSharedFolder, setIsSavingToSharedFolder] = useState(false);
+  
+  // NEW: Add state to track completion and preserve survey data
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [completedSurveyData, setCompletedSurveyData] = useState<any>(null);
 
   // Initialize model when survey data is available
   useEffect(() => {
@@ -833,13 +702,18 @@ const Run = () => {
       Logger.info("Model getAllQuestions():", model.getAllQuestions().length);
       Logger.info("Load existing data:", loadExisting);
       
-      // Set up rerun function
+      // Set up rerun function - ONLY clear completion state, not the entire model
       const rerunSurvey = () => {
+        Logger.info("Rerunning survey - clearing completion state");
+        setIsCompleted(false);
+        setCompletedSurveyData(null);
         model.clear(false);
+        // Force re-render by resetting the model state
+        model.mode = "edit";
       };
       window.rerunSurvey = rerunSurvey;
 
-      // Set up Universal PDF generation function
+      // Set up Universal PDF generation function - PRESERVE completion state
       const generateUniversalPDFWrapper = async () => {
         if (isGeneratingPDF) {
           Logger.warn("PDF generation already in progress");
@@ -849,14 +723,20 @@ const Run = () => {
         setIsGeneratingPDF(true);
         
         try {
-          const hasData = model.data && Object.keys(model.data).length > 0;
+          // Use completed survey data if available, otherwise use current model data
+          const dataToUse = completedSurveyData || model.data;
+          const hasData = dataToUse && Object.keys(dataToUse).length > 0;
           Logger.info("Model has data:", hasData);
           
           if (!hasData) {
             Logger.warn("Survey has no data - generating PDF with empty responses");
           }
           
-          await generateUniversalPDF(model, userId, survey.name || 'Survey');
+          // Create a temporary model copy with the data for PDF generation
+          const tempModel = new Model(model.toJSON());
+          tempModel.data = dataToUse;
+          
+          await generateUniversalPDF(tempModel, userId, survey.name || 'Survey');
           
         } catch (error) {
           Logger.error("Universal PDF generation failed:", error);
@@ -876,7 +756,7 @@ const Run = () => {
       };
       window.generateUniversalPDF = generateUniversalPDFWrapper;
 
-      // Set up Email PDF function
+      // Set up Email PDF function - PRESERVE completion state
       const emailPDFWrapper = async () => {
         if (isEmailingPDF) {
           Logger.warn("Email PDF already in progress");
@@ -886,7 +766,12 @@ const Run = () => {
         setIsEmailingPDF(true);
         
         try {
-          await emailPDF(model, userId, survey.name || 'Survey');
+          // Use completed survey data if available
+          const dataToUse = completedSurveyData || model.data;
+          const tempModel = new Model(model.toJSON());
+          tempModel.data = dataToUse;
+          
+          await emailPDF(tempModel, userId, survey.name || 'Survey');
         } catch (error) {
           Logger.error("Email PDF failed:", error);
         } finally {
@@ -895,24 +780,29 @@ const Run = () => {
       };
       window.emailPDF = emailPDFWrapper;
 
-      // Set up Save to SharePoint function
-      const saveToSharePointWrapper = async () => {
-        if (isSavingToSharePoint) {
-          Logger.warn("SharePoint save already in progress");
+      // Set up Save to Shared Folder function - PRESERVE completion state
+      const saveToSharedFolderWrapper = async () => {
+        if (isSavingToSharedFolder) {
+          Logger.warn("Shared folder save already in progress");
           return;
         }
         
-        setIsSavingToSharePoint(true);
+        setIsSavingToSharedFolder(true);
         
         try {
-          await saveToSharePoint(model, userId, survey.name || 'Survey');
+          // Use completed survey data if available
+          const dataToUse = completedSurveyData || model.data;
+          const tempModel = new Model(model.toJSON());
+          tempModel.data = dataToUse;
+          
+          await saveToSharedFolder(tempModel, userId, survey.name || 'Survey');
         } catch (error) {
-          Logger.error("SharePoint save failed:", error);
+          Logger.error("Shared folder save failed:", error);
         } finally {
-          setIsSavingToSharePoint(false);
+          setIsSavingToSharedFolder(false);
         }
       };
-      window.saveToSharePoint = saveToSharePointWrapper;
+      window.saveToSharedFolder = saveToSharedFolderWrapper;
 
       // Configure serialization
       Serializer.getProperty("survey", "clearInvisibleValues").defaultValue = "none";
@@ -935,23 +825,23 @@ const Run = () => {
               </svg>
               Run Survey Again
             </button>
-            <button class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.generateUniversalPDF()">
+            <button class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 ${isGeneratingPDF ? 'opacity-50 cursor-not-allowed' : ''}" onclick="window.generateUniversalPDF()" ${isGeneratingPDF ? 'disabled' : ''}>
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
               </svg>
-              Download PDF
+              ${isGeneratingPDF ? 'Generating...' : 'Download PDF'}
             </button>
-            <button class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.emailPDF()">
+            <button class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 ${isEmailingPDF ? 'opacity-50 cursor-not-allowed' : ''}" onclick="window.emailPDF()" ${isEmailingPDF ? 'disabled' : ''}>
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
               </svg>
-              Email PDF
+              ${isEmailingPDF ? 'Sending...' : 'Email PDF'}
             </button>
-            <button class="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200" onclick="window.saveToSharePoint()">
+            <button class="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 ${isSavingToSharedFolder ? 'opacity-50 cursor-not-allowed' : ''}" onclick="window.saveToSharedFolder()" ${isSavingToSharedFolder ? 'disabled' : ''}>
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
               </svg>
-              Save to SharePoint
+              ${isSavingToSharedFolder ? 'Saving...' : 'Save to Shared Folder'}
             </button>
           </div>
         </div>
@@ -962,10 +852,15 @@ const Run = () => {
         model.mode = "display";
       }
 
-      // Set up completion handler
+      // Set up completion handler - PRESERVE survey data and set completion state
       model.onComplete.add(async (sender: Model) => {
         Logger.debug("onComplete Survey data:", sender.data);
         
+        // Save the completed survey data to prevent loss
+        setCompletedSurveyData({ ...sender.data });
+        setIsCompleted(true);
+        
+        // Post data to server
         await postData(
           "/post",
           {
@@ -976,11 +871,13 @@ const Run = () => {
           },
           false
         );
+        
+        Logger.info("Survey completed and data preserved");
       });
 
       setSurveyModel(model);
     }
-  }, [survey.json, id, userId, viewOnly, postData, isGeneratingPDF, isEmailingPDF, isSavingToSharePoint, loadExisting]);
+  }, [survey.json, id, userId, viewOnly, postData, isGeneratingPDF, isEmailingPDF, isSavingToSharedFolder, loadExisting]);
 
   const getSurvey = async () => {
     try {
@@ -1026,7 +923,7 @@ const Run = () => {
     }
   };
 
-  // UPDATED: Only load existing data when specifically requested
+  // Only load existing data when specifically requested
   const shouldGetResults = loadExisting && surveyModel && (!surveyModel
     .getAllQuestions()
     .some((question) => question.name === "datacollection_header") || result_id);
@@ -1065,7 +962,7 @@ const Run = () => {
 
   // Apply result data to model ONLY when we should load existing data
   useEffect(() => {
-    if (Object.keys(result).length > 0 && shouldGetResults && surveyModel) {
+    if (Object.keys(result).length > 0 && shouldGetResults && surveyModel && !isCompleted) {
       Logger.debug("Run: applying result data to model", result);
       if (!result_id) {
         surveyModel.data = mergeDeep(surveyModel.data, result);
@@ -1073,7 +970,112 @@ const Run = () => {
         surveyModel.data = result;
       }
     }
-  }, [result, surveyModel, result_id, shouldGetResults]);
+  }, [result, surveyModel, result_id, shouldGetResults, isCompleted]);
+
+  // NEW: Render completion page manually if completed
+  if (isCompleted && surveyModel) {
+    return (
+      <div className="min-h-screen theme-bg-primary">
+        {/* Navigation Header */}
+        <header className="theme-bg-header shadow-lg no-print">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              {/* Left side - Logo and Navigation */}
+              <div className="flex items-center space-x-8">
+                <div className="flex items-center space-x-3">
+                  {/* UCT Logo */}
+                  <div className="flex items-center">
+                    <img
+                      src={navlogo}
+                      alt="UCT Logo"
+                      className="h-10 w-auto"
+                    />
+                  </div>
+                  <h1 className="text-xl font-semibold theme-text-white">Checklist Manager</h1>
+                </div>
+                
+                {/* Navigation Menu */}
+                <nav className="flex space-x-8">
+                  <Link 
+                    to="/" 
+                    className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                  >
+                    My Checklists
+                  </Link>
+                  <Link 
+                    to="/about" 
+                    className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                  >
+                    About
+                  </Link>
+                </nav>
+              </div>
+
+              {/* Right side - Status indicator */}
+              <div className="text-white text-sm">
+                ✅ Survey Completed
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Completion Content */}
+        <div className="flex items-center justify-center min-h-screen p-8">
+          <div className="bg-white rounded-lg p-8 text-center max-w-2xl w-full shadow-lg">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
+            <p className="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+              <button 
+                className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200" 
+                onClick={() => window.rerunSurvey()}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Run Survey Again
+              </button>
+              <button 
+                className={`inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 ${isGeneratingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => window.generateUniversalPDF()}
+                disabled={isGeneratingPDF}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+              </button>
+              <button 
+                className={`inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 ${isEmailingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => window.emailPDF()}
+                disabled={isEmailingPDF}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+                {isEmailingPDF ? 'Sending...' : 'Email PDF'}
+              </button>
+              <button 
+                className={`inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 ${isSavingToSharedFolder ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => window.saveToSharedFolder()}
+                disabled={isSavingToSharedFolder}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
+                </svg>
+                {isSavingToSharedFolder ? 'Saving...' : 'Save to Shared Folder'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return survey.json === "" || !surveyModel ? (
     <div className="min-h-screen flex items-center justify-center">
