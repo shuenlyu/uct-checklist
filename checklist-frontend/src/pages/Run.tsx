@@ -1,4 +1,4 @@
-// src/pages/Run.tsx - Fixed to prevent page refresh on PDF download
+// Updated Run.tsx - Simplified to work with Universal PDF Generator with Theme Selector
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router";
 import { Link } from 'react-router-dom';
@@ -12,10 +12,9 @@ import "survey-core/defaultV2.css";
 import { Survey } from "survey-react-ui";
 import { SurveyQuestionEditorDefinition } from "survey-creator-core";
 import { useApi } from "../utils/api";
-import { themes } from "../utils/themeOptions";
+import { themes, themeOptions } from "../utils/themeOptions";
 import Logger from "../utils/logger";
 import Loading from "../components/Loading";
-import { FaFilePdf, FaSpinner, FaEnvelope, FaShareAlt } from 'react-icons/fa';
 import navlogo from "../OneUCT_Logo.png";
 
 // Global window interface
@@ -28,7 +27,7 @@ declare global {
   }
 }
 
-// SurveyJS matrix dropdown extensions and signature support
+// SurveyJS extensions
 matrixDropdownColumnTypes.signaturepad = {};
 SurveyQuestionEditorDefinition.definition["matrixdropdowncolumn@signaturepad"] = {};
 matrixDropdownColumnTypes.image = {};
@@ -47,44 +46,32 @@ interface PDFMetadata {
   systemName: string;
   organizationName: string;
   logo?: string;
-  fields: Array<{
-    label: string;
-    value: string;
-  }>;
   additionalInfo?: string;
+  showMetadata?: boolean; // Control whether to show the metadata section
 }
 
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
-  const questionsToInitialize = [
-    "datacollection_header",
-    "checklist_header_fi",
-    "checklist_header_shipkit",
-    "checklist_content_fi",
-    "universal_header",
-    "universal_content",
-  ];
-
-  const questions = model.getAllQuestions();
-  const filteredQuestions = questions.filter((question) => {
-    return questionsToInitialize.some((prefix) =>
-      question.name.startsWith(prefix)
-    );
-  });
-
-  filteredQuestions.forEach((question) => {
-    Logger.info("initializeModelFromURL: question ", question);
-    if (question) {
+  
+  // Universal initialization - works with any survey structure
+  const allQuestions = model.getAllQuestions();
+  
+  allQuestions.forEach((question) => {
+    if (question.contentPanel) {
+      // Handle panel questions
       queryParams.forEach((value, key) => {
-        Logger.info("query parameters, key, value:", key, value);
         const subquestion = question.contentPanel.getQuestionByName(key);
         if (subquestion) {
           subquestion.value = value;
-        } else {
-          Logger.warn(`Subquestion named ${key} not found in ${question.name}`);
         }
       });
+    } else {
+      // Handle direct questions
+      const paramValue = queryParams.get(question.name);
+      if (paramValue) {
+        question.value = paramValue;
+      }
     }
   });
 
@@ -109,19 +96,21 @@ function mergeDeep(target: any, source: any) {
   return target;
 }
 
-// Universal PDF generation function
-async function generateUniversalPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+// Simplified Universal PDF generation function
+async function generateUniversalPDF(surveyModel: Model, userId: string, checklistName: string = 'Checklist') {
   try {
-    Logger.info("Starting Universal PDF generation...");
+    Logger.info("🚀 Starting Universal PDF generation...");
     
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
+    // Get complete survey structure and data
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
-    // Enhanced data collection - capture all question values
+    // Enhanced data collection - capture ALL survey data
     const enhancedSurveyData = { ...surveyData };
     
+    // Get all questions and their values
     const allQuestions = surveyModel.getAllQuestions();
     allQuestions.forEach((question: any) => {
       const questionValue = question.value;
@@ -130,7 +119,7 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
       }
     });
     
-    // Also include plain data to ensure nothing is missed
+    // Get plain data to ensure nothing is missed
     const plainData = surveyModel.getPlainData({ includeEmpty: false });
     plainData.forEach((item: any) => {
       if (item.name && item.value !== undefined && item.value !== null) {
@@ -138,24 +127,38 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
       }
     });
     
-    // Extract header fields
-    const headerFields = extractHeaderFields(enhancedSurveyData, surveyJson);
+    // Add URL parameters as potential metadata
+    const queryParams = new URLSearchParams(window.location.search);
+    const urlMetadata: any = {};
+    queryParams.forEach((value, key) => {
+      urlMetadata[key] = value;
+    });
     
+    // Create metadata object - the Universal PDF Generator will extract what it needs
     const metadata: PDFMetadata = {
-      title: surveyJson.title || surveyName || 'Survey Results',
+      title: surveyJson.title || checklistName || 'Checklist Results',
       systemName: 'Checklist Manager System',
       organizationName: 'UCT',
       logo: '',
-      fields: headerFields,
-      additionalInfo: ''
+      additionalInfo: `Generated for user: ${userId}`,
+      showMetadata: true // Set to false to disable the metadata section completely
     };
     
+    // Prepare request data for Universal PDF Generator
     const requestData = {
       surveyJson: surveyJson,
       surveyData: enhancedSurveyData,
       metadata: metadata,
-      fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
+      urlParams: urlMetadata, // Additional context
+      fileName: `${checklistName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
     };
+    
+    Logger.info("📤 Sending data to Universal PDF Generator:", {
+      surveyTitle: surveyJson.title,
+      dataKeys: Object.keys(enhancedSurveyData),
+      questionCount: allQuestions.length,
+      pageCount: surveyJson.pages?.length || 0
+    });
     
     const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
       method: 'POST',
@@ -187,168 +190,19 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, surveyNa
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
     
-    Logger.info("Universal PDF downloaded successfully:", requestData.fileName);
+    Logger.info("✅ Universal PDF downloaded successfully:", requestData.fileName);
     return true;
     
   } catch (error) {
-    Logger.error("Universal PDF generation failed:", error);
+    Logger.error("❌ Universal PDF generation failed:", error);
     throw error;
   }
 }
 
-// Function to extract header fields from survey data
-function extractHeaderFields(surveyData: any, surveyJson: any): Array<{label: string, value: string, required?: boolean}> {
-  const headerFields: Array<{label: string, value: string, required?: boolean}> = [];
-  
-  if (!surveyData) {
-    Logger.warn("No survey data available for header extraction");
-    return headerFields;
-  }
-  
-  Logger.info("Extracting header fields from survey data:", surveyData);
-  
-  // Strategy 1: Look for common header field patterns in survey data
-  const commonHeaderMappings = [
-    { key: 'station', label: 'Station', required: true },
-    { key: 'wo', label: 'Work Order', required: true },
-    { key: 'workorder', label: 'Work Order', required: true },
-    { key: 'toolid', label: 'Tool ID', required: true },
-    { key: 'tool_id', label: 'Tool ID', required: true },
-    { key: 'date', label: 'Date', required: true },
-    { key: 'inspector', label: 'Inspector', required: false },
-    { key: 'inspectedby', label: 'Inspected By', required: false },
-    { key: 'checkedby', label: 'Checked By', required: false },
-    { key: 'operator', label: 'Operator', required: false },
-    { key: 'shift', label: 'Shift', required: false },
-    { key: 'line', label: 'Line', required: false }
-  ];
-  
-  // Strategy 2: Look for header data in nested objects (like panel data)
-  for (const [dataKey, dataValue] of Object.entries(surveyData)) {
-    Logger.info(`Checking data key: ${dataKey}`, dataValue);
-    
-    // Check if this key contains header-like data
-    if (typeof dataValue === 'object' && dataValue !== null && !Array.isArray(dataValue)) {
-      // Check for common header field names in this object
-      for (const mapping of commonHeaderMappings) {
-        const fieldValue = (dataValue as any)[mapping.key];
-        if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
-          const stringValue = typeof fieldValue === 'string' ? fieldValue : String(fieldValue);
-          
-          // Avoid duplicates
-          if (!headerFields.some(field => field.label === mapping.label)) {
-            headerFields.push({
-              label: mapping.label,
-              value: stringValue,
-              required: mapping.required
-            });
-            Logger.info(`Found header field: ${mapping.label} = ${stringValue}`);
-          }
-        }
-      }
-    }
-    
-    // Also check top-level keys
-    for (const mapping of commonHeaderMappings) {
-      if (dataKey.toLowerCase() === mapping.key.toLowerCase()) {
-        const stringValue = typeof dataValue === 'string' ? dataValue : String(dataValue);
-        if (stringValue && stringValue !== 'null' && stringValue !== 'undefined') {
-          // Avoid duplicates
-          if (!headerFields.some(field => field.label === mapping.label)) {
-            headerFields.push({
-              label: mapping.label,
-              value: stringValue,
-              required: mapping.required
-            });
-            Logger.info(`Found top-level header field: ${mapping.label} = ${stringValue}`);
-          }
-        }
-      }
-    }
-  }
-  
-  // Strategy 3: Look for specific patterns in survey JSON structure
-  if (surveyJson && surveyJson.pages) {
-    for (const page of surveyJson.pages) {
-      if (page.elements) {
-        for (const element of page.elements) {
-          // Check for header panels
-          if (element.type === 'panel' && 
-              (element.name?.toLowerCase().includes('header') || 
-               element.title?.toLowerCase().includes('header'))) {
-            
-            Logger.info("Found header panel:", element.name);
-            
-            // Extract field definitions from panel elements
-            if (element.elements) {
-              for (const panelElement of element.elements) {
-                const elementName = panelElement.name?.toLowerCase() || '';
-                const elementTitle = panelElement.title || panelElement.name || '';
-                
-                // Look for matching data
-                const dataValue = surveyData[element.name]?.[panelElement.name] || 
-                                surveyData[panelElement.name];
-                
-                if (dataValue !== undefined && dataValue !== null && dataValue !== '') {
-                  const stringValue = typeof dataValue === 'string' ? dataValue : String(dataValue);
-                  
-                  // Avoid duplicates
-                  if (!headerFields.some(field => field.label === elementTitle)) {
-                    headerFields.push({
-                      label: elementTitle,
-                      value: stringValue,
-                      required: panelElement.isRequired || false
-                    });
-                    Logger.info(`Found panel header field: ${elementTitle} = ${stringValue}`);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  // Strategy 4: If no specific headers found, use some default fields from query params
-  if (headerFields.length === 0) {
-    const queryParams = new URLSearchParams(window.location.search);
-    const defaultMappings = [
-      { param: 'station', label: 'Station' },
-      { param: 'wo', label: 'Work Order' },
-      { param: 'toolid', label: 'Tool ID' },
-      { param: 'inspectedby', label: 'Inspector' }
-    ];
-    
-    for (const mapping of defaultMappings) {
-      const value = queryParams.get(mapping.param);
-      if (value) {
-        headerFields.push({
-          label: mapping.label,
-          value: value,
-          required: true
-        });
-      }
-    }
-  }
-  
-  // Add current date if no date field found
-  if (!headerFields.some(field => field.label.toLowerCase().includes('date'))) {
-    headerFields.push({
-      label: 'Date',
-      value: new Date().toLocaleString(),
-      required: false
-    });
-  }
-  
-  Logger.info("Final extracted header fields:", headerFields);
-  return headerFields;
-}
-
-// Email PDF function
-async function emailPDF(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+// Email PDF function - simplified for universal use
+async function emailPDF(surveyModel: Model, userId: string, checklistName: string = 'Checklist') {
   try {
-    Logger.info("Starting Email PDF...");
+    Logger.info("📧 Starting Email PDF...");
     
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
@@ -366,15 +220,13 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
       }
     });
     
-    const headerFields = extractHeaderFields(enhancedSurveyData, surveyJson);
-    
     const metadata: PDFMetadata = {
-      title: surveyJson.title || surveyName || 'Survey Results',
+      title: surveyJson.title || checklistName || 'Checklist Results',
       systemName: 'Checklist Manager System',
       organizationName: 'UCT',
       logo: '',
-      fields: headerFields,
-      additionalInfo: ''
+      additionalInfo: `Generated for user: ${userId}`,
+      showMetadata: true // Set to false to disable metadata section
     };
     
     const recipientEmail = window.prompt('Enter recipient email address:');
@@ -387,10 +239,10 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
       surveyJson: surveyJson,
       surveyData: enhancedSurveyData,
       metadata: metadata,
-      fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
+      fileName: `${checklistName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
       recipientEmail: recipientEmail,
       senderName: userId,
-      subject: `Inspection Report: ${surveyName}`
+      subject: `Checklist Report: ${checklistName}`
     };
     
     const response = await fetch(`${PDF_SERVER_URL}/email-pdf`, {
@@ -414,22 +266,22 @@ async function emailPDF(surveyModel: Model, userId: string, surveyName: string =
     }
     
     const result = await response.json();
-    Logger.info("Email sent successfully:", result);
+    Logger.info("✅ Email sent successfully:", result);
     window.alert(`PDF emailed successfully to ${recipientEmail}!`);
     
     return true;
     
   } catch (error) {
-    Logger.error("Email PDF failed:", error);
+    Logger.error("❌ Email PDF failed:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     window.alert(`Email failed: ${errorMessage}`);
     throw error;
   }
 }
 
-async function saveToSharedFolder(surveyModel: Model, userId: string, surveyName: string = 'Survey') {
+async function saveToSharedFolder(surveyModel: Model, userId: string, checklistName: string = 'Checklist') {
   try {
-    Logger.info("Starting Save to Shared Folder...");
+    Logger.info("💾 Starting Save to Shared Folder...");
     
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
@@ -447,22 +299,20 @@ async function saveToSharedFolder(surveyModel: Model, userId: string, surveyName
       }
     });
     
-    const headerFields = extractHeaderFields(enhancedSurveyData, surveyJson);
-    
     const metadata: PDFMetadata = {
-      title: surveyJson.title || surveyName || 'Survey Results',
+      title: surveyJson.title || checklistName || 'Checklist Results',
       systemName: 'Checklist Manager System',
       organizationName: 'UCT',
       logo: '',
-      fields: headerFields,
-      additionalInfo: ''
+      additionalInfo: `Generated for user: ${userId}`,
+      showMetadata: true // Set to false to disable metadata section
     };
     
     const requestData = {
       surveyJson: surveyJson,
       surveyData: enhancedSurveyData,
       metadata: metadata,
-      fileName: `${surveyName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
+      fileName: `${checklistName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
       userId: userId
     };
     
@@ -487,22 +337,22 @@ async function saveToSharedFolder(surveyModel: Model, userId: string, surveyName
     }
     
     const result = await response.json();
-    Logger.info("Shared folder save successful:", result);
+    Logger.info("✅ Shared folder save successful:", result);
     window.alert(`PDF saved successfully to shared folder: ${result.filePath || 'Success'}`);
     
     return true;
     
   } catch (error) {
-    Logger.error("Shared folder save failed:", error);
+    Logger.error("❌ Shared folder save failed:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     window.alert(`Shared folder save failed: ${errorMessage}`);
     throw error;
   }
 }
 
-// Enhanced fallback to window.print with better styling
+// Enhanced fallback to window.print
 function enhancedPrintFallback() {
-  Logger.info("Using enhanced print fallback");
+  Logger.info("🖨️ Using enhanced print fallback");
   
   const printStyles = `
     <style id="universal-print-styles">
@@ -563,70 +413,6 @@ function enhancedPrintFallback() {
           display: none !important;
           visibility: hidden !important;
         }
-        
-        .sv_qstn {
-          margin-bottom: 15px !important;
-          page-break-inside: avoid !important;
-        }
-        
-        .sv_q_title {
-          font-weight: bold !important;
-          margin-bottom: 8px !important;
-          color: #000 !important;
-        }
-        
-        .sv_q_input,
-        .sv_q_text_root,
-        .sv_q_textarea,
-        .sv_q_dropdown,
-        .sv_q_checkbox,
-        .sv_q_radiogroup {
-          margin-bottom: 10px !important;
-        }
-        
-        img {
-          max-width: 100% !important;
-          height: auto !important;
-          -webkit-print-color-adjust: exact !important;
-        }
-        
-        table {
-          border-collapse: collapse !important;
-          width: 100% !important;
-          margin-bottom: 15px !important;
-        }
-        
-        th, td {
-          border: 1px solid #000 !important;
-          padding: 6px !important;
-          text-align: left !important;
-          font-size: 11px !important;
-        }
-        
-        th {
-          background-color: #f0f0f0 !important;
-          font-weight: bold !important;
-        }
-        
-        .sv_page {
-          page-break-before: auto !important;
-          page-break-after: auto !important;
-        }
-        
-        .sv_p_container,
-        .sv_panel {
-          border: 1px solid #ddd !important;
-          margin-bottom: 15px !important;
-          padding: 10px !important;
-        }
-        
-        .sv_p_title {
-          font-weight: bold !important;
-          font-size: 14px !important;
-          margin-bottom: 10px !important;
-          border-bottom: 1px solid #ccc !important;
-          padding-bottom: 5px !important;
-        }
       }
       
       @page {
@@ -643,7 +429,7 @@ function enhancedPrintFallback() {
   
   document.head.insertAdjacentHTML('beforeend', printStyles);
   
-  window.alert('Using browser print dialog. Please select "Save as PDF" or "Print to PDF" when the dialog opens.');
+  window.alert('Using browser print dialog. Please select "Save as PDF" when the dialog opens.');
   
   setTimeout(() => {
     window.print();
@@ -662,7 +448,6 @@ const Run = () => {
   const location = useLocation();
   const { result_id: initialResultId } = location.state || {};
   let result_id = initialResultId;
-  Logger.info("Run state: result_id", result_id);
 
   const queryParams = new URLSearchParams(window.location.search);
   const userId: string = queryParams.get("inspectedby")
@@ -689,34 +474,54 @@ const Run = () => {
   const [isEmailingPDF, setIsEmailingPDF] = useState(false);
   const [isSavingToSharedFolder, setIsSavingToSharedFolder] = useState(false);
   
-  // NEW: Add state to track completion and preserve survey data
+  // Add state to track completion and preserve survey data
   const [isCompleted, setIsCompleted] = useState(false);
   const [completedSurveyData, setCompletedSurveyData] = useState<any>(null);
+
+  // Add theme selector state
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
+  const [showThemeDropdown, setShowThemeDropdown] = useState(false);
+
+  // Handle theme change
+  const handleThemeChange = (themeIndex: number) => {
+    const newTheme = themes[themeIndex];
+    setTheme(newTheme);
+    setSelectedThemeIndex(themeIndex);
+    setShowThemeDropdown(false);
+    
+    if (surveyModel) {
+      surveyModel.applyTheme(newTheme);
+      Logger.info("🎨 Theme changed to:", themeOptions.find(opt => opt.value === themeIndex.toString())?.label);
+    }
+  };
 
   // Initialize model when survey data is available
   useEffect(() => {
     if (survey.json) {
       const model = initializeModelFromURL(window.location.search, survey.json);
       
-      Logger.info("=== Model Initialized ===");
-      Logger.info("Model getAllQuestions():", model.getAllQuestions().length);
-      Logger.info("Load existing data:", loadExisting);
+      Logger.info("🔧 Model Initialized with Universal PDF Generator support");
+      Logger.info("📊 Survey details:", {
+        questions: model.getAllQuestions().length,
+        pages: model.pages.length,
+        title: model.title,
+        loadExisting
+      });
       
-      // Set up rerun function - ONLY clear completion state, not the entire model
+      // Set up rerun function
       const rerunSurvey = () => {
-        Logger.info("Rerunning survey - clearing completion state");
+        Logger.info("🔄 Rerunning survey");
         setIsCompleted(false);
         setCompletedSurveyData(null);
         model.clear(false);
-        // Force re-render by resetting the model state
         model.mode = "edit";
       };
       window.rerunSurvey = rerunSurvey;
 
-      // Set up Universal PDF generation function - PRESERVE completion state
+      // Set up Universal PDF generation function
       const generateUniversalPDFWrapper = async () => {
         if (isGeneratingPDF) {
-          Logger.warn("PDF generation already in progress");
+          Logger.warn("⚠️ PDF generation already in progress");
           return;
         }
         
@@ -726,20 +531,19 @@ const Run = () => {
           // Use completed survey data if available, otherwise use current model data
           const dataToUse = completedSurveyData || model.data;
           const hasData = dataToUse && Object.keys(dataToUse).length > 0;
-          Logger.info("Model has data:", hasData);
           
           if (!hasData) {
-            Logger.warn("Survey has no data - generating PDF with empty responses");
+            Logger.warn("⚠️ Checklist has no data - generating PDF with empty responses");
           }
           
           // Create a temporary model copy with the data for PDF generation
           const tempModel = new Model(model.toJSON());
           tempModel.data = dataToUse;
           
-          await generateUniversalPDF(tempModel, userId, survey.name || 'Survey');
+          await generateUniversalPDF(tempModel, userId, survey.name || 'Checklist');
           
         } catch (error) {
-          Logger.error("Universal PDF generation failed:", error);
+          Logger.error("❌ Universal PDF generation failed:", error);
           
           const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
           
@@ -756,48 +560,40 @@ const Run = () => {
       };
       window.generateUniversalPDF = generateUniversalPDFWrapper;
 
-      // Set up Email PDF function - PRESERVE completion state
+      // Set up Email PDF function
       const emailPDFWrapper = async () => {
-        if (isEmailingPDF) {
-          Logger.warn("Email PDF already in progress");
-          return;
-        }
+        if (isEmailingPDF) return;
         
         setIsEmailingPDF(true);
         
         try {
-          // Use completed survey data if available
           const dataToUse = completedSurveyData || model.data;
           const tempModel = new Model(model.toJSON());
           tempModel.data = dataToUse;
           
-          await emailPDF(tempModel, userId, survey.name || 'Survey');
+          await emailPDF(tempModel, userId, survey.name || 'Checklist');
         } catch (error) {
-          Logger.error("Email PDF failed:", error);
+          Logger.error("❌ Email PDF failed:", error);
         } finally {
           setIsEmailingPDF(false);
         }
       };
       window.emailPDF = emailPDFWrapper;
 
-      // Set up Save to Shared Folder function - PRESERVE completion state
+      // Set up Save to Shared Folder function
       const saveToSharedFolderWrapper = async () => {
-        if (isSavingToSharedFolder) {
-          Logger.warn("Shared folder save already in progress");
-          return;
-        }
+        if (isSavingToSharedFolder) return;
         
         setIsSavingToSharedFolder(true);
         
         try {
-          // Use completed survey data if available
           const dataToUse = completedSurveyData || model.data;
           const tempModel = new Model(model.toJSON());
           tempModel.data = dataToUse;
           
-          await saveToSharedFolder(tempModel, userId, survey.name || 'Survey');
+          await saveToSharedFolder(tempModel, userId, survey.name || 'Checklist');
         } catch (error) {
-          Logger.error("Shared folder save failed:", error);
+          Logger.error("❌ Shared folder save failed:", error);
         } finally {
           setIsSavingToSharedFolder(false);
         }
@@ -807,7 +603,7 @@ const Run = () => {
       // Configure serialization
       Serializer.getProperty("survey", "clearInvisibleValues").defaultValue = "none";
 
-      // Set up completion handler with PDF download option
+      // Set up completion handler with improved UI
       model.completedHtml = `
         <div class="bg-white rounded-lg p-8 text-center">
           <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -815,7 +611,7 @@ const Run = () => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
-          <h2 class="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Checklist Completed Successfully!</h2>
           <p class="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
           
           <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
@@ -823,13 +619,13 @@ const Run = () => {
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
               </svg>
-              Run Survey Again
+              Run Checklist Again
             </button>
             <button class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 ${isGeneratingPDF ? 'opacity-50 cursor-not-allowed' : ''}" onclick="window.generateUniversalPDF()" ${isGeneratingPDF ? 'disabled' : ''}>
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
               </svg>
-              ${isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+              ${isGeneratingPDF ? 'Generating PDF...' : 'Download PDF'}
             </button>
             <button class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 ${isEmailingPDF ? 'opacity-50 cursor-not-allowed' : ''}" onclick="window.emailPDF()" ${isEmailingPDF ? 'disabled' : ''}>
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -839,7 +635,7 @@ const Run = () => {
             </button>
             <button class="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 ${isSavingToSharedFolder ? 'opacity-50 cursor-not-allowed' : ''}" onclick="window.saveToSharedFolder()" ${isSavingToSharedFolder ? 'disabled' : ''}>
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l-3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
               </svg>
               ${isSavingToSharedFolder ? 'Saving...' : 'Save to Shared Folder'}
             </button>
@@ -852,11 +648,14 @@ const Run = () => {
         model.mode = "display";
       }
 
-      // Set up completion handler - PRESERVE survey data and set completion state
+      // Set up completion handler
       model.onComplete.add(async (sender: Model) => {
-        Logger.debug("onComplete Survey data:", sender.data);
+        Logger.debug("📋 Checklist completed:", {
+          dataKeys: Object.keys(sender.data),
+          questionCount: sender.getAllQuestions().length
+        });
         
-        // Save the completed survey data to prevent loss
+        // Save the completed survey data
         setCompletedSurveyData({ ...sender.data });
         setIsCompleted(true);
         
@@ -872,27 +671,32 @@ const Run = () => {
           false
         );
         
-        Logger.info("Survey completed and data preserved");
+        Logger.info("✅ Checklist completed and data preserved");
       });
 
       setSurveyModel(model);
     }
   }, [survey.json, id, userId, viewOnly, postData, isGeneratingPDF, isEmailingPDF, isSavingToSharedFolder, loadExisting]);
 
+  // Get survey data
   const getSurvey = async () => {
     try {
       const response = await fetchData("/getSurvey?surveyId=" + id, false);
-      Logger.info("Survey data received:", response.data);
+      Logger.info("📋 Checklist data received:", {
+        title: response.data.name,
+        hasJson: !!response.data.json
+      });
       setSurvey(response.data);
     } catch (error) {
-      Logger.error("Error getting survey:", error);
+      Logger.error("❌ Error getting checklist:", error);
     }
   };
 
+  // Get existing results
   const getResults = async () => {
     try {
       const response = await fetchData("/results?postId=" + id, false);
-      Logger.debug("Run getResults: ", response.data);
+      Logger.debug("📊 Results received:", response.data.length, "items");
 
       if (response.data.length > 0) {
         if (result_id) {
@@ -919,31 +723,27 @@ const Run = () => {
         }
       }
     } catch (error) {
-      Logger.error("Error getting results:", error);
+      Logger.error("❌ Error getting results:", error);
     }
   };
 
-  // Only load existing data when specifically requested
-  const shouldGetResults = loadExisting && surveyModel && (!surveyModel
-    .getAllQuestions()
-    .some((question) => question.name === "datacollection_header") || result_id);
-
+  // Load existing data when needed
   useEffect(() => {
-    if (shouldGetResults) {
-      Logger.info("Loading existing data based on query parameters");
+    if (loadExisting && surveyModel) {
+      Logger.info("🔥 Loading existing data");
       getResults();
     } else {
-      Logger.info("Starting with blank form - no existing data loaded");
+      Logger.info("📝 Starting with blank form");
     }
-  }, [result_id, shouldGetResults]);
+  }, [loadExisting, surveyModel]);
 
   useEffect(() => {
     getSurvey();
   }, []);
 
+  // Apply theme (but don't override manual theme selection)
   useEffect(() => {
-    if (surveyModel) {
-      // Load and apply theme when model is ready
+    if (surveyModel && selectedThemeIndex === 0) { // Only apply server theme if user hasn't manually selected one
       const loadTheme = async () => {
         try {
           const response = await fetchData("/getTheme?surveyId=" + id, false);
@@ -953,73 +753,114 @@ const Run = () => {
             surveyModel.applyTheme(parsedTheme);
           }
         } catch (error) {
-          Logger.error("Error getting theme:", error);
+          Logger.error("❌ Error getting theme:", error);
         }
       };
       loadTheme();
     }
-  }, [surveyModel]);
+  }, [surveyModel, selectedThemeIndex]);
 
-  // Apply result data to model ONLY when we should load existing data
+  // Apply result data to model
   useEffect(() => {
-    if (Object.keys(result).length > 0 && shouldGetResults && surveyModel && !isCompleted) {
-      Logger.debug("Run: applying result data to model", result);
+    if (Object.keys(result).length > 0 && loadExisting && surveyModel && !isCompleted) {
+      Logger.debug("📊 Applying existing results to model");
       if (!result_id) {
         surveyModel.data = mergeDeep(surveyModel.data, result);
       } else {
         surveyModel.data = result;
       }
     }
-  }, [result, surveyModel, result_id, shouldGetResults, isCompleted]);
+  }, [result, surveyModel, result_id, loadExisting, isCompleted]);
 
-  // NEW: Render completion page manually if completed
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showThemeDropdown && !target.closest('.theme-selector')) {
+        setShowThemeDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showThemeDropdown]);
+
+  // Theme Selector Component
+  const ThemeSelector = () => (
+    <div className="relative theme-selector">
+      <button
+        onClick={() => setShowThemeDropdown(!showThemeDropdown)}
+        className="inline-flex items-center px-4 py-2 bg-white bg-opacity-20 text-white font-medium rounded-lg hover:bg-opacity-30 transition-colors duration-200"
+      >
+        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"></path>
+        </svg>
+        Themes
+        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      
+      {showThemeDropdown && (
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-80 overflow-y-auto">
+          <div className="py-2">
+            <div className="px-4 py-2 text-sm font-semibold text-gray-700 border-b border-gray-200">
+              Select Theme
+            </div>
+            {themeOptions.map((option, index) => (
+              <button
+                key={option.value}
+                onClick={() => handleThemeChange(parseInt(option.value))}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150 ${
+                  selectedThemeIndex === parseInt(option.value) 
+                    ? 'bg-blue-50 text-blue-700 font-medium' 
+                    : 'text-gray-700'
+                }`}
+              >
+                {option.label}
+                {selectedThemeIndex === parseInt(option.value) && (
+                  <svg className="w-4 h-4 inline-block ml-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // Render completion page if completed
   if (isCompleted && surveyModel) {
     return (
       <div className="min-h-screen theme-bg-primary">
-        {/* Navigation Header */}
         <header className="theme-bg-header shadow-lg no-print">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              {/* Left side - Logo and Navigation */}
               <div className="flex items-center space-x-8">
                 <div className="flex items-center space-x-3">
-                  {/* UCT Logo */}
-                  <div className="flex items-center">
-                    <img
-                      src={navlogo}
-                      alt="UCT Logo"
-                      className="h-10 w-auto"
-                    />
-                  </div>
+                  <img src={navlogo} alt="UCT Logo" className="h-10 w-auto" />
                   <h1 className="text-xl font-semibold theme-text-white">Checklist Manager</h1>
                 </div>
-                
-                {/* Navigation Menu */}
                 <nav className="flex space-x-8">
-                  <Link 
-                    to="/" 
-                    className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-                  >
+                  <Link to="/" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                     My Checklists
                   </Link>
-                  <Link 
-                    to="/about" 
-                    className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-                  >
+                  <Link to="/about" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                     About
                   </Link>
                 </nav>
               </div>
-
-              {/* Right side - Status indicator */}
-              <div className="text-white text-sm">
-                ✅ Survey Completed
+              <div className="flex items-center space-x-4">
+                <ThemeSelector />
               </div>
             </div>
           </div>
         </header>
 
-        {/* Completion Content */}
         <div className="flex items-center justify-center min-h-screen p-8">
           <div className="bg-white rounded-lg p-8 text-center max-w-2xl w-full shadow-lg">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1027,7 +868,7 @@ const Run = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Thank you for your work!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Checklist Completed Successfully!</h2>
             <p className="text-gray-600 mb-6">Your checklist has been completed successfully.</p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
@@ -1038,7 +879,7 @@ const Run = () => {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
-                Run Survey Again
+                Run Checklist Again
               </button>
               <button 
                 className={`inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 ${isGeneratingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1047,7 +888,7 @@ const Run = () => {
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
+              </svg>
                 {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
               </button>
               <button 
@@ -1086,53 +927,30 @@ const Run = () => {
     </div>
   ) : (
     <div className="min-h-screen theme-bg-primary">
-      {/* Navigation Header */}
       <header className="theme-bg-header shadow-lg no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Left side - Logo and Navigation */}
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-3">
-                {/* UCT Logo */}
-                <div className="flex items-center">
-                  <img
-                    src={navlogo}
-                    alt="UCT Logo"
-                    className="h-10 w-auto"
-                  />
-                </div>
+                <img src={navlogo} alt="UCT Logo" className="h-10 w-auto" />
                 <h1 className="text-xl font-semibold theme-text-white">Checklist Manager</h1>
               </div>
-              
-              {/* Navigation Menu */}
               <nav className="flex space-x-8">
-                <Link 
-                  to="/" 
-                  className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-                >
+                <Link to="/" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                   My Checklists
                 </Link>
-                <Link 
-                  to="/about" 
-                  className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-                >
+                <Link to="/about" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                   About
                 </Link>
               </nav>
             </div>
-
-            {/* Right side - Status indicator */}
-            <div className="text-white text-sm">
-              {loadExisting ? 
-                `📄 Loaded existing data` : 
-                `📝 Blank form`
-              }
+            <div className="flex items-center space-x-4">
+              <ThemeSelector />
             </div>
           </div>
         </div>
       </header>
 
-      {/* Survey Content */}
       <div style={{ height: 'calc(100vh - 4rem)' }}>
         <Survey model={surveyModel} />
       </div>

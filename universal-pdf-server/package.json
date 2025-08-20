@@ -1,0 +1,36 @@
+{
+  "name": "pdf-generator-server",
+  "version": "1.0.0",
+  "description": "Server-side PDF generation using Puppeteer for Survey forms",
+  "main": "pdfGenerator.js",
+  "scripts": {
+    "start": "node pdfGenerator.js",
+    "dev": "nodemon pdfGenerator.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^3.7.0",
+    "axios": "^1.11.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "form-data": "^4.0.4",
+    "fs-extra": "^11.1.0",
+    "nodemailer": "^6.10.1",
+    "puppeteer": "^21.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "keywords": [
+    "pdf",
+    "puppeteer",
+    "survey",
+    "generation",
+    "server"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
