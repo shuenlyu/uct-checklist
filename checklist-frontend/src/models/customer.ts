@@ -7,13 +7,5 @@ export const customers = [
     id: 2,
     name: "KLA",
   },
-  {
-    id: 3,
-    name: "ASM",
-  },
-  {
-    id: 4,
-    name: "Other",
-  }
   
 ];
