@@ -1,19 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Model } from "survey-core";
 import Layout from "../components/Layout";
-import Viewer from "../components/Viewer";
 import { useApi } from "../utils/api";
 import Logger from "../utils/logger";
-
-// Global window interface for PDF functions
-declare global {
-  interface Window {
-    generateUniversalPDF: () => Promise<void>;
-    emailPDF: () => Promise<void>;
-    saveToSharedFolder: () => Promise<void>;
-  }
-}
 
 interface ResultItem {
   createdAt: string;
@@ -37,15 +26,15 @@ const Results = () => {
   const { fetchData } = useApi();
   const [survey, setSurvey] = useState({ json: {}, name: "" });
   const [results, setResults] = useState<ResultItem[]>([]);
-  const [selectedResult, setSelectedResult] = useState<ResultItem | null>(null);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [isEmailingPDF, setIsEmailingPDF] = useState(false);
-  const [isSavingToSharedFolder, setIsSavingToSharedFolder] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState<string | null>(null);
+  const [isEmailingPDF, setIsEmailingPDF] = useState<string | null>(null);
+  const [isSavingToSharedFolder, setIsSavingToSharedFolder] = useState<string | null>(null);
+  const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
 
-  // PDF Generation function adapted for Results page
+  // PDF Generation function
   const generateUniversalPDF = async (resultData: ResultItem) => {
     try {
-      Logger.info("🚀 Starting Universal PDF generation from results...");
+      Logger.info("Starting Universal PDF generation from results...");
       
       const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
       
@@ -72,12 +61,6 @@ const Results = () => {
         fileName: `${survey.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Checklist'}-${resultData.submittedBy}-${new Date(resultData.createdAt).toISOString().split('T')[0]}.pdf`
       };
       
-      Logger.info("📤 Sending data to Universal PDF Generator:", {
-        surveyTitle: survey.name,
-        dataKeys: Object.keys(surveyData),
-        submittedBy: resultData.submittedBy
-      });
-      
       const response = await fetch(`${PDF_SERVER_URL}/generate-pdf`, {
         method: 'POST',
         headers: {
@@ -94,7 +77,6 @@ const Results = () => {
         } catch {
           errorData = { error: errorText };
         }
-        Logger.error("PDF server response error:", errorData);
         throw new Error(`Universal PDF generation failed: ${errorData.error || 'Unknown error'}`);
       }
       
@@ -108,11 +90,10 @@ const Results = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      Logger.info("✅ Universal PDF downloaded successfully:", requestData.fileName);
       return true;
       
     } catch (error) {
-      Logger.error("❌ Universal PDF generation failed:", error);
+      Logger.error("Universal PDF generation failed:", error);
       throw error;
     }
   };
@@ -120,12 +101,15 @@ const Results = () => {
   // Email PDF function
   const emailPDF = async (resultData: ResultItem) => {
     try {
-      Logger.info("📧 Starting Email PDF from results...");
-      
       const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
       
       if (!survey.json || Object.keys(survey.json).length === 0) {
         throw new Error("Survey structure not loaded");
+      }
+      
+      const recipientEmail = window.prompt('Enter recipient email address:');
+      if (!recipientEmail) {
+        return;
       }
       
       const surveyJson = survey.json;
@@ -139,12 +123,6 @@ const Results = () => {
         additionalInfo: `Generated for user: ${resultData.submittedBy}`,
         showMetadata: true
       };
-      
-      const recipientEmail = window.prompt('Enter recipient email address:');
-      if (!recipientEmail) {
-        Logger.info("Email cancelled by user");
-        return;
-      }
       
       const requestData = {
         surveyJson: surveyJson,
@@ -172,18 +150,15 @@ const Results = () => {
         } catch {
           errorData = { error: errorText };
         }
-        Logger.error("Email PDF server response error:", errorData);
         throw new Error(`Email PDF failed: ${errorData.error || 'Unknown error'}`);
       }
       
       const result = await response.json();
-      Logger.info("✅ Email sent successfully:", result);
       window.alert(`PDF emailed successfully to ${recipientEmail}!`);
       
       return true;
       
     } catch (error) {
-      Logger.error("❌ Email PDF failed:", error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       window.alert(`Email failed: ${errorMessage}`);
       throw error;
@@ -193,8 +168,6 @@ const Results = () => {
   // Save to Shared Folder function
   const saveToSharedFolder = async (resultData: ResultItem) => {
     try {
-      Logger.info("💾 Starting Save to Shared Folder from results...");
-      
       const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
       
       if (!survey.json || Object.keys(survey.json).length === 0) {
@@ -237,65 +210,83 @@ const Results = () => {
         } catch {
           errorData = { error: errorText };
         }
-        Logger.error("Shared folder save server response error:", errorData);
         throw new Error(`Shared folder save failed: ${errorData.error || 'Unknown error'}`);
       }
       
       const result = await response.json();
-      Logger.info("✅ Shared folder save successful:", result);
       window.alert(`PDF saved successfully to shared folder: ${result.filePath || 'Success'}`);
       
       return true;
       
     } catch (error) {
-      Logger.error("❌ Shared folder save failed:", error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       window.alert(`Shared folder save failed: ${errorMessage}`);
       throw error;
     }
   };
 
-  // Handler functions with loading states
+  // Handler functions
   const handleGeneratePDF = async (resultData: ResultItem) => {
-    if (isGeneratingPDF) return;
+    if (isGeneratingPDF === resultData.id) return;
     
-    setIsGeneratingPDF(true);
+    setIsGeneratingPDF(resultData.id);
     try {
       await generateUniversalPDF(resultData);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      const usesFallback = window.confirm(
-        `PDF generation failed: ${errorMessage}\n\nWould you like to try again?`
-      );
+      // Error already handled in the function
     } finally {
-      setIsGeneratingPDF(false);
+      setIsGeneratingPDF(null);
+      setOpenDropdowns(new Set());
     }
   };
 
   const handleEmailPDF = async (resultData: ResultItem) => {
-    if (isEmailingPDF) return;
+    if (isEmailingPDF === resultData.id) return;
     
-    setIsEmailingPDF(true);
+    setIsEmailingPDF(resultData.id);
     try {
       await emailPDF(resultData);
     } catch (error) {
-      // Error handling is done within the function
+      // Error already handled in the function
     } finally {
-      setIsEmailingPDF(false);
+      setIsEmailingPDF(null);
+      setOpenDropdowns(new Set());
     }
   };
 
   const handleSaveToSharedFolder = async (resultData: ResultItem) => {
-    if (isSavingToSharedFolder) return;
+    if (isSavingToSharedFolder === resultData.id) return;
     
-    setIsSavingToSharedFolder(true);
+    setIsSavingToSharedFolder(resultData.id);
     try {
       await saveToSharedFolder(resultData);
     } catch (error) {
-      // Error handling is done within the function
+      // Error already handled in the function
     } finally {
-      setIsSavingToSharedFolder(false);
+      setIsSavingToSharedFolder(null);
+      setOpenDropdowns(new Set());
     }
+  };
+
+  const handleRunChecklist = (resultData: ResultItem) => {
+    const queryParams = new URLSearchParams({
+      load_existing: 'true',
+      id: resultData.id,
+      edit: 'true'
+    });
+    
+    window.location.href = `/run/${id}?${queryParams.toString()}`;
+  };
+
+  const toggleDropdown = (resultId: string) => {
+    const newOpenDropdowns = new Set(openDropdowns);
+    if (newOpenDropdowns.has(resultId)) {
+      newOpenDropdowns.delete(resultId);
+    } else {
+      newOpenDropdowns.clear(); // Close other dropdowns
+      newOpenDropdowns.add(resultId);
+    }
+    setOpenDropdowns(newOpenDropdowns);
   };
 
   const getSurvey = async () => {
@@ -303,7 +294,7 @@ const Results = () => {
       const response = await fetchData("/getSurvey?surveyId=" + id);
       setSurvey(response.data);
     } catch (error) {
-      Logger.error("❌ Error getting survey:", error);
+      Logger.error("Error getting survey:", error);
     }
   };
 
@@ -311,13 +302,8 @@ const Results = () => {
     try {
       const response = await fetchData("/results?postId=" + id);
       setResults(response.data);
-      
-      // Set the first result as selected by default if available
-      if (response.data.length > 0) {
-        setSelectedResult(response.data[0]);
-      }
     } catch (error) {
-      Logger.error("❌ Error getting results:", error);
+      Logger.error("Error getting results:", error);
     }
   };
 
@@ -326,103 +312,16 @@ const Results = () => {
     getResults();
   }, []);
 
-  // Action buttons component
-  const ActionButtons = ({ resultData }: { resultData: ResultItem }) => (
-    <div className="flex flex-col sm:flex-row gap-3 mt-6 p-4 bg-gray-50 rounded-lg border">
-      <div className="flex-1">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">
-          PDF Actions for: {resultData.submittedBy}
-        </h3>
-        <p className="text-xs text-gray-500 mb-3">
-          Submitted: {new Date(resultData.createdAt).toLocaleString()}
-        </p>
-      </div>
-      
-      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-        <button
-          onClick={() => handleGeneratePDF(resultData)}
-          disabled={isGeneratingPDF}
-          className={`inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 ${
-            isGeneratingPDF ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-          </svg>
-          {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
-        </button>
-        
-        <button
-          onClick={() => handleEmailPDF(resultData)}
-          disabled={isEmailingPDF}
-          className={`inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 ${
-            isEmailingPDF ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-          </svg>
-          {isEmailingPDF ? 'Sending...' : 'Email PDF'}
-        </button>
-        
-        <button
-          onClick={() => handleSaveToSharedFolder(resultData)}
-          disabled={isSavingToSharedFolder}
-          className={`inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 ${
-            isSavingToSharedFolder ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
-          </svg>
-          {isSavingToSharedFolder ? 'Saving...' : 'Save to Shared Folder'}
-        </button>
-      </div>
-    </div>
-  );
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenDropdowns(new Set());
+    };
 
-  // Results selector component
-  const ResultSelector = () => (
-    <div className="mb-6 p-4 bg-white rounded-lg border shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Result to Generate PDF</h3>
-      <div className="grid gap-2">
-        {results.map((result) => (
-          <div
-            key={result.id}
-            className={`p-3 rounded-lg border cursor-pointer transition-colors duration-200 ${
-              selectedResult?.id === result.id
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-            }`}
-            onClick={() => setSelectedResult(result)}
-          >
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium text-gray-800">
-                  Submitted by: <span className="text-blue-600">{result.submittedBy}</span>
-                </p>
-                <p className="text-sm text-gray-500">
-                  {new Date(result.createdAt).toLocaleString()}
-                </p>
-              </div>
-              <div className="flex items-center">
-                {selectedResult?.id === result.id && (
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                  </svg>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      {results.length === 0 && (
-        <p className="text-gray-500 text-center py-4">No results found for this checklist.</p>
-      )}
-    </div>
-  );
-  
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   return (
     <Layout fullWidth={true}>
       <div style={{ padding: '20px' }}>
@@ -434,17 +333,128 @@ const Results = () => {
           <h1>{""}</h1>
         )}
         
-        {/* Results Selector */}
-        <ResultSelector />
-        
-        {/* PDF Action Buttons */}
-        {selectedResult && (
-          <ActionButtons resultData={selectedResult} />
-        )}
-        
-        {/* Viewer Component */}
-        <div className="sjs-results-container" style={{ width: '100%', marginTop: '20px' }}>
-          <Viewer id={id as string} />
+        {/* Custom Results Table */}
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          <div className="p-4 border-b bg-gray-50">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-800">Results</h3>
+              <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                CSV
+              </button>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted By</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Preview</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {results.map((result) => {
+                  const parsedData = JSON.parse(result.json);
+                  const dataKeys = Object.keys(parsedData).slice(0, 3);
+                  const isDropdownOpen = openDropdowns.has(result.id);
+                  
+                  return (
+                    <tr key={result.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDropdown(result.id);
+                            }}
+                            className="inline-flex items-center p-2 text-gray-400 bg-transparent rounded-lg hover:bg-gray-100 hover:text-gray-600 focus:outline-none"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                            </svg>
+                          </button>
+                          
+                          {isDropdownOpen && (
+                            <div 
+                              className="absolute left-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="py-2">
+                                <button
+                                  onClick={() => handleRunChecklist(result)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                >
+                                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                  </svg>
+                                  Run
+                                </button>
+                                
+                                <hr className="my-1 border-gray-200" />
+                                
+                                <button
+                                  onClick={() => handleGeneratePDF(result)}
+                                  disabled={isGeneratingPDF === result.id}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                  </svg>
+                                  {isGeneratingPDF === result.id ? 'Generating...' : 'Download PDF'}
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleEmailPDF(result)}
+                                  disabled={isEmailingPDF === result.id}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                  </svg>
+                                  {isEmailingPDF === result.id ? 'Sending...' : 'Email PDF'}
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleSaveToSharedFolder(result)}
+                                  disabled={isSavingToSharedFolder === result.id}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
+                                  </svg>
+                                  {isSavingToSharedFolder === result.id ? 'Saving...' : 'Save to Shared Folder'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {result.submittedBy}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(result.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-500">
+                        <div className="max-w-xs truncate">
+                          {dataKeys.map(key => `${key}: ${String(parsedData[key]).substring(0, 20)}`).join(', ')}
+                          {dataKeys.length > 0 && '...'}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            
+            {results.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No results found for this checklist.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Layout>
