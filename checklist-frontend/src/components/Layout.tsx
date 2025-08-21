@@ -5,7 +5,12 @@ import LogoutButton from "./LogoutButton";
 // Import the logo image
 import navlogo from "../OneUCT_Logo.png";
 
-function Layout({ children }: { children: ReactElement }) {
+interface LayoutProps {
+  children: ReactElement;
+  fullWidth?: boolean;
+}
+
+function Layout({ children, fullWidth = false }: LayoutProps) {
   return (
     <div className="min-h-screen theme-bg-primary">
       {/* Modern Header with Theme Support */}
@@ -41,21 +46,31 @@ function Layout({ children }: { children: ReactElement }) {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="theme-bg-secondary rounded-lg theme-shadow min-h-[calc(100vh-8rem)]">
-          {children}
-        </div>
-      </main>
+      {/* Main Content - Conditional Width */}
+      {fullWidth ? (
+        <main className="w-full h-[calc(100vh-4rem)]">
+          <div className="w-full h-full">
+            {children}
+          </div>
+        </main>
+      ) : (
+        <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <div className="theme-bg-secondary rounded-lg theme-shadow min-h-[calc(100vh-8rem)]">
+            {children}
+          </div>
+        </main>
+      )}
 
-      {/* Footer */}
-      <footer className="theme-bg-secondary theme-border-light border-t mt-auto">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm theme-text-secondary">
-            © 2025 Ultra Clean Technology Holding Inc. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      {/* Footer - Only show for non-fullWidth layouts */}
+      {!fullWidth && (
+        <footer className="theme-bg-secondary theme-border-light border-t mt-auto">
+          <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+            <p className="text-center text-sm theme-text-secondary">
+              © 2025 Ultra Clean Technology Holding Inc. All rights reserved.
+            </p>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
