@@ -336,9 +336,18 @@ const InFlight = () => {
     try {
       setIsLoading(true);
       const response = await fetchData("/getInFlightChecklists");
-      setInFlightChecklists(response.data || []);
+      
+      // Ensure we always get an array
+      const data = response?.data;
+      if (Array.isArray(data)) {
+        setInFlightChecklists(data);
+      } else {
+        console.warn("Expected array from /getInFlightChecklists, got:", typeof data, data);
+        setInFlightChecklists([]);
+      }
     } catch (error) {
       Logger.error("Error getting in-flight checklists:", error);
+      console.error("Full error details:", error);
       setInFlightChecklists([]);
     } finally {
       setIsLoading(false);
@@ -425,7 +434,7 @@ const InFlight = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {inFlightChecklists.map((item) => {
+                {Array.isArray(inFlightChecklists) && inFlightChecklists.map((item) => {
                   const isDropdownOpen = openDropdowns.has(item.postId);
                   const progressPercentage = getProgressPercentage(item.completedPages, item.totalPages);
                   const progressBarColor = getProgressBarColor(progressPercentage);
