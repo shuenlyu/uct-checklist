@@ -90,6 +90,114 @@ const updateDataCollection = async (id, new_data) => {
   }
 };
 
+// ============================
+// NEW: Sequential Page Workflow Methods for dbAdapter
+// ============================
+const dbAdapterExtensions = {
+  async submitPage(pageData) {
+    const { postId, pageIndex, pageData: data, userId, createdAt } = pageData;
+    
+    // Insert or update page completion
+    const query = `
+      MERGE ASSM_PageProgress AS target
+      USING (SELECT @postId as postId, @pageIndex as pageIndex) AS source
+      ON target.postId = source.postId AND target.pageIndex = source.pageIndex
+      WHEN MATCHED THEN
+        UPDATE SET 
+          pageData = @pageData,
+          completedBy = @userId,
+          completedAt = @createdAt,
+          isCompleted = 1
+      WHEN NOT MATCHED THEN
+        INSERT (postId, pageIndex, pageData, completedBy, completedAt, isCompleted)
+        VALUES (@postId, @pageIndex, @pageData, @userId, @createdAt, 1);
+    `;
+    
+    const params = [
+      { name: "postId", type: sql.NVarChar, value: postId },
+      { name: "pageIndex", type: sql.Int, value: pageIndex },
+      { name: "pageData", type: sql.NVarChar, value: JSON.stringify(data) },
+      { name: "userId", type: sql.NVarChar, value: userId },
+      { name: "createdAt", type: sql.DateTime, value: createdAt }
+    ];
+    
+    return await this.query(query, params);
+  },
+
+  async getChecklistProgress(postId) {
+    const query = `
+      SELECT pageIndex, pageData, completedBy, completedAt, isCompleted
+      FROM ASSM_PageProgress 
+      WHERE postId = @postId
+      ORDER BY pageIndex ASC
+    `;
+    
+    const params = [
+      { name: "postId", type: sql.NVarChar, value: postId }
+    ];
+    
+    const result = await this.query(query, params);
+    return result.map(row => ({
+      ...row,
+      pageData: row.pageData ? JSON.parse(row.pageData) : {}
+    }));
+  },
+
+  async saveCurrentProgress(progressData) {
+    const { postId, currentData, currentPageNo, userId, updatedAt } = progressData;
+    
+    const query = `
+      MERGE ASSM_CurrentProgress AS target
+      USING (SELECT @postId as postId) AS source
+      ON target.postId = source.postId
+      WHEN MATCHED THEN
+        UPDATE SET 
+          currentData = @currentData,
+          currentPageNo = @currentPageNo,
+          lastEditedBy = @userId,
+          updatedAt = @updatedAt
+      WHEN NOT MATCHED THEN
+        INSERT (postId, currentData, currentPageNo, lastEditedBy, updatedAt)
+        VALUES (@postId, @currentData, @currentPageNo, @userId, @updatedAt);
+    `;
+    
+    const params = [
+      { name: "postId", type: sql.NVarChar, value: postId },
+      { name: "currentData", type: sql.NVarChar, value: JSON.stringify(currentData) },
+      { name: "currentPageNo", type: sql.Int, value: currentPageNo },
+      { name: "userId", type: sql.NVarChar, value: userId },
+      { name: "updatedAt", type: sql.DateTime, value: updatedAt }
+    ];
+    
+    return await this.query(query, params);
+  },
+
+  async getCurrentProgress(postId) {
+    const query = `
+      SELECT currentData, currentPageNo, lastEditedBy, updatedAt
+      FROM ASSM_CurrentProgress 
+      WHERE postId = @postId
+    `;
+    
+    const params = [
+      { name: "postId", type: sql.NVarChar, value: postId }
+    ];
+    
+    const result = await this.query(query, params);
+    if (result && result.length > 0) {
+      const data = useMSSQL ? result[0] : result;
+      return {
+        ...data,
+        currentData: data.currentData ? JSON.parse(data.currentData) : {}
+      };
+    }
+    return null;
+  }
+};
+
+// Extend your existing dbAdapter with these methods
+Object.assign(dbAdapter, dbAdapterExtensions);
+
 const app = express();
 
 app.use(cors({ origin: process.env.APP_URL, credentials: true }));
@@ -129,6 +237,10 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// ============================
+// EXISTING AUTHENTICATION ENDPOINTS (unchanged)
+// ============================
 app.get(
   "/login",
   passport.authenticate("saml", config.saml.options),
@@ -183,6 +295,9 @@ app.post("/logout/callback", (req, res, _next) => {
   });
 });
 
+// ============================
+// EXISTING SURVEY MANAGEMENT ENDPOINTS (unchanged)
+// ============================
 app.post("/create", async (req, res) => {
   try {
     Logger.debug("---- api call: /create Started!");
@@ -444,6 +559,80 @@ app.get("/getImages", async (req, res) => {
   }
 });
 
+// ============================
+// NEW: Sequential Page Workflow Endpoints
+// ============================
+
+// Save page completion
+app.post("/submitPage", async (req, res) => {
+  try {
+    Logger.debug("---- api call: /submitPage Started!");
+    const postId = req.body.postId;
+    const pageIndex = req.body.pageIndex;
+    const pageData = req.body.pageData;
+    const userId = req.user ? req.user.email : req.body.userId;
+    const createdAt = new Date().toISOString();
+
+    const result = await dbAdapter.submitPage({
+      postId,
+      pageIndex,
+      pageData,
+      userId,
+      createdAt
+    });
+
+    Logger.debug("---- api call: /submitPage, result: ", result);
+    res.json({ success: true, result });
+  } catch (error) {
+    Logger.error("===== ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get checklist progress
+app.get("/getProgress", async (req, res) => {
+  try {
+    Logger.debug("---- api call: /getProgress Started!");
+    const postId = req.query["postId"];
+    const result = await dbAdapter.getChecklistProgress(postId);
+    Logger.debug("---- api call: /getProgress, result: ", result);
+    res.json(result);
+  } catch (error) {
+    Logger.error("===== ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save current progress (auto-save)
+app.post("/saveProgress", async (req, res) => {
+  try {
+    Logger.debug("---- api call: /saveProgress Started!");
+    const postId = req.body.postId;
+    const currentData = req.body.currentData;
+    const currentPageNo = req.body.currentPageNo;
+    const userId = req.user ? req.user.email : req.body.userId;
+    const updatedAt = new Date().toISOString();
+
+    const result = await dbAdapter.saveCurrentProgress({
+      postId,
+      currentData,
+      currentPageNo,
+      userId,
+      updatedAt
+    });
+
+    Logger.debug("---- api call: /saveProgress, result: ", result);
+    res.json({ success: true });
+  } catch (error) {
+    Logger.error("===== ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================
+// EXISTING ENDPOINTS CONTINUED (unchanged)
+// ============================
+
 app.post("/post", async (req, res) => {
   try {
     Logger.debug("---- api call: /post Started!");
@@ -682,6 +871,7 @@ app.post("/folders", async (req, res) => {
 app.use((req, res, next) => {
   res.status(404).json({ error: "Not Found" });
 });
+
 app.listen(process.env.PORT || 3002, () => {
   console.log("Server is listening on port", process.env.PORT || 3002);
 });
