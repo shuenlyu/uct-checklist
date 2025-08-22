@@ -1,4 +1,4 @@
-// Complete src/utils/api.ts - Production-Ready Configuration with Comprehensive Mock Checklist
+// Complete src/utils/api.ts - Fixed Credentials Handling for Session Authentication
 import { useCallback } from 'react';
 
 // Comprehensive mock checklist for PDF testing
@@ -492,10 +492,10 @@ const mockInspectionData = {
   required_actions: ["none"],
   next_inspection_date: "2025-09-15",
   final_comments: "Equipment is in excellent working condition. All safety systems are operational. Recommend continuing current maintenance schedule. Minor cosmetic scratches noted but do not affect performance.",
-  inspector_signature: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2RkZCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPCEtLSBTaWduYXR1cmUgc3Ryb2tlIHBhdGhzIHRoYXQgbG9vayBsaWtlIGhhbmR3cml0aW5nIC0tPgogIDxwYXRoIGQ9Ik0zMCA4MCBRNTM2MCw4MCA5MCBRIDA3MCwxNDAgODUgUTE3MCA5NSwyMDAgNzUgUTIzMCA4NSwyNzAgOTUiIAogICAgICAgIHN0cm9rZT0iIzAwNjZjYyIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNNDAgMTEwIFE3MCA0MD51LDEwMCAxMTAgUTEzMCAxMTUsNjM5NNUgUTEOWCAxMDAsMjIwIDEK1MCIgCiAgICAgICAgc3Ryb2tlPSIjMDA2NmNjIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik02MCA5NSBROTA5MCwxMjAgOTUgUTE1MCAxMDAsWR4AuC9JACIgCiAgICAgICAgc3Ryb2tlPSIjMDA2NmNjIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4=",
+  inspector_signature: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2RkZCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPCEtLSBTaWduYXR1cmUgc3Ryb2tlIHBhdGhzIHRoYXQgbG9vayBsaWtlIGhhbmR3cml0aW5nIC0tPgogIDxwYXRoIGQ9Ik0zMCA4MCBRNTM2MCw4MCA5MCFRIDA3MCwxNDAgODUgUTE3MCA5NSwyMDAgNzUgUTIzMCA4NSwyNzAgOTUiIAogICAgICAgIHN0cm9rZT0iIzAwNjZjYyIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNNDAgMTEwIFE3MCA0MD51LDEwMCAxMTAgUTEzMCAxMTUsNjM5NNUgUTEOWCAxMDAsMjIwIDEK1NCIgCiAgICAgICAgc3Ryb2tlPSIjMDA2NmNjIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik02MCA5NSBROTA5MCwxMjAgOTUgUTE1MCAxMDAsWR4AuC9JACIgCiAgICAgICAgc3Ryb2tlPSIjMDA2NmNjIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4=",
   inspector_name_typed: "John Smith",
   inspection_date_signed: "2025-08-09",
-  supervisor_signature: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2RkZCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPCEtLSBEaWZmZXJlbnQgc2lnbmF0dXJlIHN0eWxlIGZvciBzdXBlcnZpc29yIC0tPgogIDxwYXRoIGQ9Ik00MCA3MCBRNTM1LDEwMCA3NSBRM1MO8WMGMCAccess3-7LNjAgODBogI1MCA5MCwyNzAgNzUiIAogICAgICAgIHN0cm9rZT0iI2NjMDA2NiIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNNDAgMTA1IFE4MCA5NSwxMTAgcjUgUTE0byBkJOLJDeaccess4FE5WCmDPRsONMWFRCE2YWM5NSyJ_jAgMTAwIiBCiAgIChNLU4nc3Ryb2tlPSIjY2NtKLCA_VJY5IgNTAlZDNZUPSNJ=LcAG2jdWM9LZ2LcmWOgxVXWX9PSbmOUOZogJ4D9VRaFe54rQgNy0f83H3m6r8m,RD92MGV5L19hc1TUlfX2WcIj4N8c3l5I3J7NSJd92uR-OLgkPSJ_bM1biA8L3NZTFQ7oaRZJqjgU=",
+  supervisor_signature: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2RkZCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPCEtLSBEaWZmZXJlbnQgc2lnbmF0dXJlIHN0eWxlIGZvciBzdXBlcnZpc29yIC0tPgogIDxwYXRoIGQ9Ik00MCA3MCBRNTM1LDEwMCA3NSFRM1MO8WMGMCAccess3-7LNjAgODBogI1MCA5MCwyNzAgNzUiIAogICAgICAgIHN0cm9rZT0iI2NjMDA2NiIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNNDAgMTA1IFE4MCA5NSwxMTAgcjUgUTE0byBkJOLJDeaccess4FE5WCmDPRsONMWFRCE2YWM5NSyJ_jAgMTAwIiBCiAgIChNLU4nc3Ryb2tlPSIjY2NtKLCA_VJY5IgNTAlZDNZUPSNJ=LcAG2jdWM9LZ2LcmWOgxVXWX9PSbmOUOZogJ4D9VRaFe54rQgNy0f83H3m6r8m,RD92MGV5L19hc1TUlfX2WcIj4N8c3l5I3J7NSJd92uR-OLgkPSJ_bM1biA8L3NZTFQ7oaRZJqjgU=",
   supervisor_name_typed: "Sarah Johnson"
 };
 
@@ -693,9 +693,16 @@ function getMockData(endpoint: string): any {
   return { status: 200, data: {} };
 }
 
+// Determine if we should always include credentials for backend calls
+function shouldIncludeCredentials(endpoint: string): boolean {
+  // For backend API calls, always include credentials for session authentication
+  // This is especially important for SAML/Okta authentication with cookies
+  return true;
+}
+
 export const useApi = () => {
   const fetchData = useCallback(async (endpoint: string, requiresAuth: boolean = true) => {
-    console.log(`🔄 API Call: ${endpoint}`);
+    console.log(`📡 API Call: ${endpoint} (requiresAuth: ${requiresAuth})`);
     
     // Check if we should use mock data (only in development with explicit flag)
     const useMockData = process.env.NODE_ENV === 'development' && 
@@ -716,17 +723,25 @@ export const useApi = () => {
     }
     
     try {
-      console.log(`🌐 Making real API call to: ${baseUrl}${endpoint}`);
+      console.log(`🌍 Making real API call to: ${baseUrl}${endpoint}`);
+      
+      // FIXED: Always include credentials for session-based authentication
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'GET',
-        credentials: requiresAuth ? 'include' : 'same-origin',
+        credentials: 'include', // Always include credentials for session cookies
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       });
       
+      console.log(`📊 Response status: ${response.status}`);
+      console.log(`📊 Response headers:`, Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ HTTP ${response.status} Error:`, errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
@@ -748,7 +763,7 @@ export const useApi = () => {
   }, []);
 
   const postData = useCallback(async (endpoint: string, body: any, requiresAuth: boolean = true) => {
-    console.log(`📤 POST API Call: ${endpoint}`, body);
+    console.log(`📤 POST API Call: ${endpoint} (requiresAuth: ${requiresAuth})`, body);
     
     // Check if we should use mock data (only in development with explicit flag)
     const useMockData = process.env.NODE_ENV === 'development' && 
@@ -792,6 +807,10 @@ export const useApi = () => {
         return { status: 200, data: { message: 'Theme updated' } };
       }
       
+      if (endpoint === '/submitPage' || endpoint === '/saveProgress' || endpoint === '/clearProgress') {
+        return { status: 200, data: { success: true, message: 'Mock operation success' } };
+      }
+      
       return { status: 200, data: { message: 'Mock POST success' } };
     }
 
@@ -804,18 +823,25 @@ export const useApi = () => {
     }
     
     try {
-      console.log(`🌐 Making real POST API call to: ${baseUrl}${endpoint}`);
+      console.log(`🌍 Making real POST API call to: ${baseUrl}${endpoint}`);
+      
+      // FIXED: Always include credentials for session-based authentication
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
-        credentials: requiresAuth ? 'include' : 'same-origin',
+        credentials: 'include', // Always include credentials for session cookies
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(body)
       });
       
+      console.log(`📊 POST Response status: ${response.status}`);
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ POST HTTP ${response.status} Error:`, errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
@@ -837,7 +863,7 @@ export const useApi = () => {
   }, []);
 
   const deleteData = useCallback(async (endpoint: string, requiresAuth: boolean = true) => {
-    console.log(`🗑️ DELETE API Call: ${endpoint}`);
+    console.log(`🗑️ DELETE API Call: ${endpoint} (requiresAuth: ${requiresAuth})`);
     
     // Check if we should use mock data (only in development with explicit flag)
     const useMockData = process.env.NODE_ENV === 'development' && 
@@ -858,14 +884,21 @@ export const useApi = () => {
     }
     
     try {
-      console.log(`🌐 Making real DELETE API call to: ${baseUrl}${endpoint}`);
+      console.log(`🌍 Making real DELETE API call to: ${baseUrl}${endpoint}`);
+      
+      // FIXED: Always include credentials for session-based authentication
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'DELETE',
-        credentials: requiresAuth ? 'include' : 'same-origin'
+        credentials: 'include', // Always include credentials for session cookies
+        headers: {
+          'Accept': 'application/json'
+        }
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ DELETE HTTP ${response.status} Error:`, errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
@@ -886,7 +919,7 @@ export const useApi = () => {
   }, []);
 
   const putData = useCallback(async (endpoint: string, body: any, requiresAuth: boolean = true) => {
-    console.log(`📝 PUT API Call: ${endpoint}`, body);
+    console.log(`📝 PUT API Call: ${endpoint} (requiresAuth: ${requiresAuth})`, body);
     
     // Check if we should use mock data (only in development with explicit flag)
     const useMockData = process.env.NODE_ENV === 'development' && 
@@ -907,18 +940,23 @@ export const useApi = () => {
     }
     
     try {
-      console.log(`🌐 Making real PUT API call to: ${baseUrl}${endpoint}`);
+      console.log(`🌍 Making real PUT API call to: ${baseUrl}${endpoint}`);
+      
+      // FIXED: Always include credentials for session-based authentication
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'PUT',
-        credentials: requiresAuth ? 'include' : 'same-origin',
+        credentials: 'include', // Always include credentials for session cookies
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(body)
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ PUT HTTP ${response.status} Error:`, errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
