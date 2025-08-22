@@ -203,7 +203,44 @@ const dbAdapterExtensions = {
 
     Logger.debug(`Cleared all progress for postId: ${postId} by user: ${userId}`);
     return { success: true, message: "Progress cleared" };
+  },
+  async getInFlightChecklists(userId) {
+    const query = `
+      SELECT DISTINCT
+        cp.postId,
+        s.name as surveyName,
+        cp.lastEditedBy,
+        cp.updatedAt as lastUpdated,
+        cp.currentPageNo,
+        (
+          SELECT COUNT(DISTINCT pageIndex) 
+          FROM ASSM_PageProgress pp 
+          WHERE pp.postId = cp.postId AND pp.isCompleted = 1
+        ) as completedPages,
+        s.json
+      FROM ASSM_CurrentProgress cp
+      INNER JOIN ASSM_Surveys s ON cp.postId = s.id
+      WHERE cp.postId NOT IN (
+        SELECT DISTINCT postid 
+        FROM ASSM_SurveyResult 
+        WHERE postid = cp.postId
+      )
+      AND (
+        cp.lastEditedBy = @userId 
+        OR @userId IN (
+          SELECT email FROM ASSM_Users WHERE role = 'admin'
+        )
+      )
+      ORDER BY cp.updatedAt DESC
+    `;
+    
+    const params = [
+      { name: "userId", type: sql.NVarChar, value: userId }
+    ];
+    
+    return await this.query(query, params);
   }
+
 };
 
 // Extend dbAdapter with new methods
@@ -273,6 +310,93 @@ app.post(
     res.redirect(process.env.APP_URL);
   }
 );
+
+// Add this new endpoint to your backend index.js file in the appropriate section
+
+// ============================
+// IN-FLIGHT CHECKLISTS ENDPOINT
+// ============================
+
+app.get("/getInFlightChecklists", async (req, res) => {
+  try {
+    Logger.debug("---- api call: /getInFlightChecklists Started!");
+    
+    // Get user information for filtering
+    const userId = req.user ? req.user.email : null;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+    
+    // Query to get in-flight checklists (have progress but not completed)
+    const query = `
+      SELECT DISTINCT
+        cp.postId,
+        s.name as surveyName,
+        cp.lastEditedBy,
+        cp.updatedAt as lastUpdated,
+        cp.currentPageNo,
+        (
+          SELECT COUNT(DISTINCT pageIndex) 
+          FROM ASSM_PageProgress pp 
+          WHERE pp.postId = cp.postId AND pp.isCompleted = 1
+        ) as completedPages,
+        s.json
+      FROM ASSM_CurrentProgress cp
+      INNER JOIN ASSM_Surveys s ON cp.postId = s.id
+      WHERE cp.postId NOT IN (
+        -- Exclude checklists that have been completed (exist in main results table)
+        SELECT DISTINCT postid 
+        FROM ASSM_SurveyResult 
+        WHERE postid = cp.postId
+      )
+      AND (
+        cp.lastEditedBy = @userId 
+        OR @userId IN (
+          SELECT email FROM ASSM_Users WHERE role = 'admin'
+        )
+      )
+      ORDER BY cp.updatedAt DESC
+    `;
+    
+    const params = [
+      { name: "userId", type: sql.NVarChar, value: userId }
+    ];
+    
+    const result = await dbAdapter.query(query, params);
+    
+    // Process the results to add total pages count
+    const processedResults = result.map(row => {
+      let totalPages = 1; // Default to 1 if we can't parse
+      
+      try {
+        if (row.json) {
+          const surveyJson = JSON.parse(row.json);
+          totalPages = surveyJson.pages ? surveyJson.pages.length : 1;
+        }
+      } catch (error) {
+        Logger.error("Error parsing survey JSON for page count:", error);
+      }
+      
+      return {
+        postId: row.postId,
+        surveyName: row.surveyName || 'Unknown Checklist',
+        totalPages: totalPages,
+        completedPages: row.completedPages || 0,
+        lastEditedBy: row.lastEditedBy,
+        lastUpdated: row.lastUpdated,
+        currentPageNo: row.currentPageNo || 0
+      };
+    });
+    
+    Logger.debug("---- api call: /getInFlightChecklists, result count: ", processedResults.length);
+    res.json({ data: processedResults });
+    
+  } catch (error) {
+    Logger.error("===== ERROR in /getInFlightChecklists:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // IMPROVED: Enhanced /getMe endpoint with better user data handling
 app.get("/getMe", (req, res, _next) => {

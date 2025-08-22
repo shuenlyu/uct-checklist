@@ -1,10 +1,11 @@
-// routes/index.tsx - Re-enabled Okta Authentication
+// routes/index.tsx - Updated with In Flight Checklists menu
 import React, { useEffect, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useNavigate } from "react-router-dom";
 
 import About from '../pages/About';
 import Edit from '../pages/Edit';
 import Home from '../pages/Home';
+import InFlight from '../pages/InFlight';  // NEW: Import InFlight component
 import Login from '../pages/Login';
 import Results from '../pages/Results';
 import Run from '../pages/Run';
@@ -27,6 +28,18 @@ export const NavBar = () => (
       }
     >
       My Checklists
+    </NavLink>
+    <NavLink 
+      to="/inflight"
+      className={({ isActive }) =>
+        `px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+          isActive 
+            ? 'bg-white bg-opacity-20 text-white' 
+            : 'text-white hover:bg-white hover:bg-opacity-10'
+        }`
+      }
+    >
+      In Flight Checklists
     </NavLink>
     <NavLink 
       to="/about"
@@ -103,7 +116,7 @@ const ProtectedRoutes = () => {
 
     // PRODUCTION MODE - Okta authentication
     if (!user && loading) {
-      Logger.info("🔒 ProtectedRoutes: Checking authentication with Okta - fetching user from /getMe");
+      Logger.info("🔐 ProtectedRoutes: Checking authentication with Okta - fetching user from /getMe");
       fetchData('/getMe')
         .then((res) => {
           Logger.info("===getMe fetchData response===", res);
@@ -167,6 +180,7 @@ const Content = (): React.ReactElement => (
     <Route path="/run/:id" element={<Run />} />
     <Route element={<ProtectedRoutes />}>
       <Route path="/" element={<Home />} />
+      <Route path="/inflight" element={<InFlight />} />  {/* NEW: In Flight Checklists route */}
       <Route path="/about" element={<About />} />
       <Route path="/edit/:id" element={<Edit />} />
       <Route path="/results/:id" element={<Results />} />
