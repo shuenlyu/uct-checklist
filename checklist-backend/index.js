@@ -219,18 +219,13 @@ const dbAdapterExtensions = {
         ) as completedPages,
         s.json
       FROM ASSM_CurrentProgress cp
-      INNER JOIN ASSM_Surveys s ON cp.postId = s.id
+      INNER JOIN surveys s ON cp.postId = s.id
       WHERE cp.postId NOT IN (
         SELECT DISTINCT postid 
-        FROM ASSM_SurveyResult 
+        FROM results 
         WHERE postid = cp.postId
       )
-      AND (
-        cp.lastEditedBy = @userId 
-        OR @userId IN (
-          SELECT email FROM ASSM_Users WHERE role = 'admin'
-        )
-      )
+      AND cp.lastEditedBy = @userId
       ORDER BY cp.updatedAt DESC
     `;
     
@@ -350,7 +345,7 @@ app.get("/getInFlightChecklists", async (req, res) => {
       INNER JOIN surveys s ON cp.postId = s.id
       WHERE cp.postId NOT IN (
         SELECT DISTINCT postid 
-        FROM ASSM_SurveyResult 
+        FROM results 
         WHERE postid = cp.postId
       )
       AND cp.lastEditedBy = @userId
