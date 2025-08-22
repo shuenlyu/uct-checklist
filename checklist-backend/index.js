@@ -131,8 +131,10 @@ app.get(
   "/login",
   passport.authenticate("saml", config.saml.options),
   (req, res, _next) => {
-    console.log("===== req.session: ", req.session);
-    console.log("===== req.user: ", req.user);
+    if (DEBUG) {
+      console.log("===== req.session: ", req.session);
+      console.log("===== req.user: ", req.user);
+    }
     res.redirect(process.env.APP_URL);
   }
 );
