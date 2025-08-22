@@ -1,4 +1,4 @@
-// Run.tsx - Fixed with proper authentication and working 'New' button
+// Run.tsx - Fixed with proper authentication, working 'New' button, and debugging tools
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router";
 import { Link } from 'react-router-dom';
@@ -24,6 +24,7 @@ declare global {
     generateUniversalPDF: () => Promise<void>;
     emailPDF: () => Promise<void>;
     saveToSharedFolder: () => Promise<void>;
+    surveyModel: Model | null; // Add for debugging
   }
 }
 
@@ -496,6 +497,105 @@ const Run = () => {
   // State to prevent reapplying data after clearing
   const [isClearing, setIsClearing] = useState(false);
 
+  // DEBUG FUNCTION FOR AUTHENTICATION
+  const debugAuthentication = async () => {
+    console.log("=== MANUAL AUTHENTICATION DEBUG ===");
+    
+    try {
+      // Test the getMe endpoint directly
+      const response = await fetch('/getMe', {
+        method: 'GET',
+        credentials: 'include', // Important for cookies
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      console.log("Raw fetch response status:", response.status);
+      console.log("Raw fetch response headers:", [...response.headers.entries()]);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Raw /getMe response data:", data);
+        
+        if (data.user) {
+          console.log("User object keys:", Object.keys(data.user));
+          console.log("User email:", data.user.email);
+          console.log("User name:", data.user.name);
+          console.log("User displayName:", data.user.displayName);
+          console.log("Full user object:", JSON.stringify(data.user, null, 2));
+        }
+      } else {
+        const errorText = await response.text();
+        console.log("Error response:", errorText);
+      }
+      
+      // Check browser storage
+      console.log("=== BROWSER STORAGE ===");
+      console.log("LocalStorage keys:", Object.keys(localStorage));
+      console.log("SessionStorage keys:", Object.keys(sessionStorage));
+      console.log("Document cookies:", document.cookie);
+      
+      // Check current authentication state
+      console.log("=== CURRENT AUTH STATE ===");
+      console.log("authenticatedUser:", authenticatedUser);
+      console.log("isLoadingUser:", isLoadingUser);
+      console.log("fallbackUserId:", fallbackUserId);
+      
+    } catch (error) {
+      console.error("Debug authentication failed:", error);
+    }
+  };
+
+  // DEBUG FUNCTION FOR PAGE VALIDATION
+  const debugPageValidation = () => {
+    console.log("=== PAGE VALIDATION DEBUG ===");
+    
+    if (!surveyModel) {
+      console.log("❌ No survey model found");
+      return;
+    }
+    
+    const currentPage = surveyModel.currentPage;
+    console.log("Current page:", currentPage);
+    console.log("Current page name:", currentPage.name);
+    console.log("Current page index:", surveyModel.currentPageNo);
+    
+    // Check all questions on current page
+    console.log("=== QUESTIONS ON CURRENT PAGE ===");
+    currentPage.questions.forEach((question: any, index: number) => {
+      console.log(`Question ${index + 1}:`);
+      console.log("  - Name:", question.name);
+      console.log("  - Title:", question.title);
+      console.log("  - Type:", question.type);
+      console.log("  - Required:", question.isRequired);
+      console.log("  - Value:", question.value);
+      console.log("  - Is Empty:", question.isEmpty());
+      console.log("  - Has Errors:", question.hasErrors());
+      console.log("  - Errors:", question.errors);
+      console.log("  - Validation:", question.validate());
+      console.log("  ---");
+    });
+    
+    // Check overall page validation
+    console.log("=== PAGE VALIDATION RESULT ===");
+    const isValid = currentPage.validate();
+    console.log("Page validation result:", isValid);
+    console.log("Page errors:", currentPage.errors);
+    console.log("Page has errors:", currentPage.hasErrors());
+    
+    // Check authentication state for submit permission
+    console.log("=== AUTHENTICATION FOR SUBMIT ===");
+    console.log("Authenticated user:", authenticatedUser);
+    console.log("Is authenticated:", authenticatedUser?.isAuthenticated);
+    console.log("Can submit:", isValid && authenticatedUser?.isAuthenticated);
+    
+    // Check current survey data
+    console.log("=== CURRENT SURVEY DATA ===");
+    console.log("Survey data:", surveyModel.data);
+    console.log("Survey data keys:", Object.keys(surveyModel.data || {}));
+  };
+
   // FIXED: Get current user from Okta authentication
   const getCurrentUser = async () => {
     setIsLoadingUser(true);
@@ -795,6 +895,9 @@ const Run = () => {
         model.mode = "edit";
       };
       window.rerunSurvey = rerunSurvey;
+
+      // Make survey model available globally for debugging
+      window.surveyModel = model;
 
       // Set up Universal PDF generation function
       const generateUniversalPDFWrapper = async () => {
@@ -1197,6 +1300,21 @@ const Run = () => {
               New
             </button>
             
+            {/* DEBUG BUTTONS */}
+            <button 
+              onClick={debugAuthentication}
+              className="px-3 py-1 bg-yellow-500 text-black text-xs rounded ml-2"
+            >
+              Debug Auth
+            </button>
+            
+            <button 
+              onClick={debugPageValidation}
+              className="px-3 py-1 bg-red-500 text-white text-xs rounded ml-2"
+            >
+              Debug Page
+            </button>
+            
             {isAutoSaving && (
               <div className="flex items-center text-sm text-gray-500">
                 <svg className="animate-spin h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24">
@@ -1402,6 +1520,14 @@ const Run = () => {
                 {getDisplayName()}
               </span>
               <ThemeSelector />
+              
+              {/* DEBUG AUTH BUTTON IN HEADER */}
+              <button 
+                onClick={debugAuthentication}
+                className="px-3 py-1 bg-yellow-500 text-black text-xs rounded"
+              >
+                Debug Auth
+              </button>
             </div>
           </div>
         </div>
