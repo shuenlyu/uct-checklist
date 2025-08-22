@@ -606,11 +606,12 @@ const Run = () => {
       
       console.log("GetMe response:", response);
       
-      if (response && response.user && response.authenticated) {
+      // FIXED: Check response.data instead of response directly
+      if (response && response.data && response.data.user && response.data.authenticated) {
         const user: AuthenticatedUser = {
-          email: response.user.email || 'unknown@company.com',
-          name: response.user.name || response.user.displayName || response.user.email,
-          displayName: response.user.displayName || response.user.name,
+          email: response.data.user.email || 'unknown@company.com',
+          name: response.data.user.name || response.data.user.displayName || response.data.user.email,
+          displayName: response.data.user.displayName || response.data.user.name,
           isAuthenticated: true
         };
         
@@ -620,7 +621,7 @@ const Run = () => {
         return;
       }
       
-      throw new Error("Invalid authentication response");
+      throw new Error("Invalid authentication response - missing user data");
       
     } catch (error) {
       console.log("❌ Authentication failed:", error);
@@ -1144,13 +1145,15 @@ const Run = () => {
       const loadTheme = async () => {
         try {
           const response = await fetchData("/getTheme?surveyId=" + id, false);
+          // FIXED: Handle empty theme response
           if (response.data && response.data.theme) {
             const parsedTheme = JSON.parse(response.data.theme);
             setTheme(parsedTheme);
             surveyModel.applyTheme(parsedTheme);
           }
         } catch (error) {
-          Logger.error("Error getting theme:", error);
+          Logger.debug("Theme loading failed or empty theme response:", error);
+          // Continue with default theme if theme loading fails
         }
       };
       loadTheme();
