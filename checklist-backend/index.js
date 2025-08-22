@@ -317,6 +317,9 @@ app.post(
 // IN-FLIGHT CHECKLISTS ENDPOINT
 // ============================
 
+// Add this endpoint to your backend index.js file (around line 800-900)
+
+// Add this to your backend index.js file
 app.get("/getInFlightChecklists", async (req, res) => {
   try {
     Logger.debug("---- api call: /getInFlightChecklists Started!");
@@ -328,7 +331,8 @@ app.get("/getInFlightChecklists", async (req, res) => {
       return res.status(401).json({ error: "User not authenticated" });
     }
     
-    // Query to get in-flight checklists (have progress but not completed)
+    // UPDATED: Use your actual surveys table name here
+    // Replace 'YOUR_SURVEYS_TABLE_NAME' with your actual table name
     const query = `
       SELECT DISTINCT
         cp.postId,
@@ -343,19 +347,13 @@ app.get("/getInFlightChecklists", async (req, res) => {
         ) as completedPages,
         s.json
       FROM ASSM_CurrentProgress cp
-      INNER JOIN ASSM_Surveys s ON cp.postId = s.id
+      INNER JOIN surveys s ON cp.postId = s.id
       WHERE cp.postId NOT IN (
-        -- Exclude checklists that have been completed (exist in main results table)
         SELECT DISTINCT postid 
         FROM ASSM_SurveyResult 
         WHERE postid = cp.postId
       )
-      AND (
-        cp.lastEditedBy = @userId 
-        OR @userId IN (
-          SELECT email FROM ASSM_Users WHERE role = 'admin'
-        )
-      )
+      AND cp.lastEditedBy = @userId
       ORDER BY cp.updatedAt DESC
     `;
     
@@ -367,7 +365,7 @@ app.get("/getInFlightChecklists", async (req, res) => {
     
     // Process the results to add total pages count
     const processedResults = result.map(row => {
-      let totalPages = 1; // Default to 1 if we can't parse
+      let totalPages = 1;
       
       try {
         if (row.json) {
