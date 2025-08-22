@@ -23,7 +23,7 @@ interface PDFMetadata {
 }
 
 const InFlight = () => {
-  const { fetchData } = useApi();
+  const { fetchData, postData } = useApi();
   const [inFlightChecklists, setInFlightChecklists] = useState<InFlightItem[]>([]);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState<string | null>(null);
   const [isEmailingPDF, setIsEmailingPDF] = useState<string | null>(null);
@@ -305,13 +305,10 @@ const InFlight = () => {
     const confirmed = window.confirm(`Are you sure you want to delete the progress for "${item.surveyName}"? This action cannot be undone.`);
     if (confirmed) {
       try {
-        await fetchData(`/clearProgress`, false, {
-          method: 'POST',
-          body: JSON.stringify({
-            postId: item.postId,
-            userId: item.lastEditedBy
-          })
-        });
+        await postData("/clearProgress", {
+          postId: item.postId,
+          userId: item.lastEditedBy
+        }, false);
         
         // Refresh the list
         getInFlightChecklists();
