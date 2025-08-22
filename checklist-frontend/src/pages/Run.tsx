@@ -512,7 +512,7 @@ const Run = () => {
       });
       
       console.log("Raw fetch response status:", response.status);
-      console.log("Raw fetch response headers:", [...response.headers.entries()]);
+      console.log("Raw fetch response headers:", Array.from(response.headers.entries()));
       
       if (response.ok) {
         const data = await response.json();
