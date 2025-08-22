@@ -436,18 +436,12 @@ const Run = () => {
     }
   };
 
-  // Initial data loading
-  useEffect(() => {
-    getCurrentUser();
-    getSurvey();
-  }, []);
-
-  // Load progress when user is available
-  useEffect(() => {
-    if (currentUser) {
-      loadProgress();
-    }
-  }, [currentUser, id]);
+// Initial data loading - same as your original code
+useEffect(() => {
+  getSurvey();
+  getCurrentUser(); // Try to get user but don't wait for it
+  loadProgress(); // Load progress regardless of authentication
+}, []);
 
   // Apply existing progress to model
   useEffect(() => {
@@ -721,7 +715,7 @@ const Run = () => {
     );
   }
 
-  return survey.json === "" || !surveyModel || !currentUser ? (
+  return survey.json === "" || !surveyModel ? (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <Loading />
