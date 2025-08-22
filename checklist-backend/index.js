@@ -21,6 +21,8 @@ function envToBool(variable) {
 let dbAdpater;
 const useMSSQL = envToBool(process.env.USE_MSSQL);
 
+const DEBUG = process.env.NODE_ENV === 'development';
+
 if (useMSSQL) {
   //USE MSSQL db as backend db
   dbAdapter = require("./dbadapter-mssql");
@@ -613,8 +615,17 @@ app.get("/getFolders", async (req, res) => {
   }
 });
 //fetch files for a specific folder
+
 app.get("/folders/:folderId/files", async (req, res) => {
   Logger.debug("---- api call: /folders/:folderId/files Started!", req);
+  
+  // Add authentication check
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({
+      error: "Unauthorized - Please login to access folders"
+    });
+  }
+  
   const user_group = getGroup(req.user.group);
   const { folderId } = req.params;
   try {
@@ -625,6 +636,7 @@ app.get("/folders/:folderId/files", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 //move file to a different folder
 app.put("/surveys/:surveyId/move", async (req, res) => {
   const { surveyId } = req.params;
