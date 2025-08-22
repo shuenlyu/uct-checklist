@@ -1,4 +1,4 @@
-// Run.tsx - Fixed with proper authentication, working 'New' button, and debugging tools
+// Run.tsx - Fixed with proper authentication, working 'New' button, debugging tools, and In Flight resume support
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router";
 import { Link } from 'react-router-dom';
@@ -469,10 +469,14 @@ const Run = () => {
     viewOnly = true;
   }
 
-  // Check if we should load existing data
+  // UPDATED: Check if we should load existing data - now includes resume_progress support
   const loadExisting = queryParams.get("load_existing") === "true" || 
+                      queryParams.get("resume_progress") === "true" ||  // NEW: Add resume support
                       result_id !== undefined || 
                       queryParams.get("edit") === "true";
+
+  // NEW: Check if this is a resume request
+  const isResumeRequest = queryParams.get("resume_progress") === "true";
 
   const { fetchData, postData } = useApi();
   
@@ -606,6 +610,12 @@ const Run = () => {
       
       console.log("GetMe response:", response);
       
+      // NEW: Check if this is a resume request and log it
+      if (isResumeRequest) {
+        console.log("🔄 Resume request detected - will load progress data");
+        Logger.info("Resume request detected for checklist:", id);
+      }
+      
       // FIXED: Check response.data instead of response directly
       if (response && response.data && response.data.user && response.data.authenticated) {
         const user: AuthenticatedUser = {
@@ -683,12 +693,31 @@ const Run = () => {
     return fallbackUserId;
   };
 
-  // Load progress data
+  // UPDATED: Load progress data with resume navigation support
   const loadProgress = async () => {
     try {
       const response = await fetchData(`/getProgress?postId=${id}`, false);
       const progressData = response?.data || [];
       setPageProgress(Array.isArray(progressData) ? progressData : []);
+      
+      // NEW: If this is a resume request, navigate to the appropriate page
+      if (isResumeRequest && progressData.length > 0 && surveyModel) {
+        // Find the last incomplete page or the last completed page + 1
+        const completedPages = progressData.filter((p: any) => p.isCompleted).map((p: any) => p.pageIndex);
+        let targetPage = 0;
+        
+        if (completedPages.length > 0) {
+          const maxCompletedPage = Math.max(...completedPages);
+          // Navigate to the next page after the last completed, or stay on last page if all completed
+          targetPage = Math.min(maxCompletedPage + 1, surveyModel.pageCount - 1);
+        }
+        
+        // Navigate to the target page
+        surveyModel.currentPageNo = targetPage;
+        console.log(`📍 Resumed to page ${targetPage + 1} of ${surveyModel.pageCount}`);
+        Logger.info(`Resumed checklist to page ${targetPage + 1}`);
+      }
+      
       Logger.info("Page progress loaded:", progressData?.length || 0, "pages");
     } catch (error) {
       Logger.debug("No existing progress found");
@@ -828,6 +857,7 @@ const Run = () => {
         // 4. Update URL to remove data-loading parameters
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('load_existing');
+        newUrl.searchParams.delete('resume_progress'); // NEW: Also remove resume parameter
         newUrl.searchParams.delete('edit');
         newUrl.searchParams.delete('id');
         window.history.replaceState({}, '', newUrl.toString());
@@ -870,7 +900,8 @@ const Run = () => {
         questions: model.getAllQuestions().length,
         pages: model.pages.length,
         title: model.title,
-        loadExisting
+        loadExisting,
+        isResumeRequest
       });
       
       // Setup auto-save on data change
@@ -1119,8 +1150,14 @@ const Run = () => {
   useEffect(() => {
     getCurrentUser();
     getSurvey();
-    loadProgress();
   }, []);
+
+  // UPDATED: Load progress when surveyModel is available (for resume functionality)
+  useEffect(() => {
+    if (surveyModel) {
+      loadProgress(); // Now this will have access to surveyModel for navigation
+    }
+  }, [surveyModel]); // Add surveyModel as dependency
 
   // Apply existing progress to model (FIXED: prevent reapplying after clear)
   useEffect(() => {
@@ -1303,6 +1340,16 @@ const Run = () => {
               New
             </button>
             
+            {/* NEW: Resume status indicator */}
+            {isResumeRequest && (
+              <div className="flex items-center text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-md">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                Resumed from In Flight
+              </div>
+            )}
+            
             {/* DEBUG BUTTONS */}
             <button 
               onClick={debugAuthentication}
@@ -1404,6 +1451,9 @@ const Run = () => {
                   <Link to="/" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                     My Checklists
                   </Link>
+                  <Link to="/inflight" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                    In Flight Checklists
+                  </Link>
                   <Link to="/about" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                     About
                   </Link>
@@ -1504,6 +1554,9 @@ const Run = () => {
               <nav className="flex space-x-8">
                 <Link to="/" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                   My Checklists
+                </Link>
+                <Link to="/inflight" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                  In Flight Checklists
                 </Link>
                 <Link to="/about" className="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                   About
