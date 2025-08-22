@@ -1,5 +1,4 @@
-// decide which env file should be used, either .env.development or .env.production
-// require('dotenv').config();
+// Backend index.js - Fixed with improved authentication and clear progress support
 const sql = require("mssql");
 const express = require("express");
 const session = require("express-session");
@@ -18,16 +17,13 @@ function envToBool(variable) {
   return variable === "true";
 }
 
-let dbAdpater;
+let dbAdapter;
 const useMSSQL = envToBool(process.env.USE_MSSQL);
-
 const DEBUG = process.env.NODE_ENV === 'development';
 
 if (useMSSQL) {
-  //USE MSSQL db as backend db
   dbAdapter = require("./dbadapter-mssql");
 } else {
-  //USE postgresql db as backend db
   dbAdapter = require("./dbadapter-pgp");
 }
 
@@ -42,7 +38,7 @@ const checkType = (key) => {
     return sql.NVarChar;
   }
 };
-// filter out the group from the array
+
 const getGroup = (arr) => {
   let group = null;
   if (arr.includes("ChecklistGenerator_AllSites")) {
@@ -59,12 +55,10 @@ const getGroup = (arr) => {
 
 const updateDataCollection = async (id, new_data) => {
   try {
-    // Delete existing data with the given postId
     await dbAdapter.query("DELETE FROM ASSM_DataCollection WHERE id = @id", [
       { name: "id", type: sql.NVarChar, value: id },
     ]);
 
-    // Insert new data into the data_collection table
     const insertPromises = new_data.map((data) => {
       const columns = Object.keys(data).join(", ");
       const placeholders = Object.keys(data)
@@ -72,7 +66,7 @@ const updateDataCollection = async (id, new_data) => {
         .join(", ");
       const params = Object.keys(data).map((key) => ({
         name: key,
-        type: checkType(key), // Adjust the type as needed
+        type: checkType(key),
         value: data[key],
       }));
 
@@ -80,9 +74,8 @@ const updateDataCollection = async (id, new_data) => {
       Logger.debug(`UpdateDataCollection data for Id ${id}:`, query, params);
       return dbAdapter.query(query, params);
     });
-    // Wait for all insert operations to complete
-    await Promise.all(insertPromises);
 
+    await Promise.all(insertPromises);
     Logger.debug(`Data for Id ${id} has been updated successfully.`);
   } catch (error) {
     Logger.error(`Error updating data for Id ${id}:`, error.message);
@@ -90,14 +83,11 @@ const updateDataCollection = async (id, new_data) => {
   }
 };
 
-// ============================
-// NEW: Sequential Page Workflow Methods for dbAdapter
-// ============================
+// Sequential Page Workflow Methods for dbAdapter
 const dbAdapterExtensions = {
   async submitPage(pageData) {
     const { postId, pageIndex, pageData: data, userId, createdAt } = pageData;
     
-    // Insert or update page completion
     const query = `
       MERGE ASSM_PageProgress AS target
       USING (SELECT @postId as postId, @pageIndex as pageIndex) AS source
@@ -192,10 +182,31 @@ const dbAdapterExtensions = {
       };
     }
     return null;
+  },
+
+  // NEW: Clear progress for "New" button functionality
+  async clearProgress(postId, userId) {
+    const queries = [
+      {
+        query: "DELETE FROM ASSM_PageProgress WHERE postId = @postId",
+        params: [{ name: "postId", type: sql.NVarChar, value: postId }]
+      },
+      {
+        query: "DELETE FROM ASSM_CurrentProgress WHERE postId = @postId",
+        params: [{ name: "postId", type: sql.NVarChar, value: postId }]
+      }
+    ];
+
+    for (const { query, params } of queries) {
+      await this.query(query, params);
+    }
+
+    Logger.debug(`Cleared all progress for postId: ${postId} by user: ${userId}`);
+    return { success: true, message: "Progress cleared" };
   }
 };
 
-// Extend your existing dbAdapter with these methods
+// Extend dbAdapter with new methods
 Object.assign(dbAdapter, dbAdapterExtensions);
 
 const app = express();
@@ -222,8 +233,9 @@ app.use(
   })
 );
 
+// Request timing middleware
 app.use((req, res, next) => {
-  const start = process.hrtime(); // High-resolution real time
+  const start = process.hrtime();
 
   res.on("finish", () => {
     const [seconds, nanoseconds] = process.hrtime(start);
@@ -239,7 +251,7 @@ app.use((req, res, next) => {
 });
 
 // ============================
-// EXISTING AUTHENTICATION ENDPOINTS (unchanged)
+// AUTHENTICATION ENDPOINTS
 // ============================
 app.get(
   "/login",
@@ -262,16 +274,113 @@ app.post(
   }
 );
 
+// IMPROVED: Enhanced /getMe endpoint with better user data handling
 app.get("/getMe", (req, res, _next) => {
+  Logger.debug("==== /getMe endpoint called ====");
+  Logger.debug("req.isAuthenticated():", req.isAuthenticated());
+  Logger.debug("req.user exists:", !!req.user);
+  
   if (!req.isAuthenticated()) {
+    Logger.debug("User not authenticated");
     return res.status(401).json({
       message: "Unauthorized",
+      authenticated: false
     });
   } else {
     const { user } = req;
-    Logger.debug("==== auth: /getMe: req", user);
-    return res.status(200).json({ user });
+    
+    // Enhanced debugging to see user object structure
+    Logger.debug("==== Complete user object ====");
+    Logger.debug("user keys:", Object.keys(user || {}));
+    Logger.debug("user object:", JSON.stringify(user, null, 2));
+    
+    // Check common Okta/SAML user properties
+    Logger.debug("==== User properties ====");
+    Logger.debug("user.email:", user?.email);
+    Logger.debug("user.preferred_username:", user?.preferred_username);
+    Logger.debug("user.name:", user?.name);
+    Logger.debug("user.given_name:", user?.given_name);
+    Logger.debug("user.family_name:", user?.family_name);
+    Logger.debug("user.displayName:", user?.displayName);
+    Logger.debug("user.sub:", user?.sub);
+    Logger.debug("user.login:", user?.login);
+    Logger.debug("user.profile:", user?.profile);
+    Logger.debug("user._json:", user?._json);
+    
+    // Normalize user data for consistent frontend consumption
+    const normalizedUser = {
+      // Try multiple possible email fields
+      email: user?.email || 
+             user?.preferred_username || 
+             user?.login || 
+             user?._json?.email || 
+             user?._json?.preferred_username ||
+             user?.profile?.email ||
+             'unknown@company.com',
+      
+      // Try multiple possible name fields
+      name: user?.name || 
+            user?.displayName || 
+            user?.given_name || 
+            user?._json?.name ||
+            user?._json?.given_name ||
+            user?.profile?.name ||
+            user?.profile?.displayName ||
+            (user?.email || user?.preferred_username || 'Unknown User'),
+      
+      // Display name
+      displayName: user?.displayName || 
+                   user?.name || 
+                   user?._json?.name ||
+                   user?.profile?.displayName ||
+                   user?.given_name ||
+                   'User',
+      
+      // Additional fields
+      given_name: user?.given_name || user?._json?.given_name,
+      family_name: user?.family_name || user?._json?.family_name,
+      sub: user?.sub || user?._json?.sub,
+      
+      // Include original for debugging
+      _original: DEBUG ? user : undefined
+    };
+    
+    Logger.debug("==== Normalized user object ====");
+    Logger.debug("Normalized user:", JSON.stringify(normalizedUser, null, 2));
+    
+    return res.status(200).json({ 
+      user: normalizedUser,
+      authenticated: true,
+      timestamp: new Date().toISOString()
+    });
   }
+});
+
+// DEBUG endpoint (development only)
+app.get("/debug-auth", (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  
+  Logger.debug("==== Debug Auth Endpoint ====");
+  
+  const debugInfo = {
+    isAuthenticated: req.isAuthenticated(),
+    hasUser: !!req.user,
+    hasSession: !!req.session,
+    sessionKeys: req.session ? Object.keys(req.session) : [],
+    userKeys: req.user ? Object.keys(req.user) : [],
+    headers: {
+      authorization: req.headers.authorization,
+      cookie: req.headers.cookie ? 'present' : 'not present',
+      'user-agent': req.headers['user-agent']
+    },
+    session: req.session,
+    user: req.user
+  };
+  
+  Logger.debug("Debug info:", JSON.stringify(debugInfo, null, 2));
+  return res.json(debugInfo);
 });
 
 app.get("/logout", (req, res, _next) => {
@@ -296,7 +405,7 @@ app.post("/logout/callback", (req, res, _next) => {
 });
 
 // ============================
-// EXISTING SURVEY MANAGEMENT ENDPOINTS (unchanged)
+// SURVEY MANAGEMENT ENDPOINTS
 // ============================
 app.post("/create", async (req, res) => {
   try {
@@ -308,11 +417,7 @@ app.post("/create", async (req, res) => {
     const folder_id = req.body.folderId;
     const userId = req.user.email;
     const user_group = getGroup(req.user.group);
-    Logger.debug(
-      "---- api call: /create, req.user.group, req.user: ",
-      user_group,
-      req.user
-    );
+    
     const result = await dbAdapter.addSurvey(
       name,
       customer,
@@ -322,16 +427,7 @@ app.post("/create", async (req, res) => {
       userId,
       user_group
     );
-    Logger.debug(
-      "---- api call: /create,id, name, customer, product, userId, result, result: ",
-      id,
-      name,
-      customer,
-      product,
-      folder_id,
-      userId,
-      result
-    );
+    
     useMSSQL
       ? res.json({
           name: result[0].name,
@@ -366,6 +462,7 @@ app.post("/duplicate", async (req, res) => {
     const json = req.body.json;
     const userId = req.user.email;
     const user_group = getGroup(req.user.group);
+    
     const result = await dbAdapter.duplicateSurvey(
       name,
       customer,
@@ -376,16 +473,7 @@ app.post("/duplicate", async (req, res) => {
       userId,
       user_group
     );
-    Logger.debug(
-      "---- api call: /duplicate, name, customer, product, folder_id, json, userId, result: ",
-      name,
-      customer,
-      product,
-      folder_id,
-      json,
-      userId,
-      result
-    );
+    
     useMSSQL
       ? res.json({
           name: result[0].name,
@@ -412,10 +500,8 @@ app.post("/duplicate", async (req, res) => {
 app.get("/getActive", async (req, res) => {
   try {
     Logger.debug("---- api call: /getActive Started!");
-    Logger.debug("---- req: ", req);
     const user = { email: req.user.email, role: req.user.role };
     const result = await dbAdapter.getSurveys(user);
-    // Logger.debug("---- api call: /getActive, user, result: ", user, result);
     res.json(result);
   } catch (error) {
     Logger.error("===== path: /getActive ERROR:", error.message);
@@ -425,13 +511,12 @@ app.get("/getActive", async (req, res) => {
 
 app.get("/getSurvey", async (req, res) => {
   try {
-    Logger.debug("---- api call: /getSurvey Started!, req: ", req);
+    Logger.debug("---- api call: /getSurvey Started!");
     const surveyId = req.query["surveyId"];
     const user = req.isAuthenticated()
       ? { email: req.user.email, role: req.user.role }
       : null;
     const result = await dbAdapter.getSurvey(surveyId, user);
-    Logger.debug("---- api call: /getSurvey, user, result: ", user, result);
     useMSSQL ? res.json(result[0]) : res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -441,13 +526,12 @@ app.get("/getSurvey", async (req, res) => {
 
 app.get("/getTheme", async (req, res) => {
   try {
-    Logger.debug("---- api call: /getTheme Started! req: ", req);
+    Logger.debug("---- api call: /getTheme Started!");
     const surveyId = req.query["surveyId"];
     const user = req.isAuthenticated()
       ? { email: req.user.email, role: req.user.role }
       : null;
     const result = await dbAdapter.getTheme(surveyId, user);
-    Logger.debug("---- api call: /getTheme, user, result: ", user, result);
     useMSSQL ? res.json(result[0]) : res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -464,6 +548,7 @@ app.get("/changeName", async (req, res) => {
     const product = req.query["product"];
     const folder_id = req.query["folderId"];
     const user_group = getGroup(req.user.group);
+    
     const result = await dbAdapter.changeName(
       id,
       name,
@@ -472,14 +557,7 @@ app.get("/changeName", async (req, res) => {
       folder_id,
       user_group
     );
-    Logger.debug(
-      "---- api call: /changeName, name, customer, product, result, result: ",
-      name,
-      customer,
-      product,
-      folder_id,
-      result
-    );
+    
     useMSSQL ? res.json(result[0]) : res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -493,12 +571,6 @@ app.post("/changeJson", async (req, res) => {
     const id = req.body.id;
     const json = req.body.json;
     const result = await dbAdapter.storeSurvey(id, json);
-    Logger.debug(
-      "---- api call: /changeJson, id, json, result: ",
-      id,
-      json,
-      result
-    );
     useMSSQL ? res.json(result[0]) : res.json(result.json);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -508,17 +580,11 @@ app.post("/changeJson", async (req, res) => {
 
 app.post("/changeTheme", async (req, res) => {
   try {
-    Logger.debug("---- api call: /changeTheme Started!", req);
+    Logger.debug("---- api call: /changeTheme Started!");
     const id = req.body.id;
     const name = req.body.name;
     const theme = req.body.theme;
     const result = await dbAdapter.storeTheme(id, name, theme);
-    Logger.debug(
-      "---- api call: /changeTheme, id, theme, result: ",
-      id,
-      theme,
-      result
-    );
     useMSSQL ? res.json(result[0]) : res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -539,7 +605,6 @@ app.post("/uploadFile", async (req, res) => {
       req.files[item].name,
       req.body.email
     );
-    Logger.debug("---- api call: /uploadFile, result: ", result);
     useMSSQL ? res.json(result[0]) : res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -551,7 +616,6 @@ app.get("/getImages", async (req, res) => {
   try {
     Logger.debug("---- api call: /getImages Started!");
     const result = await dbAdapter.getImages();
-    Logger.debug("---- api call: /getImages, result: ", result);
     res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -560,7 +624,7 @@ app.get("/getImages", async (req, res) => {
 });
 
 // ============================
-// NEW: Sequential Page Workflow Endpoints
+// SEQUENTIAL PAGE WORKFLOW ENDPOINTS
 // ============================
 
 // Save page completion
@@ -596,7 +660,7 @@ app.get("/getProgress", async (req, res) => {
     const postId = req.query["postId"];
     const result = await dbAdapter.getChecklistProgress(postId);
     Logger.debug("---- api call: /getProgress, result: ", result);
-    res.json(result);
+    res.json({ data: result });
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
     res.status(500).json({ error: error.message });
@@ -629,8 +693,25 @@ app.post("/saveProgress", async (req, res) => {
   }
 });
 
+// NEW: Clear progress endpoint for "New" button
+app.post("/clearProgress", async (req, res) => {
+  try {
+    Logger.debug("---- api call: /clearProgress Started!");
+    const postId = req.body.postId;
+    const userId = req.user ? req.user.email : req.body.userId;
+
+    const result = await dbAdapter.clearProgress(postId, userId);
+    
+    Logger.debug("---- api call: /clearProgress, result: ", result);
+    res.json(result);
+  } catch (error) {
+    Logger.error("===== ERROR:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================
-// EXISTING ENDPOINTS CONTINUED (unchanged)
+// MAIN SURVEY ENDPOINTS
 // ============================
 
 app.post("/post", async (req, res) => {
@@ -640,17 +721,15 @@ app.post("/post", async (req, res) => {
     const surveyResult = req.body.surveyResult;
     const userId = req.body.userId;
     const createdAt = req.body.createdAt;
+    
     const result = await dbAdapter.postResults(
       postId,
       surveyResult,
       userId,
       createdAt
     );
-    Logger.debug("---- api call: /post, result: ", result);
-    //TODO: add logic here for data collection to unpack the survey Result json and store it in the db
-    //and replace the question name with the question title
-    //check if there is FPY is in the question tile, if yes, then extract the FPY value and store it in the table
-    // Process the survey result and prepare new_data array
+    
+    // Data collection processing
     const postResult = JSON.parse(result[0].json);
 
     if (postResult.hasOwnProperty("datacollection_header")) {
@@ -658,7 +737,6 @@ app.post("/post", async (req, res) => {
       const surveyJson = await dbAdapter.getSurvey(postId, userId);
       const unpackedSurvey = unpackSurvey(JSON.parse(surveyJson[0].json));
 
-      Logger.debug("---- api call: /post, unpackedSurvey: ", unpackedSurvey);
       const id = `${postResult["datacollection_header"]["wo"]}_${postResult["datacollection_header"]["oms"]}_${postResult["datacollection_header"]["step"]}_${postResult["datacollection_header"]["station"]}_${postResult["datacollection_header"]["omssn"]}_${postResult["datacollection_header"]["plant_code"]}`;
 
       const common_columns = {
@@ -710,20 +788,9 @@ app.post("/post", async (req, res) => {
           sequence++;
         }
       }
-      Logger.debug("---- api call: /post, new_data: ", new_data);
 
-      new_data.forEach((data, index) => {
-        if (!data.hasOwnProperty("type")) {
-          Logger.error(
-            `Data at index ${index} is missing 'type' property:`,
-            data
-          );
-        }
-      });
       await updateDataCollection(id, new_data);
     }
-
-    // Update the data_collection table with new data
 
     useMSSQL ? res.json(result[0]) : res.json(result.json);
   } catch (error) {
@@ -738,11 +805,10 @@ app.get("/delete", async (req, res) => {
     const surveyId = req.query["id"];
     const user = { email: req.user.email, role: req.user.role };
     const result = await dbAdapter.deleteSurvey(surveyId, user);
+    
     if (result) {
-      Logger.debug("---- api call: /delete, result: ", result);
       res.json({ message: "File deleted successfully", details: result });
     } else {
-      Logger.debug("No data found to delete for surveyId:", surveyId);
       res.status(404).json({ message: "No survey found with given ID" });
     }
   } catch (error) {
@@ -756,7 +822,6 @@ app.get("/update", async (req, res) => {
     Logger.debug("---- api call: /update Started!");
     const surveyId = req.query["id"];
     const result = await dbAdapter.updateSurvey(surveyId);
-    Logger.debug("---- api call: /update, result: ", result);
     res.json({});
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -769,7 +834,6 @@ app.get("/results", async (req, res) => {
     Logger.debug("---- api call: /results Started!");
     const postId = req.query["postId"];
     const result = await dbAdapter.getResults(postId);
-    Logger.debug("---- api call: /results, result: ", result);
     res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -781,7 +845,6 @@ app.get("/getEmailList", async (req, res) => {
   try {
     Logger.debug("---- api call: /getEmailList Started!");
     const result = await dbAdapter.getEmailList();
-    Logger.debug("---- api call: /getEmailList, result: ", result);
     res.json(result);
   } catch (error) {
     Logger.error("===== ERROR:", error.message);
@@ -789,26 +852,25 @@ app.get("/getEmailList", async (req, res) => {
   }
 });
 
-// folders manipulation
-//get folders
+// ============================
+// FOLDER MANAGEMENT ENDPOINTS
+// ============================
+
 app.get("/getFolders", async (req, res) => {
   try {
     Logger.debug("---- api call: /getFolders Started!");
     const result = await dbAdapter.getFolders();
-    const folders = result.map((folder) => ({ ...folder, files: [] })); // initail files to empty list
-    Logger.debug("---- api call: /getFolders, result: ", folders);
+    const folders = result.map((folder) => ({ ...folder, files: [] }));
     res.json(folders);
   } catch (error) {
     Logger.error("=====getFolders ERROR:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
-//fetch files for a specific folder
 
 app.get("/folders/:folderId/files", async (req, res) => {
-  Logger.debug("---- api call: /folders/:folderId/files Started!", req);
+  Logger.debug("---- api call: /folders/:folderId/files Started!");
   
-  // Add authentication check
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({
       error: "Unauthorized - Please login to access folders"
@@ -817,6 +879,7 @@ app.get("/folders/:folderId/files", async (req, res) => {
   
   const user_group = getGroup(req.user.group);
   const { folderId } = req.params;
+  
   try {
     const result = await dbAdapter.getFolderFiles(folderId, user_group);
     res.json(result);
@@ -826,10 +889,10 @@ app.get("/folders/:folderId/files", async (req, res) => {
   }
 });
 
-//move file to a different folder
 app.put("/surveys/:surveyId/move", async (req, res) => {
   const { surveyId } = req.params;
   const { targetFolderId } = req.body;
+  
   try {
     const updatedSurvey = await dbAdapter.moveSurvey(surveyId, targetFolderId);
     res.sendStatus(200);
@@ -838,28 +901,26 @@ app.put("/surveys/:surveyId/move", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-//delete folder
+
 app.delete("/folders/:folderId", async (req, res) => {
   const { folderId } = req.params;
+  
   try {
     Logger.debug('---- api call: api.delete("/folders/:folderId") Started!');
     const result = await dbAdapter.deleteFolder(folderId);
-    Logger.debug("---- api call: /deleteFolder, result: ", result);
     res.json(result);
   } catch (error) {
     Logger.error("=====delete Folder ERROR:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
-//create folder
+
 app.post("/folders", async (req, res) => {
   try {
     Logger.debug('---- api call: api.post("/folders") Started!');
     const name = req.body.name;
     const result = await dbAdapter.createFolder(name);
-    Logger.debug('---- api call: api.post("/folders"), result: ', result);
-    const folders = result.map((folder) => ({ ...folder, files: [] })); // initail files to empty list
-    Logger.debug("---- api call: /getFolders, result: ", folders);
+    const folders = result.map((folder) => ({ ...folder, files: [] }));
     res.json(folders);
   } catch (error) {
     Logger.error("=====create Folder ERROR:", error.message);
@@ -867,11 +928,14 @@ app.post("/folders", async (req, res) => {
   }
 });
 
-// app.use(express.static(__dirname + "/public"));
+// Error handling middleware
 app.use((req, res, next) => {
   res.status(404).json({ error: "Not Found" });
 });
 
+// Start server
 app.listen(process.env.PORT || 3002, () => {
   console.log("Server is listening on port", process.env.PORT || 3002);
+  console.log("Environment:", process.env.NODE_ENV || 'development');
+  console.log("Enhanced authentication and progress management enabled");
 });

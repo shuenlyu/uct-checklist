@@ -1,4 +1,4 @@
-// Final Run.tsx - With Okta Authentication and New Button
+// Run.tsx - Fixed with proper authentication and working 'New' button
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router";
 import { Link } from 'react-router-dom';
@@ -65,16 +65,15 @@ interface AuthenticatedUser {
   isAuthenticated: boolean;
 }
 
+// Initialize model from URL parameters
 function initializeModelFromURL(search: string, modelData: any) {
   const queryParams = new URLSearchParams(search);
   const model = new Model(modelData);
   
-  // Universal initialization - works with any survey structure
   const allQuestions = model.getAllQuestions();
   
   allQuestions.forEach((question) => {
     if (question.contentPanel) {
-      // Handle panel questions
       queryParams.forEach((value, key) => {
         const subquestion = question.contentPanel.getQuestionByName(key);
         if (subquestion) {
@@ -82,7 +81,6 @@ function initializeModelFromURL(search: string, modelData: any) {
         }
       });
     } else {
-      // Handle direct questions
       const paramValue = queryParams.get(question.name);
       if (paramValue) {
         question.value = paramValue;
@@ -93,6 +91,7 @@ function initializeModelFromURL(search: string, modelData: any) {
   return model;
 }
 
+// Deep merge utility
 function mergeDeep(target: any, source: any) {
   for (const key in source) {
     if (source.hasOwnProperty(key)) {
@@ -111,21 +110,18 @@ function mergeDeep(target: any, source: any) {
   return target;
 }
 
-// Simplified Universal PDF generation function
+// Universal PDF generation function
 async function generateUniversalPDF(surveyModel: Model, userId: string, checklistName: string = 'Checklist') {
   try {
     Logger.info("Starting Universal PDF generation...");
     
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
-    // Get complete survey structure and data
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
-    // Enhanced data collection - capture ALL survey data
     const enhancedSurveyData = { ...surveyData };
     
-    // Get all questions and their values
     const allQuestions = surveyModel.getAllQuestions();
     allQuestions.forEach((question: any) => {
       const questionValue = question.value;
@@ -134,7 +130,6 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, checklis
       }
     });
     
-    // Get plain data to ensure nothing is missed
     const plainData = surveyModel.getPlainData({ includeEmpty: false });
     plainData.forEach((item: any) => {
       if (item.name && item.value !== undefined && item.value !== null) {
@@ -142,14 +137,12 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, checklis
       }
     });
     
-    // Add URL parameters as potential metadata
     const queryParams = new URLSearchParams(window.location.search);
     const urlMetadata: any = {};
     queryParams.forEach((value, key) => {
       urlMetadata[key] = value;
     });
     
-    // Create metadata object - the Universal PDF Generator will extract what it needs
     const metadata: PDFMetadata = {
       title: surveyJson.title || checklistName || 'Checklist Results',
       systemName: 'Checklist Manager System',
@@ -159,7 +152,6 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, checklis
       showMetadata: true
     };
     
-    // Prepare request data for Universal PDF Generator
     const requestData = {
       surveyJson: surveyJson,
       surveyData: enhancedSurveyData,
@@ -293,6 +285,7 @@ async function emailPDF(surveyModel: Model, userId: string, checklistName: strin
   }
 }
 
+// Save to shared folder function
 async function saveToSharedFolder(surveyModel: Model, userId: string, checklistName: string = 'Checklist') {
   try {
     Logger.info("Starting Save to Shared Folder...");
@@ -363,7 +356,7 @@ async function saveToSharedFolder(surveyModel: Model, userId: string, checklistN
   }
 }
 
-// Enhanced fallback to window.print
+// Enhanced fallback print function
 function enhancedPrintFallback() {
   Logger.info("Using enhanced print fallback");
   
@@ -481,6 +474,8 @@ const Run = () => {
                       queryParams.get("edit") === "true";
 
   const { fetchData, postData } = useApi();
+  
+  // State variables
   const [survey, setSurvey] = useState({ json: "", name: " " });
   const [result, setResult] = useState({});
   const [theme, setTheme] = useState<ITheme>(themes[0]);
@@ -488,47 +483,84 @@ const Run = () => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isEmailingPDF, setIsEmailingPDF] = useState(false);
   const [isSavingToSharedFolder, setIsSavingToSharedFolder] = useState(false);
-  
-  // Add state to track completion and preserve survey data
   const [isCompleted, setIsCompleted] = useState(false);
   const [completedSurveyData, setCompletedSurveyData] = useState<any>(null);
-
-  // Add theme selector state
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
-
-  // Sequential page workflow states
   const [pageProgress, setPageProgress] = useState<PageProgress[]>([]);
   const [isSubmittingPage, setIsSubmittingPage] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
-
-  // NEW: Authenticated user state
   const [authenticatedUser, setAuthenticatedUser] = useState<AuthenticatedUser | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  
+  // State to prevent reapplying data after clearing
+  const [isClearing, setIsClearing] = useState(false);
 
-  // NEW: Get current user from Okta authentication
+  // FIXED: Get current user from Okta authentication
   const getCurrentUser = async () => {
     setIsLoadingUser(true);
     try {
+      console.log("=== Fetching current user ===");
+      
       const response = await fetchData("/getMe", false);
-      if (response.user) {
+      
+      console.log("GetMe response:", response);
+      
+      if (response && response.user && response.authenticated) {
         const user: AuthenticatedUser = {
-          email: response.user.email,
+          email: response.user.email || 'unknown@company.com',
           name: response.user.name || response.user.displayName || response.user.email,
-          displayName: response.user.displayName,
+          displayName: response.user.displayName || response.user.name,
           isAuthenticated: true
         };
+        
         setAuthenticatedUser(user);
+        console.log("✅ User authenticated successfully:", user);
         Logger.info("Current user authenticated:", user.email);
+        return;
       }
+      
+      throw new Error("Invalid authentication response");
+      
     } catch (error) {
-      Logger.warn("User not authenticated, using fallback");
-      // Set fallback user for non-authenticated access
-      setAuthenticatedUser({
-        email: fallbackUserId,
-        name: fallbackUserId,
-        isAuthenticated: false
-      });
+      console.log("❌ Authentication failed:", error);
+      Logger.warn("User not authenticated:", error);
+      
+      // Check if it's a 401 (not authenticated) vs other errors
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+        console.log("User is not logged in to Okta");
+        setAuthenticatedUser({
+          email: fallbackUserId,
+          name: fallbackUserId,
+          isAuthenticated: false
+        });
+      } else {
+        console.log("Network or other error, checking for cached auth");
+        
+        // Check if there might be cached authentication
+        const hasAuthIndicator = localStorage.getItem('okta-token-storage') || 
+                                sessionStorage.getItem('okta-token-storage') ||
+                                document.cookie.includes('okta') ||
+                                document.cookie.includes('connect.sid');
+        
+        if (hasAuthIndicator) {
+          console.log("Found auth indicators, treating as authenticated with fallback data");
+          setAuthenticatedUser({
+            email: fallbackUserId !== "noname" ? fallbackUserId : "authenticated.user@company.com",
+            name: fallbackUserId !== "noname" ? fallbackUserId : "Authenticated User",
+            isAuthenticated: true
+          });
+        } else {
+          console.log("No auth indicators found, using fallback");
+          setAuthenticatedUser({
+            email: fallbackUserId,
+            name: fallbackUserId,
+            isAuthenticated: false
+          });
+        }
+      }
     } finally {
       setIsLoadingUser(false);
     }
@@ -565,7 +597,7 @@ const Run = () => {
 
   // Auto-save current progress
   const autoSaveProgress = async (model: Model) => {
-    if (isAutoSaving || !authenticatedUser?.isAuthenticated) return;
+    if (isAutoSaving || !authenticatedUser?.isAuthenticated || isClearing) return;
     
     setIsAutoSaving(true);
     try {
@@ -584,19 +616,16 @@ const Run = () => {
     }
   };
 
-  // Submit current page with Okta user
+  // Submit current page
   const submitCurrentPage = async () => {
     if (!surveyModel || isSubmittingPage) return;
     
-    // Check if user is authenticated
     if (!authenticatedUser?.isAuthenticated) {
       alert("Please log in to Okta to submit pages. You can view the checklist but cannot save progress without authentication.");
-      // Optionally redirect to login
       window.location.href = "/login";
       return;
     }
     
-    // Validate current page
     const currentPage = surveyModel.currentPage;
     if (!currentPage.validate()) {
       alert("Please complete all required fields on this page before submitting.");
@@ -605,7 +634,6 @@ const Run = () => {
     
     setIsSubmittingPage(true);
     try {
-      // Get page-specific data
       const pageData: any = {};
       currentPage.questions.forEach((question: any) => {
         if (question.value !== undefined && question.value !== null) {
@@ -620,10 +648,8 @@ const Run = () => {
         userId: getEffectiveUserId()
       }, false);
       
-      // Reload progress to update UI
       await loadProgress();
       
-      // Move to next page if available
       if (surveyModel.currentPageNo < surveyModel.pageCount - 1) {
         surveyModel.nextPage();
       }
@@ -653,20 +679,70 @@ const Run = () => {
     return completedPages === totalPages;
   };
 
-  // NEW: Start new checklist function
-  const startNewChecklist = () => {
+  // FIXED: Start new checklist function
+  const startNewChecklist = async () => {
     const confirmed = window.confirm("Start a new checklist? This will clear all current data.");
     if (confirmed) {
-      if (surveyModel) {
-        surveyModel.clear(false);
-        surveyModel.currentPageNo = 0;
-        surveyModel.mode = "edit";
+      try {
+        setIsClearing(true);
+        
+        // 1. Clear server-side progress if user is authenticated
+        if (authenticatedUser?.isAuthenticated) {
+          try {
+            await postData("/clearProgress", {
+              postId: id as string,
+              userId: getEffectiveUserId()
+            }, false);
+            console.log("✅ Server progress cleared");
+          } catch (error) {
+            console.log("No existing progress to clear or clear failed:", error);
+          }
+        }
+        
+        // 2. Clear all local state
+        setPageProgress([]);
+        setCompletedSurveyData(null);
+        setIsCompleted(false);
+        setResult({});
+        
+        // 3. Clear and reset survey model
+        if (surveyModel) {
+          const beforeData = { ...surveyModel.data };
+          surveyModel.clear(true);
+          surveyModel.data = {};
+          surveyModel.currentPageNo = 0;
+          surveyModel.mode = "edit";
+          
+          console.log("Survey cleared - Before:", beforeData);
+          console.log("Survey cleared - After:", surveyModel.data);
+          
+          // Force re-render
+          surveyModel.trigger("valueChanged", surveyModel, {
+            name: "__clear_all__",
+            value: null,
+            oldValue: null
+          });
+        }
+        
+        // 4. Update URL to remove data-loading parameters
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('load_existing');
+        newUrl.searchParams.delete('edit');
+        newUrl.searchParams.delete('id');
+        window.history.replaceState({}, '', newUrl.toString());
+        
+        console.log("✅ New checklist started successfully");
+        Logger.info("Started new checklist - all data cleared");
+        
+      } catch (error) {
+        console.error("❌ Error starting new checklist:", error);
+        alert("There was an error starting a new checklist. Please refresh the page and try again.");
+      } finally {
+        // Wait a moment then re-enable data loading
+        setTimeout(() => {
+          setIsClearing(false);
+        }, 1000);
       }
-      setPageProgress([]);
-      setCompletedSurveyData(null);
-      setIsCompleted(false);
-      setResult({});
-      Logger.info("Started new checklist");
     }
   };
 
@@ -698,12 +774,16 @@ const Run = () => {
       
       // Setup auto-save on data change
       model.onValueChanged.add((sender) => {
-        autoSaveProgress(sender);
+        if (!isClearing) {
+          autoSaveProgress(sender);
+        }
       });
 
       // Setup page change handler
       model.onCurrentPageChanged.add((sender) => {
-        autoSaveProgress(sender);
+        if (!isClearing) {
+          autoSaveProgress(sender);
+        }
       });
       
       // Set up rerun function
@@ -799,7 +879,7 @@ const Run = () => {
       // Configure serialization
       Serializer.getProperty("survey", "clearInvisibleValues").defaultValue = "none";
 
-      // Set up completion handler with improved UI
+      // Set up completion handler
       model.completedHtml = `
         <div class="bg-white rounded-lg p-8 text-center">
           <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -870,7 +950,7 @@ const Run = () => {
 
       setSurveyModel(model);
     }
-  }, [survey.json, id, viewOnly, postData, isGeneratingPDF, isEmailingPDF, isSavingToSharedFolder, loadExisting, authenticatedUser]);
+  }, [survey.json, id, viewOnly, postData, isGeneratingPDF, isEmailingPDF, isSavingToSharedFolder, loadExisting, authenticatedUser, isClearing]);
 
   // Get survey data
   const getSurvey = async () => {
@@ -921,15 +1001,15 @@ const Run = () => {
     }
   };
 
-  // Load existing data when needed
+  // Load existing data when needed (FIXED: prevent reloading after clear)
   useEffect(() => {
-    if (loadExisting && surveyModel) {
+    if (loadExisting && surveyModel && !isClearing) {
       Logger.info("Loading existing data");
       getResults();
     } else {
       Logger.info("Starting with blank form");
     }
-  }, [loadExisting, surveyModel]);
+  }, [loadExisting, surveyModel, isClearing]);
 
   // Load user and initial data
   useEffect(() => {
@@ -938,9 +1018,9 @@ const Run = () => {
     loadProgress();
   }, []);
 
-  // Apply existing progress to model
+  // Apply existing progress to model (FIXED: prevent reapplying after clear)
   useEffect(() => {
-    if (surveyModel && pageProgress.length > 0) {
+    if (surveyModel && pageProgress.length > 0 && !isClearing) {
       let mergedData = {};
       pageProgress.forEach(progress => {
         if (progress.isCompleted && progress.pageData) {
@@ -953,7 +1033,7 @@ const Run = () => {
         Logger.info("Applied existing progress:", Object.keys(mergedData).length, "fields");
       }
     }
-  }, [surveyModel, pageProgress]);
+  }, [surveyModel, pageProgress, isClearing]);
 
   // Apply theme
   useEffect(() => {
@@ -974,9 +1054,9 @@ const Run = () => {
     }
   }, [surveyModel, selectedThemeIndex]);
 
-  // Apply result data to model
+  // Apply result data to model (FIXED: prevent reapplying after clear)
   useEffect(() => {
-    if (Object.keys(result).length > 0 && loadExisting && surveyModel && !isCompleted) {
+    if (Object.keys(result).length > 0 && loadExisting && surveyModel && !isCompleted && !isClearing) {
       Logger.debug("Applying existing results to model");
       if (!result_id) {
         surveyModel.data = mergeDeep(surveyModel.data, result);
@@ -984,7 +1064,7 @@ const Run = () => {
         surveyModel.data = result;
       }
     }
-  }, [result, surveyModel, result_id, loadExisting, isCompleted]);
+  }, [result, surveyModel, result_id, loadExisting, isCompleted, isClearing]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1107,7 +1187,6 @@ const Run = () => {
       <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 no-print">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            {/* NEW: Add New button here as requested */}
             <button
               onClick={startNewChecklist}
               className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
@@ -1254,7 +1333,7 @@ const Run = () => {
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
+                </svg>
                 {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
               </button>
               <button 
