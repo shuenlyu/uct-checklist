@@ -276,25 +276,74 @@ app.post(
 
 // IMPROVED: Enhanced /getMe endpoint with better user data handling
 app.get("/getMe", (req, res, _next) => {
+  // Use console.log in addition to Logger.debug to ensure we see output in Docker logs
+  console.log("=== /getMe ENDPOINT CALLED ===");
+  console.log("Timestamp:", new Date().toISOString());
+  console.log("Request IP:", req.ip);
+  console.log("User Agent:", req.headers['user-agent']);
+  
   Logger.debug("==== /getMe endpoint called ====");
   Logger.debug("req.isAuthenticated():", req.isAuthenticated());
   Logger.debug("req.user exists:", !!req.user);
   
+  // Additional session debugging
+  console.log("=== SESSION DEBUG ===");
+  console.log("Session ID:", req.sessionID);
+  console.log("Session exists:", !!req.session);
+  console.log("Session keys:", req.session ? Object.keys(req.session) : 'No session');
+  if (req.session) {
+    console.log("Session data:", JSON.stringify(req.session, null, 2));
+  }
+  
+  // Cookie debugging
+  console.log("=== COOKIE DEBUG ===");
+  console.log("Request cookies:", req.headers.cookie);
+  console.log("Has connect.sid cookie:", req.headers.cookie ? req.headers.cookie.includes('connect.sid') : false);
+  
+  // Authentication state debugging
+  console.log("=== AUTHENTICATION STATE ===");
+  console.log("req.isAuthenticated():", req.isAuthenticated());
+  console.log("req.user exists:", !!req.user);
+  console.log("passport user:", req.user);
+  
   if (!req.isAuthenticated()) {
+    console.log("❌ USER NOT AUTHENTICATED");
     Logger.debug("User not authenticated");
     return res.status(401).json({
       message: "Unauthorized",
-      authenticated: false
+      authenticated: false,
+      debug: {
+        hasSession: !!req.session,
+        sessionID: req.sessionID,
+        hasCookies: !!req.headers.cookie
+      }
     });
   } else {
+    console.log("✅ USER IS AUTHENTICATED");
     const { user } = req;
     
     // Enhanced debugging to see user object structure
+    console.log("=== COMPLETE USER OBJECT ===");
+    console.log("User keys:", Object.keys(user || {}));
+    console.log("Full user object:", JSON.stringify(user, null, 2));
+    
     Logger.debug("==== Complete user object ====");
     Logger.debug("user keys:", Object.keys(user || {}));
     Logger.debug("user object:", JSON.stringify(user, null, 2));
     
     // Check common Okta/SAML user properties
+    console.log("=== USER PROPERTIES ANALYSIS ===");
+    console.log("user.email:", user?.email);
+    console.log("user.preferred_username:", user?.preferred_username);
+    console.log("user.name:", user?.name);
+    console.log("user.given_name:", user?.given_name);
+    console.log("user.family_name:", user?.family_name);
+    console.log("user.displayName:", user?.displayName);
+    console.log("user.sub:", user?.sub);
+    console.log("user.login:", user?.login);
+    console.log("user.profile:", user?.profile);
+    console.log("user._json:", user?._json);
+    
     Logger.debug("==== User properties ====");
     Logger.debug("user.email:", user?.email);
     Logger.debug("user.preferred_username:", user?.preferred_username);
@@ -345,14 +394,29 @@ app.get("/getMe", (req, res, _next) => {
       _original: DEBUG ? user : undefined
     };
     
+    console.log("=== NORMALIZED USER OBJECT ===");
+    console.log("Normalized user:", JSON.stringify(normalizedUser, null, 2));
+    console.log("Final email will be:", normalizedUser.email);
+    console.log("Final name will be:", normalizedUser.name);
+    
     Logger.debug("==== Normalized user object ====");
     Logger.debug("Normalized user:", JSON.stringify(normalizedUser, null, 2));
     
-    return res.status(200).json({ 
+    const responseData = {
       user: normalizedUser,
       authenticated: true,
-      timestamp: new Date().toISOString()
-    });
+      timestamp: new Date().toISOString(),
+      debug: DEBUG ? {
+        originalUserKeys: Object.keys(user || {}),
+        sessionID: req.sessionID,
+        hasSession: !!req.session
+      } : undefined
+    };
+    
+    console.log("=== FINAL RESPONSE ===");
+    console.log("Response being sent:", JSON.stringify(responseData, null, 2));
+    
+    return res.status(200).json(responseData);
   }
 });
 
