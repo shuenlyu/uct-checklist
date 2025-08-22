@@ -1,4 +1,4 @@
-// Updated Run.tsx - Original working code + Sequential Page Workflow
+// Final Run.tsx - With Okta Authentication and New Button
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router";
 import { Link } from 'react-router-dom';
@@ -47,16 +47,22 @@ interface PDFMetadata {
   organizationName: string;
   logo?: string;
   additionalInfo?: string;
-  showMetadata?: boolean; // Control whether to show the metadata section
+  showMetadata?: boolean;
 }
 
-// NEW: Interface for page progress tracking
 interface PageProgress {
   pageIndex: number;
   pageData: any;
   completedBy: string;
   completedAt: string;
   isCompleted: boolean;
+}
+
+interface AuthenticatedUser {
+  email: string;
+  name?: string;
+  displayName?: string;
+  isAuthenticated: boolean;
 }
 
 function initializeModelFromURL(search: string, modelData: any) {
@@ -108,7 +114,7 @@ function mergeDeep(target: any, source: any) {
 // Simplified Universal PDF generation function
 async function generateUniversalPDF(surveyModel: Model, userId: string, checklistName: string = 'Checklist') {
   try {
-    Logger.info("🚀 Starting Universal PDF generation...");
+    Logger.info("Starting Universal PDF generation...");
     
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
@@ -150,7 +156,7 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, checklis
       organizationName: 'UCT',
       logo: '',
       additionalInfo: `Generated for user: ${userId}`,
-      showMetadata: true // Set to false to disable the metadata section completely
+      showMetadata: true
     };
     
     // Prepare request data for Universal PDF Generator
@@ -158,11 +164,11 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, checklis
       surveyJson: surveyJson,
       surveyData: enhancedSurveyData,
       metadata: metadata,
-      urlParams: urlMetadata, // Additional context
-      fileName: `${checklistName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`
+      urlParams: urlMetadata,
+      fileName: `${checklistName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId.replace('@', '_at_')}-${new Date().toISOString().split('T')[0]}.pdf`
     };
     
-    Logger.info("📤 Sending data to Universal PDF Generator:", {
+    Logger.info("Sending data to Universal PDF Generator:", {
       surveyTitle: surveyJson.title,
       dataKeys: Object.keys(enhancedSurveyData),
       questionCount: allQuestions.length,
@@ -199,26 +205,25 @@ async function generateUniversalPDF(surveyModel: Model, userId: string, checklis
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
     
-    Logger.info("✅ Universal PDF downloaded successfully:", requestData.fileName);
+    Logger.info("Universal PDF downloaded successfully:", requestData.fileName);
     return true;
     
   } catch (error) {
-    Logger.error("❌ Universal PDF generation failed:", error);
+    Logger.error("Universal PDF generation failed:", error);
     throw error;
   }
 }
 
-// Email PDF function - simplified for universal use
+// Email PDF function
 async function emailPDF(surveyModel: Model, userId: string, checklistName: string = 'Checklist') {
   try {
-    Logger.info("📧 Starting Email PDF...");
+    Logger.info("Starting Email PDF...");
     
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
-    // Enhanced data collection
     const enhancedSurveyData = { ...surveyData };
     const allQuestions = surveyModel.getAllQuestions();
     
@@ -235,7 +240,7 @@ async function emailPDF(surveyModel: Model, userId: string, checklistName: strin
       organizationName: 'UCT',
       logo: '',
       additionalInfo: `Generated for user: ${userId}`,
-      showMetadata: true // Set to false to disable metadata section
+      showMetadata: true
     };
     
     const recipientEmail = window.prompt('Enter recipient email address:');
@@ -248,7 +253,7 @@ async function emailPDF(surveyModel: Model, userId: string, checklistName: strin
       surveyJson: surveyJson,
       surveyData: enhancedSurveyData,
       metadata: metadata,
-      fileName: `${checklistName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
+      fileName: `${checklistName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId.replace('@', '_at_')}-${new Date().toISOString().split('T')[0]}.pdf`,
       recipientEmail: recipientEmail,
       senderName: userId,
       subject: `Checklist Report: ${checklistName}`
@@ -275,13 +280,13 @@ async function emailPDF(surveyModel: Model, userId: string, checklistName: strin
     }
     
     const result = await response.json();
-    Logger.info("✅ Email sent successfully:", result);
+    Logger.info("Email sent successfully:", result);
     window.alert(`PDF emailed successfully to ${recipientEmail}!`);
     
     return true;
     
   } catch (error) {
-    Logger.error("❌ Email PDF failed:", error);
+    Logger.error("Email PDF failed:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     window.alert(`Email failed: ${errorMessage}`);
     throw error;
@@ -290,14 +295,13 @@ async function emailPDF(surveyModel: Model, userId: string, checklistName: strin
 
 async function saveToSharedFolder(surveyModel: Model, userId: string, checklistName: string = 'Checklist') {
   try {
-    Logger.info("💾 Starting Save to Shared Folder...");
+    Logger.info("Starting Save to Shared Folder...");
     
     const PDF_SERVER_URL = process.env.REACT_APP_PDF_SERVER_URL || 'https://dc-analytics01.uct.local';
     
     const surveyJson = surveyModel.toJSON();
     const surveyData = surveyModel.data;
     
-    // Enhanced data collection
     const enhancedSurveyData = { ...surveyData };
     const allQuestions = surveyModel.getAllQuestions();
     
@@ -314,14 +318,14 @@ async function saveToSharedFolder(surveyModel: Model, userId: string, checklistN
       organizationName: 'UCT',
       logo: '',
       additionalInfo: `Generated for user: ${userId}`,
-      showMetadata: true // Set to false to disable metadata section
+      showMetadata: true
     };
     
     const requestData = {
       surveyJson: surveyJson,
       surveyData: enhancedSurveyData,
       metadata: metadata,
-      fileName: `${checklistName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId}-${new Date().toISOString().split('T')[0]}.pdf`,
+      fileName: `${checklistName.replace(/[^a-zA-Z0-9]/g, '_')}-${userId.replace('@', '_at_')}-${new Date().toISOString().split('T')[0]}.pdf`,
       userId: userId
     };
     
@@ -346,13 +350,13 @@ async function saveToSharedFolder(surveyModel: Model, userId: string, checklistN
     }
     
     const result = await response.json();
-    Logger.info("✅ Shared folder save successful:", result);
+    Logger.info("Shared folder save successful:", result);
     window.alert(`PDF saved successfully to shared folder: ${result.filePath || 'Success'}`);
     
     return true;
     
   } catch (error) {
-    Logger.error("❌ Shared folder save failed:", error);
+    Logger.error("Shared folder save failed:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     window.alert(`Shared folder save failed: ${errorMessage}`);
     throw error;
@@ -361,7 +365,7 @@ async function saveToSharedFolder(surveyModel: Model, userId: string, checklistN
 
 // Enhanced fallback to window.print
 function enhancedPrintFallback() {
-  Logger.info("🖨️ Using enhanced print fallback");
+  Logger.info("Using enhanced print fallback");
   
   const printStyles = `
     <style id="universal-print-styles">
@@ -459,7 +463,9 @@ const Run = () => {
   let result_id = initialResultId;
 
   const queryParams = new URLSearchParams(window.location.search);
-  const userId: string = queryParams.get("inspectedby")
+  
+  // Get fallback userId from URL params but prefer Okta user
+  const fallbackUserId: string = queryParams.get("inspectedby")
     ? queryParams.get("inspectedby")!
     : (queryParams.get("userid") ? queryParams.get("userid")! : "noname");
 
@@ -491,27 +497,75 @@ const Run = () => {
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
 
-  // NEW: Sequential page workflow states
+  // Sequential page workflow states
   const [pageProgress, setPageProgress] = useState<PageProgress[]>([]);
   const [isSubmittingPage, setIsSubmittingPage] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
-// NEW: Load progress data
-const loadProgress = async () => {
-  try {
-    const response = await fetchData(`/getProgress?postId=${id}`, false);
-    const progressData = response?.data || [];
-    setPageProgress(Array.isArray(progressData) ? progressData : []);
-    Logger.info("📊 Page progress loaded:", progressData?.length || 0, "pages");
-  } catch (error) {
-    Logger.debug("No existing progress found");
-    setPageProgress([]); // Ensure it's always an array
-  }
-};
+  // NEW: Authenticated user state
+  const [authenticatedUser, setAuthenticatedUser] = useState<AuthenticatedUser | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-  // NEW: Auto-save current progress
+  // NEW: Get current user from Okta authentication
+  const getCurrentUser = async () => {
+    setIsLoadingUser(true);
+    try {
+      const response = await fetchData("/getMe", false);
+      if (response.user) {
+        const user: AuthenticatedUser = {
+          email: response.user.email,
+          name: response.user.name || response.user.displayName || response.user.email,
+          displayName: response.user.displayName,
+          isAuthenticated: true
+        };
+        setAuthenticatedUser(user);
+        Logger.info("Current user authenticated:", user.email);
+      }
+    } catch (error) {
+      Logger.warn("User not authenticated, using fallback");
+      // Set fallback user for non-authenticated access
+      setAuthenticatedUser({
+        email: fallbackUserId,
+        name: fallbackUserId,
+        isAuthenticated: false
+      });
+    } finally {
+      setIsLoadingUser(false);
+    }
+  };
+
+  // Get the effective user ID for operations
+  const getEffectiveUserId = (): string => {
+    if (authenticatedUser?.isAuthenticated) {
+      return authenticatedUser.email;
+    }
+    return fallbackUserId;
+  };
+
+  // Get display name for UI
+  const getDisplayName = (): string => {
+    if (authenticatedUser?.isAuthenticated) {
+      return authenticatedUser.name || authenticatedUser.email;
+    }
+    return fallbackUserId;
+  };
+
+  // Load progress data
+  const loadProgress = async () => {
+    try {
+      const response = await fetchData(`/getProgress?postId=${id}`, false);
+      const progressData = response?.data || [];
+      setPageProgress(Array.isArray(progressData) ? progressData : []);
+      Logger.info("Page progress loaded:", progressData?.length || 0, "pages");
+    } catch (error) {
+      Logger.debug("No existing progress found");
+      setPageProgress([]);
+    }
+  };
+
+  // Auto-save current progress
   const autoSaveProgress = async (model: Model) => {
-    if (isAutoSaving || userId === "noname") return;
+    if (isAutoSaving || !authenticatedUser?.isAuthenticated) return;
     
     setIsAutoSaving(true);
     try {
@@ -519,23 +573,26 @@ const loadProgress = async () => {
         postId: id as string,
         currentData: model.data,
         currentPageNo: model.currentPageNo,
-        userId: userId
+        userId: getEffectiveUserId()
       }, false);
       
-      Logger.debug("💾 Auto-saved progress");
+      Logger.debug("Auto-saved progress");
     } catch (error) {
-      Logger.debug("Auto-save failed (this is normal for unauthenticated users)");
+      Logger.debug("Auto-save failed");
     } finally {
       setIsAutoSaving(false);
     }
   };
 
-  // NEW: Submit current page
+  // Submit current page with Okta user
   const submitCurrentPage = async () => {
     if (!surveyModel || isSubmittingPage) return;
     
-    if (userId === "noname") {
-      alert("Please add ?userid=yourname to the URL to submit pages");
+    // Check if user is authenticated
+    if (!authenticatedUser?.isAuthenticated) {
+      alert("Please log in to Okta to submit pages. You can view the checklist but cannot save progress without authentication.");
+      // Optionally redirect to login
+      window.location.href = "/login";
       return;
     }
     
@@ -560,7 +617,7 @@ const loadProgress = async () => {
         postId: id as string,
         pageIndex: surveyModel.currentPageNo,
         pageData: pageData,
-        userId: userId
+        userId: getEffectiveUserId()
       }, false);
       
       // Reload progress to update UI
@@ -571,29 +628,46 @@ const loadProgress = async () => {
         surveyModel.nextPage();
       }
       
-      Logger.info("✅ Page submitted successfully");
+      Logger.info("Page submitted successfully");
       alert("Page submitted successfully!");
       
     } catch (error) {
-      Logger.error("❌ Page submission failed:", error);
+      Logger.error("Page submission failed:", error);
       alert("Failed to submit page. Please try again.");
     } finally {
       setIsSubmittingPage(false);
     }
   };
 
-  // NEW: Check if current page is completed
+  // Check if current page is completed
   const isCurrentPageCompleted = () => {
     if (!surveyModel || !Array.isArray(pageProgress)) return false;
     return pageProgress.some(p => p.pageIndex === surveyModel.currentPageNo && p.isCompleted);
   };
 
-  // NEW: Check if all pages are completed
+  // Check if all pages are completed
   const areAllPagesCompleted = () => {
     if (!surveyModel || !Array.isArray(pageProgress)) return false;
     const totalPages = surveyModel.pageCount;
     const completedPages = pageProgress.filter(p => p.isCompleted).length;
     return completedPages === totalPages;
+  };
+
+  // NEW: Start new checklist function
+  const startNewChecklist = () => {
+    const confirmed = window.confirm("Start a new checklist? This will clear all current data.");
+    if (confirmed) {
+      if (surveyModel) {
+        surveyModel.clear(false);
+        surveyModel.currentPageNo = 0;
+        surveyModel.mode = "edit";
+      }
+      setPageProgress([]);
+      setCompletedSurveyData(null);
+      setIsCompleted(false);
+      setResult({});
+      Logger.info("Started new checklist");
+    }
   };
 
   // Handle theme change
@@ -605,7 +679,7 @@ const loadProgress = async () => {
     
     if (surveyModel) {
       surveyModel.applyTheme(newTheme);
-      Logger.info("🎨 Theme changed to:", themeOptions.find(opt => opt.value === themeIndex.toString())?.label);
+      Logger.info("Theme changed to:", themeOptions.find(opt => opt.value === themeIndex.toString())?.label);
     }
   };
 
@@ -614,27 +688,27 @@ const loadProgress = async () => {
     if (survey.json) {
       const model = initializeModelFromURL(window.location.search, survey.json);
       
-      Logger.info("🔧 Model Initialized with Universal PDF Generator support");
-      Logger.info("📊 Survey details:", {
+      Logger.info("Model Initialized with Universal PDF Generator support");
+      Logger.info("Survey details:", {
         questions: model.getAllQuestions().length,
         pages: model.pages.length,
         title: model.title,
         loadExisting
       });
       
-      // NEW: Setup auto-save on data change
+      // Setup auto-save on data change
       model.onValueChanged.add((sender) => {
         autoSaveProgress(sender);
       });
 
-      // NEW: Setup page change handler
+      // Setup page change handler
       model.onCurrentPageChanged.add((sender) => {
         autoSaveProgress(sender);
       });
       
       // Set up rerun function
       const rerunSurvey = () => {
-        Logger.info("🔄 Rerunning survey");
+        Logger.info("Rerunning survey");
         setIsCompleted(false);
         setCompletedSurveyData(null);
         model.clear(false);
@@ -645,29 +719,27 @@ const loadProgress = async () => {
       // Set up Universal PDF generation function
       const generateUniversalPDFWrapper = async () => {
         if (isGeneratingPDF) {
-          Logger.warn("⚠️ PDF generation already in progress");
+          Logger.warn("PDF generation already in progress");
           return;
         }
         
         setIsGeneratingPDF(true);
         
         try {
-          // Use completed survey data if available, otherwise use current model data
           const dataToUse = completedSurveyData || model.data;
           const hasData = dataToUse && Object.keys(dataToUse).length > 0;
           
           if (!hasData) {
-            Logger.warn("⚠️ Checklist has no data - generating PDF with empty responses");
+            Logger.warn("Checklist has no data - generating PDF with empty responses");
           }
           
-          // Create a temporary model copy with the data for PDF generation
           const tempModel = new Model(model.toJSON());
           tempModel.data = dataToUse;
           
-          await generateUniversalPDF(tempModel, userId, survey.name || 'Checklist');
+          await generateUniversalPDF(tempModel, getEffectiveUserId(), survey.name || 'Checklist');
           
         } catch (error) {
-          Logger.error("❌ Universal PDF generation failed:", error);
+          Logger.error("Universal PDF generation failed:", error);
           
           const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
           
@@ -695,9 +767,9 @@ const loadProgress = async () => {
           const tempModel = new Model(model.toJSON());
           tempModel.data = dataToUse;
           
-          await emailPDF(tempModel, userId, survey.name || 'Checklist');
+          await emailPDF(tempModel, getEffectiveUserId(), survey.name || 'Checklist');
         } catch (error) {
-          Logger.error("❌ Email PDF failed:", error);
+          Logger.error("Email PDF failed:", error);
         } finally {
           setIsEmailingPDF(false);
         }
@@ -715,9 +787,9 @@ const loadProgress = async () => {
           const tempModel = new Model(model.toJSON());
           tempModel.data = dataToUse;
           
-          await saveToSharedFolder(tempModel, userId, survey.name || 'Checklist');
+          await saveToSharedFolder(tempModel, getEffectiveUserId(), survey.name || 'Checklist');
         } catch (error) {
-          Logger.error("❌ Shared folder save failed:", error);
+          Logger.error("Shared folder save failed:", error);
         } finally {
           setIsSavingToSharedFolder(false);
         }
@@ -774,45 +846,43 @@ const loadProgress = async () => {
 
       // Set up completion handler
       model.onComplete.add(async (sender: Model) => {
-        Logger.debug("📋 Checklist completed:", {
+        Logger.debug("Checklist completed:", {
           dataKeys: Object.keys(sender.data),
           questionCount: sender.getAllQuestions().length
         });
         
-        // Save the completed survey data
         setCompletedSurveyData({ ...sender.data });
         setIsCompleted(true);
         
-        // Post data to server
         await postData(
           "/post",
           {
             postId: id as string,
             surveyResult: sender.data,
-            userId: userId,
+            userId: getEffectiveUserId(),
             createdAt: new Date().toISOString(),
           },
           false
         );
         
-        Logger.info("✅ Checklist completed and data preserved");
+        Logger.info("Checklist completed and data preserved");
       });
 
       setSurveyModel(model);
     }
-  }, [survey.json, id, userId, viewOnly, postData, isGeneratingPDF, isEmailingPDF, isSavingToSharedFolder, loadExisting]);
+  }, [survey.json, id, viewOnly, postData, isGeneratingPDF, isEmailingPDF, isSavingToSharedFolder, loadExisting, authenticatedUser]);
 
   // Get survey data
   const getSurvey = async () => {
     try {
       const response = await fetchData("/getSurvey?surveyId=" + id, false);
-      Logger.info("📋 Checklist data received:", {
+      Logger.info("Checklist data received:", {
         title: response.data.name,
         hasJson: !!response.data.json
       });
       setSurvey(response.data);
     } catch (error) {
-      Logger.error("❌ Error getting checklist:", error);
+      Logger.error("Error getting checklist:", error);
     }
   };
 
@@ -820,7 +890,7 @@ const loadProgress = async () => {
   const getResults = async () => {
     try {
       const response = await fetchData("/results?postId=" + id, false);
-      Logger.debug("📊 Results received:", response.data.length, "items");
+      Logger.debug("Results received:", response.data.length, "items");
 
       if (response.data.length > 0) {
         if (result_id) {
@@ -832,7 +902,7 @@ const loadProgress = async () => {
           }
         } else {
           const filteredArray = response.data.filter(
-            (item: ResultItem) => item.submittedBy === userId
+            (item: ResultItem) => item.submittedBy === getEffectiveUserId()
           );
           if (filteredArray.length > 0) {
             const latestEntry = filteredArray.reduce(
@@ -847,30 +917,30 @@ const loadProgress = async () => {
         }
       }
     } catch (error) {
-      Logger.error("❌ Error getting results:", error);
+      Logger.error("Error getting results:", error);
     }
   };
 
   // Load existing data when needed
   useEffect(() => {
     if (loadExisting && surveyModel) {
-      Logger.info("📥 Loading existing data");
+      Logger.info("Loading existing data");
       getResults();
     } else {
-      Logger.info("📝 Starting with blank form");
+      Logger.info("Starting with blank form");
     }
   }, [loadExisting, surveyModel]);
 
-  // MODIFIED: Load survey and progress data
+  // Load user and initial data
   useEffect(() => {
+    getCurrentUser();
     getSurvey();
-    loadProgress(); // NEW: Load progress data
+    loadProgress();
   }, []);
 
-  // NEW: Apply existing progress to model
+  // Apply existing progress to model
   useEffect(() => {
     if (surveyModel && pageProgress.length > 0) {
-      // Merge all completed page data
       let mergedData = {};
       pageProgress.forEach(progress => {
         if (progress.isCompleted && progress.pageData) {
@@ -880,14 +950,14 @@ const loadProgress = async () => {
       
       if (Object.keys(mergedData).length > 0) {
         surveyModel.data = mergeDeep(surveyModel.data, mergedData);
-        Logger.info("📥 Applied existing progress:", Object.keys(mergedData).length, "fields");
+        Logger.info("Applied existing progress:", Object.keys(mergedData).length, "fields");
       }
     }
   }, [surveyModel, pageProgress]);
 
-  // Apply theme (but don't override manual theme selection)
+  // Apply theme
   useEffect(() => {
-    if (surveyModel && selectedThemeIndex === 0) { // Only apply server theme if user hasn't manually selected one
+    if (surveyModel && selectedThemeIndex === 0) {
       const loadTheme = async () => {
         try {
           const response = await fetchData("/getTheme?surveyId=" + id, false);
@@ -897,7 +967,7 @@ const loadProgress = async () => {
             surveyModel.applyTheme(parsedTheme);
           }
         } catch (error) {
-          Logger.error("❌ Error getting theme:", error);
+          Logger.error("Error getting theme:", error);
         }
       };
       loadTheme();
@@ -907,7 +977,7 @@ const loadProgress = async () => {
   // Apply result data to model
   useEffect(() => {
     if (Object.keys(result).length > 0 && loadExisting && surveyModel && !isCompleted) {
-      Logger.debug("📊 Applying existing results to model");
+      Logger.debug("Applying existing results to model");
       if (!result_id) {
         surveyModel.data = mergeDeep(surveyModel.data, result);
       } else {
@@ -977,8 +1047,7 @@ const loadProgress = async () => {
     </div>
   );
 
-  // NEW: Progress Indicator Component
-
+  // Progress Indicator Component
   const ProgressIndicator = () => {
     if (!surveyModel || surveyModel.pageCount <= 1 || !Array.isArray(pageProgress)) return null;
 
@@ -994,12 +1063,38 @@ const loadProgress = async () => {
           </span>
         </div>
         
-        {/* rest of component stays the same */}
+        <div className="flex space-x-2">
+          {Array.from({ length: totalPages }, (_, index) => {
+            const isCompleted = pageProgress.some(p => p.pageIndex === index && p.isCompleted);
+            const isCurrent = index === currentPageIndex;
+            
+            return (
+              <div
+                key={index}
+                className={`flex-1 h-2 rounded-full ${
+                  isCompleted 
+                    ? 'bg-green-500' 
+                    : isCurrent 
+                      ? 'bg-blue-500' 
+                      : 'bg-gray-200'
+                }`}
+                title={`Page ${index + 1} ${isCompleted ? '(Completed)' : isCurrent ? '(Current)' : ''}`}
+              />
+            );
+          })}
+        </div>
+        
+        <div className="flex justify-between mt-2 text-xs text-gray-500">
+          <span>Page {currentPageIndex + 1} of {totalPages}</span>
+          {isCurrentPageCompleted() && (
+            <span className="text-green-600 font-medium">✓ This page is completed</span>
+          )}
+        </div>
       </div>
     );
   };
 
-  // NEW: Page Actions Component
+  // Page Actions Component
   const PageActions = () => {
     if (!surveyModel || viewOnly || surveyModel.pageCount <= 1) return null;
 
@@ -1012,6 +1107,17 @@ const loadProgress = async () => {
       <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 no-print">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
+            {/* NEW: Add New button here as requested */}
+            <button
+              onClick={startNewChecklist}
+              className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              New
+            </button>
+            
             {isAutoSaving && (
               <div className="flex items-center text-sm text-gray-500">
                 <svg className="animate-spin h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24">
@@ -1070,6 +1176,18 @@ const loadProgress = async () => {
     );
   };
 
+  // Show loading state while checking authentication
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loading />
+          <p className="mt-4 text-gray-600">Loading user information...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Render completion page if completed
   if (isCompleted && surveyModel) {
     return (
@@ -1092,6 +1210,17 @@ const loadProgress = async () => {
                 </nav>
               </div>
               <div className="flex items-center space-x-4">
+                <span className="text-white text-sm">
+                  {authenticatedUser?.isAuthenticated && (
+                    <span className="inline-flex items-center px-2 py-1 bg-green-500 bg-opacity-20 rounded-md mr-2">
+                      <svg className="w-3 h-3 text-green-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Authenticated
+                    </span>
+                  )}
+                  {getDisplayName()}
+                </span>
                 <ThemeSelector />
               </div>
             </div>
@@ -1129,7 +1258,7 @@ const loadProgress = async () => {
                 {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
               </button>
               <button 
-                className={`inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-colors duration-200 ${isEmailingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 ${isEmailingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onClick={() => window.emailPDF()}
                 disabled={isEmailingPDF}
               >
@@ -1144,7 +1273,7 @@ const loadProgress = async () => {
                 disabled={isSavingToSharedFolder}
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l-3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17M13 13h8m0 0V9m0 4l-3-3"></path>
                 </svg>
                 {isSavingToSharedFolder ? 'Saving...' : 'Save to Shared Folder'}
               </button>
@@ -1182,14 +1311,23 @@ const loadProgress = async () => {
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-white text-sm">User: {userId}</span>
+              <span className="text-white text-sm">
+                {authenticatedUser?.isAuthenticated && (
+                  <span className="inline-flex items-center px-2 py-1 bg-green-500 bg-opacity-20 rounded-md mr-2">
+                    <svg className="w-3 h-3 text-green-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Authenticated
+                  </span>
+                )}
+                {getDisplayName()}
+              </span>
               <ThemeSelector />
             </div>
           </div>
         </div>
       </header>
 
-      {/* NEW: Progress and Actions sections */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <ProgressIndicator />
         <PageActions />
