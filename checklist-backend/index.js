@@ -208,7 +208,7 @@ const dbAdapterExtensions = {
     const query = `
       SELECT DISTINCT
         cp.postId,
-        s.name as surveyName,
+        COALESCE(s.name, 'Unknown Checklist') as surveyName,
         cp.lastEditedBy,
         cp.updatedAt as lastUpdated,
         cp.currentPageNo,
@@ -219,13 +219,13 @@ const dbAdapterExtensions = {
         ) as completedPages,
         s.json
       FROM ASSM_CurrentProgress cp
-      INNER JOIN surveys s ON cp.postId = s.id
+      LEFT JOIN surveys s ON cp.postId = s.id
       WHERE cp.postId NOT IN (
         SELECT DISTINCT postid 
         FROM results 
-        WHERE postid = cp.postId
+        WHERE postid IS NOT NULL AND postid = cp.postId
       )
-      AND cp.lastEditedBy = @userId
+      AND LOWER(cp.lastEditedBy) = LOWER(@userId)
       ORDER BY cp.updatedAt DESC
     `;
     
