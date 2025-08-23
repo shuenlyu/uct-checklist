@@ -319,19 +319,17 @@ app.get("/getInFlightChecklists", async (req, res) => {
   try {
     Logger.debug("---- api call: /getInFlightChecklists Started!");
     
-    // Get user information for filtering
     const userId = req.user ? req.user.email : null;
     
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
     }
     
-    // UPDATED: Use your actual surveys table name here
-    // Replace 'YOUR_SURVEYS_TABLE_NAME' with your actual table name
+    // FIXED: Use LEFT JOIN and case-insensitive comparison
     const query = `
       SELECT DISTINCT
         cp.postId,
-        s.name as surveyName,
+        COALESCE(s.name, 'Unknown Checklist') as surveyName,
         cp.lastEditedBy,
         cp.updatedAt as lastUpdated,
         cp.currentPageNo,
@@ -342,13 +340,13 @@ app.get("/getInFlightChecklists", async (req, res) => {
         ) as completedPages,
         s.json
       FROM ASSM_CurrentProgress cp
-      INNER JOIN surveys s ON cp.postId = s.id
+      LEFT JOIN surveys s ON cp.postId = s.id
       WHERE cp.postId NOT IN (
         SELECT DISTINCT postid 
         FROM results 
-        WHERE postid = cp.postId
+        WHERE postid IS NOT NULL AND postid = cp.postId
       )
-      AND cp.lastEditedBy = @userId
+      AND LOWER(cp.lastEditedBy) = LOWER(@userId)
       ORDER BY cp.updatedAt DESC
     `;
     
@@ -356,7 +354,11 @@ app.get("/getInFlightChecklists", async (req, res) => {
       { name: "userId", type: sql.NVarChar, value: userId }
     ];
     
+    Logger.debug("Query:", query);
+    Logger.debug("Params:", params);
+    
     const result = await dbAdapter.query(query, params);
+    Logger.debug("Raw query result:", result);
     
     // Process the results to add total pages count
     const processedResults = result.map(row => {
@@ -383,10 +385,13 @@ app.get("/getInFlightChecklists", async (req, res) => {
     });
     
     Logger.debug("---- api call: /getInFlightChecklists, result count: ", processedResults.length);
+    Logger.debug("Processed results:", processedResults);
+    
     res.json({ data: processedResults });
     
   } catch (error) {
     Logger.error("===== ERROR in /getInFlightChecklists:", error.message);
+    Logger.error("Error stack:", error.stack);
     res.status(500).json({ error: error.message });
   }
 });
