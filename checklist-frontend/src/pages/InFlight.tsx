@@ -337,14 +337,36 @@ const InFlight = () => {
       setIsLoading(true);
       const response = await fetchData("/getInFlightChecklists");
       
-      // Ensure we always get an array
-      const data = response?.data;
-      if (Array.isArray(data)) {
-        setInFlightChecklists(data);
-      } else {
-        console.warn("Expected array from /getInFlightChecklists, got:", typeof data, data);
-        setInFlightChecklists([]);
+      console.log("Full response from fetchData:", response);
+      
+      // Handle different response formats
+      let dataArray = [];
+      
+      // Case 1: Direct array response
+      if (Array.isArray(response)) {
+        dataArray = response;
       }
+      // Case 2: Response has .data property with array
+      else if (response && Array.isArray(response.data)) {
+        dataArray = response.data;
+      }
+      // Case 3: Nested data structure
+      else if (response && response.data && Array.isArray(response.data.data)) {
+        dataArray = response.data.data;
+      }
+      // Case 4: Response is object with data property that has data property
+      else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+        dataArray = response.data.data;
+      }
+      else {
+        console.warn("Unexpected response format from /getInFlightChecklists:", response);
+        dataArray = [];
+      }
+      
+      console.log("Extracted data array:", dataArray);
+      console.log("Data array length:", dataArray.length);
+      
+      setInFlightChecklists(dataArray);
     } catch (error) {
       Logger.error("Error getting in-flight checklists:", error);
       console.error("Full error details:", error);
@@ -555,7 +577,7 @@ const InFlight = () => {
               </tbody>
             </table>
             
-            {inFlightChecklists.length === 0 && (
+            {inFlightChecklists.length === 0 && !isLoading && (
               <div className="text-center py-8 text-gray-500">
                 No in-flight checklists found. Start a checklist and save some pages to see them here.
               </div>
