@@ -339,6 +339,22 @@ app.get("/getInFlightChecklists", async (req, res) => {
   }
 });
 
+// Get current progress (for resume functionality)
+app.get("/getCurrentProgress", async (req, res) => {
+  try {
+    Logger.debug("---- api call: /getCurrentProgress Started!");
+    const postId = req.query["postId"];
+    const result = await dbAdapter.getCurrentProgress(postId);
+    Logger.debug("---- api call: /getCurrentProgress, result: ", result);
+    res.json({ data: result });
+  } catch (error) {
+    Logger.error("===== ERROR in /getCurrentProgress:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
 // IMPROVED: Enhanced /getMe endpoint with better user data handling
 app.get("/getMe", (req, res, _next) => {
   // Use console.log in addition to Logger.debug to ensure we see output in Docker logs
