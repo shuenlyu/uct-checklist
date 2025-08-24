@@ -690,36 +690,34 @@ const Run = () => {
     return fallbackUserId;
   };
 
- const loadProgress = async () => {
+const loadProgress = async () => {
   try {
-    // Direct fetch instead of using fetchData utility
-    const response = await fetch(`/getProgress?postId=${id}`);
-    const result = await response.json();
+    console.log("loadProgress: About to call fetchData");
+    const response = await fetchData(`/getProgress?postId=${id}`, false);
+    console.log("loadProgress: fetchData response:", response);
     
-    console.log("Direct loadProgress result:", result);
-    console.log("result.data:", result.data);
-    
-    const progressData = result?.data || [];
-    console.log("progressData:", progressData);
-    console.log("progressData length:", progressData.length);
+    const progressData = response?.data || [];
+    console.log("loadProgress: extracted progressData:", progressData);
+    console.log("loadProgress: progressData length:", progressData.length);
     
     setPageProgress(Array.isArray(progressData) ? progressData : []);
     Logger.info("Page progress loaded:", progressData?.length || 0, "pages");
   } catch (error) {
+    console.error("loadProgress error:", error);
     Logger.debug("No existing progress found");
     setPageProgress([]);
   }
 };
 
- const loadCurrentProgress = async () => {
+const loadCurrentProgress = async () => {
   try {
-    // Direct fetch instead of using fetchData utility
-    const response = await fetch(`/getCurrentProgress?postId=${id}`);
-    const result = await response.json();
+    console.log("loadCurrentProgress: About to call fetchData");
+    const response = await fetchData(`/getCurrentProgress?postId=${id}`, false);
+    console.log("loadCurrentProgress: fetchData response:", response);
     
-    console.log("Direct loadCurrentProgress result:", result);
+    const currentProgressData = response?.data;
+    console.log("loadCurrentProgress: extracted data:", currentProgressData);
     
-    const currentProgressData = result?.data;
     if (currentProgressData && currentProgressData.currentData) {
       setCurrentProgress(currentProgressData);
       Logger.info("Current progress loaded - page:", currentProgressData.currentPageNo, "fields:", Object.keys(currentProgressData.currentData).length);
@@ -730,70 +728,10 @@ const Run = () => {
       return null;
     }
   } catch (error) {
+    console.error("loadCurrentProgress error:", error);
     Logger.debug("No current progress found");
     setCurrentProgress(null);
     return null;
-  }
-};
-
-const loadAllProgressData = async () => {
-  console.log("=== LOADING ALL PROGRESS DATA ===");
-  
-  if (!surveyModel || isClearing) {
-    console.log("Skipping progress load - no survey model or clearing");
-    return;
-  }
-  
-  try {
-    console.log("Step 1: About to call loadProgress");
-    await loadProgress(); // Completed pages
-    console.log("Step 2: loadProgress completed, about to call loadCurrentProgress");
-    
-    const currentProgressData = await loadCurrentProgress(); // Current work-in-progress
-    console.log("Step 3: loadCurrentProgress completed, data:", currentProgressData);
-    
-    let allData = {};
-    
-    console.log("Step 4: Processing pageProgress, length:", pageProgress.length);
-    // 1. First, merge completed page data
-    pageProgress.forEach(progress => {
-      if (progress.isCompleted && progress.pageData) {
-        allData = { ...allData, ...progress.pageData };
-        console.log("Merged completed page data:", Object.keys(progress.pageData));
-      }
-    });
-    
-    console.log("Step 5: Processing currentProgress");
-    // 2. Then, merge current progress data (this takes precedence)
-    if (currentProgressData && currentProgressData.currentData) {
-      allData = { ...allData, ...currentProgressData.currentData };
-      console.log("Merged current progress data:", Object.keys(currentProgressData.currentData));
-    }
-    
-    console.log("Step 6: Applying data to survey model");
-    // 3. Apply all data to survey model
-    if (Object.keys(allData).length > 0) {
-      surveyModel.data = mergeDeep(surveyModel.data, allData);
-      console.log("Applied total merged data:", Object.keys(allData).length, "fields");
-      Logger.info("Applied all progress data:", Object.keys(allData).length, "fields");
-    }
-    
-    console.log("Step 7: Navigation for resume");
-    // 4. FIXED: Navigate to correct page for resume requests
-    if (isResumeRequest && currentProgressData) {
-      const targetPage = currentProgressData.currentPageNo || 0;
-      console.log(`Navigating to resumed page: ${targetPage + 1} of ${surveyModel.pageCount}`);
-      surveyModel.currentPageNo = targetPage;
-      Logger.info(`Resumed checklist to page ${targetPage + 1}`);
-    }
-    
-    setDataLoaded(true);
-    console.log("=== ALL PROGRESS DATA LOADED AND APPLIED ===");
-    
-  } catch (error) {
-    console.error("Error in loadAllProgressData:", error);
-    Logger.error("Error loading progress data:", error);
-    setDataLoaded(true); // Still mark as loaded to prevent blocking
   }
 };
 
