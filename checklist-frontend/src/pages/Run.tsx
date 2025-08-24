@@ -690,40 +690,51 @@ const Run = () => {
     return fallbackUserId;
   };
 
-  // FIXED: Load page progress data
-  const loadProgress = async () => {
-    try {
-      const response = await fetchData(`/getProgress?postId=${id}`, false);
-      const progressData = response?.data || [];
-      setPageProgress(Array.isArray(progressData) ? progressData : []);
-      Logger.info("Page progress loaded:", progressData?.length || 0, "pages");
-    } catch (error) {
-      Logger.debug("No existing progress found");
-      setPageProgress([]);
-    }
-  };
+ const loadProgress = async () => {
+  try {
+    // Direct fetch instead of using fetchData utility
+    const response = await fetch(`/getProgress?postId=${id}`);
+    const result = await response.json();
+    
+    console.log("Direct loadProgress result:", result);
+    console.log("result.data:", result.data);
+    
+    const progressData = result?.data || [];
+    console.log("progressData:", progressData);
+    console.log("progressData length:", progressData.length);
+    
+    setPageProgress(Array.isArray(progressData) ? progressData : []);
+    Logger.info("Page progress loaded:", progressData?.length || 0, "pages");
+  } catch (error) {
+    Logger.debug("No existing progress found");
+    setPageProgress([]);
+  }
+};
 
-  // NEW: Load current progress data (work-in-progress form data)
-  const loadCurrentProgress = async () => {
-    try {
-      const response = await fetchData(`/getCurrentProgress?postId=${id}`, false);
-      const currentProgressData = response?.data;
-      
-      if (currentProgressData && currentProgressData.currentData) {
-        setCurrentProgress(currentProgressData);
-        Logger.info("Current progress loaded - page:", currentProgressData.currentPageNo, "fields:", Object.keys(currentProgressData.currentData).length);
-        return currentProgressData;
-      } else {
-        Logger.debug("No current progress found");
-        setCurrentProgress(null);
-        return null;
-      }
-    } catch (error) {
+ const loadCurrentProgress = async () => {
+  try {
+    // Direct fetch instead of using fetchData utility
+    const response = await fetch(`/getCurrentProgress?postId=${id}`);
+    const result = await response.json();
+    
+    console.log("Direct loadCurrentProgress result:", result);
+    
+    const currentProgressData = result?.data;
+    if (currentProgressData && currentProgressData.currentData) {
+      setCurrentProgress(currentProgressData);
+      Logger.info("Current progress loaded - page:", currentProgressData.currentPageNo, "fields:", Object.keys(currentProgressData.currentData).length);
+      return currentProgressData;
+    } else {
       Logger.debug("No current progress found");
       setCurrentProgress(null);
       return null;
     }
-  };
+  } catch (error) {
+    Logger.debug("No current progress found");
+    setCurrentProgress(null);
+    return null;
+  }
+};
 
   // NEW: Load all progress data and apply to survey model
   const loadAllProgressData = async () => {
