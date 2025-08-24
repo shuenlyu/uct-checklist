@@ -319,15 +319,43 @@ app.get("/getInFlightChecklists", async (req, res) => {
     
     const result = await dbAdapter.getInFlightChecklists(userId);
     
-    // Process results without relying on surveys table data
-    const processedResults = result.map(row => ({
-      postId: row.postId,
-      surveyName: `Checklist ${row.postId.substring(0, 8)}`, // Generate name from postId
-      totalPages: 10, // Default assumption - could enhance later
-      completedPages: row.completedPages || 0,
-      lastEditedBy: row.lastEditedBy,
-      lastUpdated: row.lastUpdated,
-      currentPageNo: row.currentPageNo || 0
+    // FIXED: Get actual page count from survey JSON
+    const processedResults = await Promise.all(result.map(async (row) => {
+      let totalPages = 10; // Default fallback
+      let surveyName = `Checklist ${row.postId.substring(0, 8)}`;
+      
+      try {
+        // Get survey data to determine actual page count and name
+        const surveyResponse = await dbAdapter.getSurvey(row.postId, { email: userId, role: null });
+        
+        if (surveyResponse && (useMSSQL ? surveyResponse[0] : surveyResponse)) {
+          const surveyData = useMSSQL ? surveyResponse[0] : surveyResponse;
+          
+          if (surveyData.name) {
+            surveyName = surveyData.name;
+          }
+          
+          if (surveyData.json) {
+            const surveyJson = JSON.parse(surveyData.json);
+            if (surveyJson.pages && Array.isArray(surveyJson.pages)) {
+              totalPages = surveyJson.pages.length;
+            }
+          }
+        }
+      } catch (error) {
+        Logger.debug(`Could not get survey details for ${row.postId}:`, error.message);
+        // Use defaults if survey data not available
+      }
+      
+      return {
+        postId: row.postId,
+        surveyName: surveyName,
+        totalPages: totalPages,
+        completedPages: row.completedPages || 0,
+        lastEditedBy: row.lastEditedBy,
+        lastUpdated: row.lastUpdated,
+        currentPageNo: row.currentPageNo || 0
+      };
     }));
     
     Logger.debug("---- result count: ", processedResults.length);
@@ -874,7 +902,16 @@ app.post("/post", async (req, res) => {
       createdAt
     );
     
-    // Data collection processing
+    // FIXED: Clear progress tables after successful completion
+    try {
+      await dbAdapter.clearProgress(postId, userId);
+      Logger.info(`Cleared progress tables for completed checklist: ${postId}`);
+    } catch (clearError) {
+      Logger.warn("Failed to clear progress after completion:", clearError.message);
+      // Don't fail the main operation if clearing fails
+    }
+    
+    // Data collection processing (existing code)
     const postResult = JSON.parse(result[0].json);
 
     if (postResult.hasOwnProperty("datacollection_header")) {
