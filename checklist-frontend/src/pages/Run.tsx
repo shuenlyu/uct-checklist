@@ -1,4 +1,4 @@
-// Run.tsx - Fixed with proper authentication, working 'New' button, debugging tools, and In Flight resume support
+// Run.tsx - Fixed with proper authentication, working 'New' button, debugging tools, and FIXED In Flight resume support
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router";
 import { Link } from 'react-router-dom';
@@ -24,7 +24,7 @@ declare global {
     generateUniversalPDF: () => Promise<void>;
     emailPDF: () => Promise<void>;
     saveToSharedFolder: () => Promise<void>;
-    surveyModel: Model | null; // Add for debugging
+    surveyModel: Model | null;
   }
 }
 
@@ -57,6 +57,13 @@ interface PageProgress {
   completedBy: string;
   completedAt: string;
   isCompleted: boolean;
+}
+
+interface CurrentProgress {
+  currentData: any;
+  currentPageNo: number;
+  lastEditedBy: string;
+  updatedAt: string;
 }
 
 interface AuthenticatedUser {
@@ -458,7 +465,6 @@ const Run = () => {
 
   const queryParams = new URLSearchParams(window.location.search);
   
-  // Get fallback userId from URL params but prefer Okta user
   const fallbackUserId: string = queryParams.get("inspectedby")
     ? queryParams.get("inspectedby")!
     : (queryParams.get("userid") ? queryParams.get("userid")! : "noname");
@@ -469,13 +475,11 @@ const Run = () => {
     viewOnly = true;
   }
 
-  // UPDATED: Check if we should load existing data - now includes resume_progress support
   const loadExisting = queryParams.get("load_existing") === "true" || 
-                      queryParams.get("resume_progress") === "true" ||  // NEW: Add resume support
+                      queryParams.get("resume_progress") === "true" ||
                       result_id !== undefined || 
                       queryParams.get("edit") === "true";
 
-  // NEW: Check if this is a resume request
   const isResumeRequest = queryParams.get("resume_progress") === "true";
 
   const { fetchData, postData } = useApi();
@@ -493,23 +497,22 @@ const Run = () => {
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
   const [showThemeDropdown, setShowThemeDropdown] = useState(false);
   const [pageProgress, setPageProgress] = useState<PageProgress[]>([]);
+  const [currentProgress, setCurrentProgress] = useState<CurrentProgress | null>(null); // NEW: Current progress state
   const [isSubmittingPage, setIsSubmittingPage] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [authenticatedUser, setAuthenticatedUser] = useState<AuthenticatedUser | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  
-  // State to prevent reapplying data after clearing
   const [isClearing, setIsClearing] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false); // NEW: Track when all data is loaded
 
-  // DEBUG FUNCTION FOR AUTHENTICATION
+  // DEBUG FUNCTIONS (keeping your debug functions)
   const debugAuthentication = async () => {
     console.log("=== MANUAL AUTHENTICATION DEBUG ===");
     
     try {
-      // Test the getMe endpoint directly
       const response = await fetch('/getMe', {
         method: 'GET',
-        credentials: 'include', // Important for cookies
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         }
@@ -534,13 +537,11 @@ const Run = () => {
         console.log("Error response:", errorText);
       }
       
-      // Check browser storage
       console.log("=== BROWSER STORAGE ===");
       console.log("LocalStorage keys:", Object.keys(localStorage));
       console.log("SessionStorage keys:", Object.keys(sessionStorage));
       console.log("Document cookies:", document.cookie);
       
-      // Check current authentication state
       console.log("=== CURRENT AUTH STATE ===");
       console.log("authenticatedUser:", authenticatedUser);
       console.log("isLoadingUser:", isLoadingUser);
@@ -551,12 +552,11 @@ const Run = () => {
     }
   };
 
-  // DEBUG FUNCTION FOR PAGE VALIDATION
   const debugPageValidation = () => {
     console.log("=== PAGE VALIDATION DEBUG ===");
     
     if (!surveyModel) {
-      console.log("❌ No survey model found");
+      console.log("No survey model found");
       return;
     }
     
@@ -565,7 +565,6 @@ const Run = () => {
     console.log("Current page name:", currentPage.name);
     console.log("Current page index:", surveyModel.currentPageNo);
     
-    // Check all questions on current page
     console.log("=== QUESTIONS ON CURRENT PAGE ===");
     currentPage.questions.forEach((question: any, index: number) => {
       console.log(`Question ${index + 1}:`);
@@ -581,26 +580,30 @@ const Run = () => {
       console.log("  ---");
     });
     
-    // Check overall page validation
     console.log("=== PAGE VALIDATION RESULT ===");
     const isValid = currentPage.validate();
     console.log("Page validation result:", isValid);
     console.log("Page errors:", currentPage.errors);
     console.log("Page has errors:", currentPage.hasErrors());
     
-    // Check authentication state for submit permission
     console.log("=== AUTHENTICATION FOR SUBMIT ===");
     console.log("Authenticated user:", authenticatedUser);
     console.log("Is authenticated:", authenticatedUser?.isAuthenticated);
     console.log("Can submit:", isValid && authenticatedUser?.isAuthenticated);
     
-    // Check current survey data
     console.log("=== CURRENT SURVEY DATA ===");
     console.log("Survey data:", surveyModel.data);
     console.log("Survey data keys:", Object.keys(surveyModel.data || {}));
+    
+    // NEW: Debug resume data
+    console.log("=== RESUME DATA DEBUG ===");
+    console.log("Is resume request:", isResumeRequest);
+    console.log("Load existing:", loadExisting);
+    console.log("Page progress:", pageProgress);
+    console.log("Current progress:", currentProgress);
+    console.log("Data loaded:", dataLoaded);
   };
 
-  // FIXED: Get current user from Okta authentication
   const getCurrentUser = async () => {
     setIsLoadingUser(true);
     try {
@@ -610,13 +613,11 @@ const Run = () => {
       
       console.log("GetMe response:", response);
       
-      // NEW: Check if this is a resume request and log it
       if (isResumeRequest) {
-        console.log("🔄 Resume request detected - will load progress data");
+        console.log("Resume request detected - will load progress data");
         Logger.info("Resume request detected for checklist:", id);
       }
       
-      // FIXED: Check response.data instead of response directly
       if (response && response.data && response.data.user && response.data.authenticated) {
         const user: AuthenticatedUser = {
           email: response.data.user.email || 'unknown@company.com',
@@ -626,7 +627,7 @@ const Run = () => {
         };
         
         setAuthenticatedUser(user);
-        console.log("✅ User authenticated successfully:", user);
+        console.log("User authenticated successfully:", user);
         Logger.info("Current user authenticated:", user.email);
         return;
       }
@@ -634,10 +635,9 @@ const Run = () => {
       throw new Error("Invalid authentication response - missing user data");
       
     } catch (error) {
-      console.log("❌ Authentication failed:", error);
+      console.log("Authentication failed:", error);
       Logger.warn("User not authenticated:", error);
       
-      // Check if it's a 401 (not authenticated) vs other errors
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
@@ -650,7 +650,6 @@ const Run = () => {
       } else {
         console.log("Network or other error, checking for cached auth");
         
-        // Check if there might be cached authentication
         const hasAuthIndicator = localStorage.getItem('okta-token-storage') || 
                                 sessionStorage.getItem('okta-token-storage') ||
                                 document.cookie.includes('okta') ||
@@ -677,7 +676,6 @@ const Run = () => {
     }
   };
 
-  // Get the effective user ID for operations
   const getEffectiveUserId = (): string => {
     if (authenticatedUser?.isAuthenticated) {
       return authenticatedUser.email;
@@ -685,7 +683,6 @@ const Run = () => {
     return fallbackUserId;
   };
 
-  // Get display name for UI
   const getDisplayName = (): string => {
     if (authenticatedUser?.isAuthenticated) {
       return authenticatedUser.name || authenticatedUser.email;
@@ -693,35 +690,92 @@ const Run = () => {
     return fallbackUserId;
   };
 
-  // UPDATED: Load progress data with resume navigation support
+  // FIXED: Load page progress data
   const loadProgress = async () => {
     try {
       const response = await fetchData(`/getProgress?postId=${id}`, false);
       const progressData = response?.data || [];
       setPageProgress(Array.isArray(progressData) ? progressData : []);
-      
-      // NEW: If this is a resume request, navigate to the appropriate page
-      if (isResumeRequest && progressData.length > 0 && surveyModel) {
-        // Find the last incomplete page or the last completed page + 1
-        const completedPages = progressData.filter((p: any) => p.isCompleted).map((p: any) => p.pageIndex);
-        let targetPage = 0;
-        
-        if (completedPages.length > 0) {
-          const maxCompletedPage = Math.max(...completedPages);
-          // Navigate to the next page after the last completed, or stay on last page if all completed
-          targetPage = Math.min(maxCompletedPage + 1, surveyModel.pageCount - 1);
-        }
-        
-        // Navigate to the target page
-        surveyModel.currentPageNo = targetPage;
-        console.log(`📍 Resumed to page ${targetPage + 1} of ${surveyModel.pageCount}`);
-        Logger.info(`Resumed checklist to page ${targetPage + 1}`);
-      }
-      
       Logger.info("Page progress loaded:", progressData?.length || 0, "pages");
     } catch (error) {
       Logger.debug("No existing progress found");
       setPageProgress([]);
+    }
+  };
+
+  // NEW: Load current progress data (work-in-progress form data)
+  const loadCurrentProgress = async () => {
+    try {
+      const response = await fetchData(`/getCurrentProgress?postId=${id}`, false);
+      const currentProgressData = response?.data;
+      
+      if (currentProgressData && currentProgressData.currentData) {
+        setCurrentProgress(currentProgressData);
+        Logger.info("Current progress loaded - page:", currentProgressData.currentPageNo, "fields:", Object.keys(currentProgressData.currentData).length);
+        return currentProgressData;
+      } else {
+        Logger.debug("No current progress found");
+        setCurrentProgress(null);
+        return null;
+      }
+    } catch (error) {
+      Logger.debug("No current progress found");
+      setCurrentProgress(null);
+      return null;
+    }
+  };
+
+  // NEW: Load all progress data and apply to survey model
+  const loadAllProgressData = async () => {
+    console.log("=== LOADING ALL PROGRESS DATA ===");
+    
+    if (!surveyModel || isClearing) {
+      console.log("Skipping progress load - no survey model or clearing");
+      return;
+    }
+    
+    try {
+      // Load both types of progress data
+      await loadProgress(); // Completed pages
+      const currentProgressData = await loadCurrentProgress(); // Current work-in-progress
+      
+      let allData = {};
+      
+      // 1. First, merge completed page data
+      pageProgress.forEach(progress => {
+        if (progress.isCompleted && progress.pageData) {
+          allData = { ...allData, ...progress.pageData };
+          console.log("Merged completed page data:", Object.keys(progress.pageData));
+        }
+      });
+      
+      // 2. Then, merge current progress data (this takes precedence)
+      if (currentProgressData && currentProgressData.currentData) {
+        allData = { ...allData, ...currentProgressData.currentData };
+        console.log("Merged current progress data:", Object.keys(currentProgressData.currentData));
+      }
+      
+      // 3. Apply all data to survey model
+      if (Object.keys(allData).length > 0) {
+        surveyModel.data = mergeDeep(surveyModel.data, allData);
+        console.log("Applied total merged data:", Object.keys(allData).length, "fields");
+        Logger.info("Applied all progress data:", Object.keys(allData).length, "fields");
+      }
+      
+      // 4. FIXED: Navigate to correct page for resume requests
+      if (isResumeRequest && currentProgressData) {
+        const targetPage = currentProgressData.currentPageNo || 0;
+        console.log(`Navigating to resumed page: ${targetPage + 1} of ${surveyModel.pageCount}`);
+        surveyModel.currentPageNo = targetPage;
+        Logger.info(`Resumed checklist to page ${targetPage + 1}`);
+      }
+      
+      setDataLoaded(true);
+      console.log("=== ALL PROGRESS DATA LOADED AND APPLIED ===");
+      
+    } catch (error) {
+      Logger.error("Error loading progress data:", error);
+      setDataLoaded(true); // Still mark as loaded to prevent blocking
     }
   };
 
@@ -778,7 +832,7 @@ const Run = () => {
         userId: getEffectiveUserId()
       }, false);
       
-      await loadProgress();
+      await loadProgress(); // Reload page progress after submission
       
       if (surveyModel.currentPageNo < surveyModel.pageCount - 1) {
         surveyModel.nextPage();
@@ -809,33 +863,32 @@ const Run = () => {
     return completedPages === totalPages;
   };
 
-  // FIXED: Start new checklist function
+  // Start new checklist function
   const startNewChecklist = async () => {
     const confirmed = window.confirm("Start a new checklist? This will clear all current data.");
     if (confirmed) {
       try {
         setIsClearing(true);
         
-        // 1. Clear server-side progress if user is authenticated
         if (authenticatedUser?.isAuthenticated) {
           try {
             await postData("/clearProgress", {
               postId: id as string,
               userId: getEffectiveUserId()
             }, false);
-            console.log("✅ Server progress cleared");
+            console.log("Server progress cleared");
           } catch (error) {
             console.log("No existing progress to clear or clear failed:", error);
           }
         }
         
-        // 2. Clear all local state
         setPageProgress([]);
+        setCurrentProgress(null); // NEW: Clear current progress
         setCompletedSurveyData(null);
         setIsCompleted(false);
         setResult({});
+        setDataLoaded(false); // NEW: Reset data loaded state
         
-        // 3. Clear and reset survey model
         if (surveyModel) {
           const beforeData = { ...surveyModel.data };
           surveyModel.clear(true);
@@ -846,7 +899,6 @@ const Run = () => {
           console.log("Survey cleared - Before:", beforeData);
           console.log("Survey cleared - After:", surveyModel.data);
           
-          // Force re-render
           surveyModel.trigger("valueChanged", surveyModel, {
             name: "__clear_all__",
             value: null,
@@ -854,22 +906,20 @@ const Run = () => {
           });
         }
         
-        // 4. Update URL to remove data-loading parameters
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('load_existing');
-        newUrl.searchParams.delete('resume_progress'); // NEW: Also remove resume parameter
+        newUrl.searchParams.delete('resume_progress');
         newUrl.searchParams.delete('edit');
         newUrl.searchParams.delete('id');
         window.history.replaceState({}, '', newUrl.toString());
         
-        console.log("✅ New checklist started successfully");
+        console.log("New checklist started successfully");
         Logger.info("Started new checklist - all data cleared");
         
       } catch (error) {
-        console.error("❌ Error starting new checklist:", error);
+        console.error("Error starting new checklist:", error);
         alert("There was an error starting a new checklist. Please refresh the page and try again.");
       } finally {
-        // Wait a moment then re-enable data loading
         setTimeout(() => {
           setIsClearing(false);
         }, 1000);
@@ -1136,15 +1186,23 @@ const Run = () => {
     }
   };
 
-  // Load existing data when needed (FIXED: prevent reloading after clear)
+  // FIXED: Load existing data when needed (prevent reloading after clear)
   useEffect(() => {
-    if (loadExisting && surveyModel && !isClearing) {
-      Logger.info("Loading existing data");
-      getResults();
-    } else {
+    if (loadExisting && surveyModel && !isClearing && !dataLoaded) {
+      Logger.info("Loading existing data for resume/edit");
+      
+      // For resume requests, load progress data instead of results
+      if (isResumeRequest) {
+        loadAllProgressData(); // This will handle navigation too
+      } else {
+        getResults();
+        setDataLoaded(true);
+      }
+    } else if (!loadExisting) {
       Logger.info("Starting with blank form");
+      setDataLoaded(true);
     }
-  }, [loadExisting, surveyModel, isClearing]);
+  }, [loadExisting, surveyModel, isClearing, dataLoaded, isResumeRequest]);
 
   // Load user and initial data
   useEffect(() => {
@@ -1152,37 +1210,12 @@ const Run = () => {
     getSurvey();
   }, []);
 
-  // UPDATED: Load progress when surveyModel is available (for resume functionality)
-  useEffect(() => {
-    if (surveyModel) {
-      loadProgress(); // Now this will have access to surveyModel for navigation
-    }
-  }, [surveyModel]); // Add surveyModel as dependency
-
-  // Apply existing progress to model (FIXED: prevent reapplying after clear)
-  useEffect(() => {
-    if (surveyModel && pageProgress.length > 0 && !isClearing) {
-      let mergedData = {};
-      pageProgress.forEach(progress => {
-        if (progress.isCompleted && progress.pageData) {
-          mergedData = { ...mergedData, ...progress.pageData };
-        }
-      });
-      
-      if (Object.keys(mergedData).length > 0) {
-        surveyModel.data = mergeDeep(surveyModel.data, mergedData);
-        Logger.info("Applied existing progress:", Object.keys(mergedData).length, "fields");
-      }
-    }
-  }, [surveyModel, pageProgress, isClearing]);
-
   // Apply theme
   useEffect(() => {
     if (surveyModel && selectedThemeIndex === 0) {
       const loadTheme = async () => {
         try {
           const response = await fetchData("/getTheme?surveyId=" + id, false);
-          // FIXED: Handle empty theme response
           if (response.data && response.data.theme) {
             const parsedTheme = JSON.parse(response.data.theme);
             setTheme(parsedTheme);
@@ -1190,16 +1223,15 @@ const Run = () => {
           }
         } catch (error) {
           Logger.debug("Theme loading failed or empty theme response:", error);
-          // Continue with default theme if theme loading fails
         }
       };
       loadTheme();
     }
   }, [surveyModel, selectedThemeIndex]);
 
-  // Apply result data to model (FIXED: prevent reapplying after clear)
+  // FIXED: Apply result data to model (prevent reapplying after clear)
   useEffect(() => {
-    if (Object.keys(result).length > 0 && loadExisting && surveyModel && !isCompleted && !isClearing) {
+    if (Object.keys(result).length > 0 && loadExisting && surveyModel && !isCompleted && !isClearing && !isResumeRequest) {
       Logger.debug("Applying existing results to model");
       if (!result_id) {
         surveyModel.data = mergeDeep(surveyModel.data, result);
@@ -1207,7 +1239,7 @@ const Run = () => {
         surveyModel.data = result;
       }
     }
-  }, [result, surveyModel, result_id, loadExisting, isCompleted, isClearing]);
+  }, [result, surveyModel, result_id, loadExisting, isCompleted, isClearing, isResumeRequest]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1310,7 +1342,7 @@ const Run = () => {
         <div className="flex justify-between mt-2 text-xs text-gray-500">
           <span>Page {currentPageIndex + 1} of {totalPages}</span>
           {isCurrentPageCompleted() && (
-            <span className="text-green-600 font-medium">✓ This page is completed</span>
+            <span className="text-green-600 font-medium">This page is completed</span>
           )}
         </div>
       </div>
@@ -1340,7 +1372,6 @@ const Run = () => {
               New
             </button>
             
-            {/* NEW: Resume status indicator */}
             {isResumeRequest && (
               <div className="flex items-center text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-md">
                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1350,7 +1381,6 @@ const Run = () => {
               </div>
             )}
             
-            {/* DEBUG BUTTONS */}
             <button 
               onClick={debugAuthentication}
               className="px-3 py-1 bg-yellow-500 text-black text-xs rounded ml-2"
@@ -1577,7 +1607,6 @@ const Run = () => {
               </span>
               <ThemeSelector />
               
-              {/* DEBUG AUTH BUTTON IN HEADER */}
               <button 
                 onClick={debugAuthentication}
                 className="px-3 py-1 bg-yellow-500 text-black text-xs rounded"
