@@ -696,8 +696,10 @@ const loadProgress = async () => {
     const response = await fetchData(`/getProgress?postId=${id}`, false);
     console.log("loadProgress: fetchData response:", response);
     
-    const progressData = response?.data || [];
+    // Handle double-nesting: response.data.data instead of response.data
+    const progressData = response?.data?.data || response?.data || [];
     console.log("loadProgress: extracted progressData:", progressData);
+    console.log("loadProgress: progressData is array:", Array.isArray(progressData));
     console.log("loadProgress: progressData length:", progressData.length);
     
     setPageProgress(Array.isArray(progressData) ? progressData : []);
@@ -715,8 +717,10 @@ const loadCurrentProgress = async () => {
     const response = await fetchData(`/getCurrentProgress?postId=${id}`, false);
     console.log("loadCurrentProgress: fetchData response:", response);
     
-    const currentProgressData = response?.data;
+    // Handle double-nesting: response.data.data instead of response.data
+    const currentProgressData = response?.data?.data || response?.data;
     console.log("loadCurrentProgress: extracted data:", currentProgressData);
+    console.log("loadCurrentProgress: has currentData:", !!currentProgressData?.currentData);
     
     if (currentProgressData && currentProgressData.currentData) {
       setCurrentProgress(currentProgressData);
