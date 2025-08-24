@@ -736,59 +736,66 @@ const Run = () => {
   }
 };
 
-  // NEW: Load all progress data and apply to survey model
-  const loadAllProgressData = async () => {
-    console.log("=== LOADING ALL PROGRESS DATA ===");
+const loadAllProgressData = async () => {
+  console.log("=== LOADING ALL PROGRESS DATA ===");
+  
+  if (!surveyModel || isClearing) {
+    console.log("Skipping progress load - no survey model or clearing");
+    return;
+  }
+  
+  try {
+    console.log("Step 1: About to call loadProgress");
+    await loadProgress(); // Completed pages
+    console.log("Step 2: loadProgress completed, about to call loadCurrentProgress");
     
-    if (!surveyModel || isClearing) {
-      console.log("Skipping progress load - no survey model or clearing");
-      return;
+    const currentProgressData = await loadCurrentProgress(); // Current work-in-progress
+    console.log("Step 3: loadCurrentProgress completed, data:", currentProgressData);
+    
+    let allData = {};
+    
+    console.log("Step 4: Processing pageProgress, length:", pageProgress.length);
+    // 1. First, merge completed page data
+    pageProgress.forEach(progress => {
+      if (progress.isCompleted && progress.pageData) {
+        allData = { ...allData, ...progress.pageData };
+        console.log("Merged completed page data:", Object.keys(progress.pageData));
+      }
+    });
+    
+    console.log("Step 5: Processing currentProgress");
+    // 2. Then, merge current progress data (this takes precedence)
+    if (currentProgressData && currentProgressData.currentData) {
+      allData = { ...allData, ...currentProgressData.currentData };
+      console.log("Merged current progress data:", Object.keys(currentProgressData.currentData));
     }
     
-    try {
-      // Load both types of progress data
-      await loadProgress(); // Completed pages
-      const currentProgressData = await loadCurrentProgress(); // Current work-in-progress
-      
-      let allData = {};
-      
-      // 1. First, merge completed page data
-      pageProgress.forEach(progress => {
-        if (progress.isCompleted && progress.pageData) {
-          allData = { ...allData, ...progress.pageData };
-          console.log("Merged completed page data:", Object.keys(progress.pageData));
-        }
-      });
-      
-      // 2. Then, merge current progress data (this takes precedence)
-      if (currentProgressData && currentProgressData.currentData) {
-        allData = { ...allData, ...currentProgressData.currentData };
-        console.log("Merged current progress data:", Object.keys(currentProgressData.currentData));
-      }
-      
-      // 3. Apply all data to survey model
-      if (Object.keys(allData).length > 0) {
-        surveyModel.data = mergeDeep(surveyModel.data, allData);
-        console.log("Applied total merged data:", Object.keys(allData).length, "fields");
-        Logger.info("Applied all progress data:", Object.keys(allData).length, "fields");
-      }
-      
-      // 4. FIXED: Navigate to correct page for resume requests
-      if (isResumeRequest && currentProgressData) {
-        const targetPage = currentProgressData.currentPageNo || 0;
-        console.log(`Navigating to resumed page: ${targetPage + 1} of ${surveyModel.pageCount}`);
-        surveyModel.currentPageNo = targetPage;
-        Logger.info(`Resumed checklist to page ${targetPage + 1}`);
-      }
-      
-      setDataLoaded(true);
-      console.log("=== ALL PROGRESS DATA LOADED AND APPLIED ===");
-      
-    } catch (error) {
-      Logger.error("Error loading progress data:", error);
-      setDataLoaded(true); // Still mark as loaded to prevent blocking
+    console.log("Step 6: Applying data to survey model");
+    // 3. Apply all data to survey model
+    if (Object.keys(allData).length > 0) {
+      surveyModel.data = mergeDeep(surveyModel.data, allData);
+      console.log("Applied total merged data:", Object.keys(allData).length, "fields");
+      Logger.info("Applied all progress data:", Object.keys(allData).length, "fields");
     }
-  };
+    
+    console.log("Step 7: Navigation for resume");
+    // 4. FIXED: Navigate to correct page for resume requests
+    if (isResumeRequest && currentProgressData) {
+      const targetPage = currentProgressData.currentPageNo || 0;
+      console.log(`Navigating to resumed page: ${targetPage + 1} of ${surveyModel.pageCount}`);
+      surveyModel.currentPageNo = targetPage;
+      Logger.info(`Resumed checklist to page ${targetPage + 1}`);
+    }
+    
+    setDataLoaded(true);
+    console.log("=== ALL PROGRESS DATA LOADED AND APPLIED ===");
+    
+  } catch (error) {
+    console.error("Error in loadAllProgressData:", error);
+    Logger.error("Error loading progress data:", error);
+    setDataLoaded(true); // Still mark as loaded to prevent blocking
+  }
+};
 
   // Auto-save current progress
   const autoSaveProgress = async (model: Model) => {
