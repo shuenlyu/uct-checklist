@@ -1403,20 +1403,6 @@ const loadAllProgressData = async () => {
               </div>
             )}
             
-            <button 
-              onClick={debugAuthentication}
-              className="px-3 py-1 bg-yellow-500 text-black text-xs rounded ml-2"
-            >
-              Debug Auth
-            </button>
-            
-            <button 
-              onClick={debugPageValidation}
-              className="px-3 py-1 bg-red-500 text-white text-xs rounded ml-2"
-            >
-              Debug Page
-            </button>
-            
             {isAutoSaving && (
               <div className="flex items-center text-sm text-gray-500">
                 <svg className="animate-spin h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24">
@@ -1628,13 +1614,6 @@ const loadAllProgressData = async () => {
                 {getDisplayName()}
               </span>
               <ThemeSelector />
-              
-              <button 
-                onClick={debugAuthentication}
-                className="px-3 py-1 bg-yellow-500 text-black text-xs rounded"
-              >
-                Debug Auth
-              </button>
             </div>
           </div>
         </div>
